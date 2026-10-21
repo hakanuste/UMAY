@@ -36,7 +36,7 @@
  *   UMAY_PIPER_AYAR   .onnx.json (verilmezse <model>.json denenir)
  *   UMAY_PIPER_PY     soylet.py yolu
  *   UMAY_PIPER_UZUN   konuşma ağırlığı (length_scale); Dede Korkut 1.52
- *   UMAY_PIPER_RENK   ses rengi düzeltmesi (arac/ses_rengi.py çıktısı)
+ *   UMAY_PIPER_RENK   ses rengi düzeltmesi (öntanımlı KAPALI; bkz. ara())
  *   UMAY_SES_OYNAT    çalıcı komutu (varsayılan: bulunan ilki)
  * ===================================================================== */
 
@@ -159,29 +159,22 @@ static void ara(void)
     const char *u = getenv("UMAY_PIPER_UZUN");
     if (u && *u) snprintf(g_uzun, sizeof g_uzun, "%s", u);
 
-    /* SES RENGI: olculen perde kusagi ve tayf dengesi duzeltmesi
-     * (arac/ses_rengi.py uretir). Yoksa ses ham haliyle kullanilir —
-     * eksikligi sessizce bir hataya donmez. */
+    /* SES RENGI — ÖNTANIMLI OLARAK KAPALI, istege bagli.
+     *
+     * NEDEN KAPALI: duzeltme, sesi Soylev kaydinin OLCULEN tayf
+     * dengesine oturtuyor ve bunu basariyla yapiyor — ortalama sapma
+     * 4.08 dB'den 0.82 dB'ye iniyor, perde 97 Hz'den 111 Hz'e cikiyor
+     * (hedef 109). Ama DINLEYEN ham sesi secti.
+     *
+     * Ders: olcute yakinlik, kulaga iyilik DEGILDIR. Olculen sey
+     * "referans kayda benzerlik"ti; istenen sey ise iyi bir Dede
+     * Korkut sesiydi. Ikisi ayni cikmadi. Arac ve olculen duzeltme
+     * yerinde duruyor (arac/ses_rengi.py, ses/dede_renk.json) ama
+     * yalnizca ACIKCA istenirse uygulanir:
+     *     UMAY_PIPER_RENK=<yol>/dede_renk.json
+     * Ham Piper sesi: perde ~97 Hz, derin; UMAY_PIPER_UZUN=1.52. */
     const char *r = getenv("UMAY_PIPER_RENK");
-    if (r && *r) { if (dosya_var(r)) snprintf(g_renk, sizeof g_renk, "%s", r); }
-    else {
-#ifdef UMAY_KUT_ONEK
-        snprintf(g_renk, sizeof g_renk, "%s/ses/dede_renk.json", UMAY_KUT_ONEK);
-        if (!dosya_var(g_renk)) g_renk[0] = 0;
-#endif
-        if (!g_renk[0]) {
-            const char *ev2 = getenv("HOME");
-            if (ev2) {
-                snprintf(g_renk, sizeof g_renk,
-                         "%s/.local/share/umay/ses/dede_renk.json", ev2);
-                if (!dosya_var(g_renk)) g_renk[0] = 0;
-            }
-        }
-        if (!g_renk[0]) {
-            snprintf(g_renk, sizeof g_renk, "ses/dede_renk.json");
-            if (!dosya_var(g_renk)) g_renk[0] = 0;
-        }
-    }
+    if (r && *r && dosya_var(r)) snprintf(g_renk, sizeof g_renk, "%s", r);
 
     /* 1) ses modeli — iki yolun ikisi de buna muhtac */
     const char *m = getenv("UMAY_PIPER_SES");
