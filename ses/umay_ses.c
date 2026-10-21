@@ -56,10 +56,18 @@ static ses_surucu_t g_bos = { .ad = "bos", .ac = bos_ac };
 ses_surucu_t *ses_bos_surucu(void) { return &g_bos; }
 
 /* --- Dede Korkut sürücüsü ---
- * TTS: metni hecelerine bölüp kopuz düzeninde ezgiye çevirir.
- * KONUŞMA DEĞİLDİR: ÖTÜKEN'de konuşma sentezleyicisi yoktur. Davudi,
- * tok, yaşlı bilge bir erkek sesi için formant sentezi gerekir; bu
- * sürücü o gelene kadar Dede Korkut'un sesinin ezgi karşılığıdır.
+ * KONUŞUR ya da SUSAR. Üçüncü yol yok.
+ *
+ * KOPUZ EZGİSİ KALDIRILDI. Eskiden formant sentezi olmazsa metin
+ * hecelerine bölünüp kopuz düzeninde bir ezgiye çevriliyordu. Üç
+ * nedenle kaldırıldı:
+ *   1. Ezgi KONUŞMA DEĞİLDİR. Sözcük taşımaz; "konuştu" sayılması
+ *      sahte başarıdır ve ÖTÜKEN'de artık formant sentezi VAR.
+ *   2. Yedek yol, asıl yolun bozuk olduğunu GİZLİYORDU: ses_init()
+ *      hiç çağrılmadığı için dede_konus() -1 dönüyordu, kopuza
+ *      düşülüyordu ve kimse asıl arızayı görmüyordu.
+ *   3. Çağırdığı ses_ton() yolu 21 ms'den uzun her notada çekirdek
+ *      belleğini taşırıyordu (ozan_ses.c 160-420 ms kullanır).
  * STT (dinle) yoktur. */
 static int ozan_ac(ses_surucu_t *s, uint32_t hz, uint32_t kanal)
 {
@@ -73,19 +81,15 @@ static int ozan_soyle(ses_surucu_t *s, const char *metin)
 {
     (void)s;
     if (!metin || !*metin) return UM_YANLIS;
-    /* Önce GERÇEK konuşma denenir (formant sentezi). Olmazsa kopuz
-     * ezgisine düşülür: hece ve vurgu yine duyulur.
+    /* GERÇEK konuşma: Türkçe formant sentezi. Olmazsa DESTEKSIZ döner
+     * ve UMAY yalnız yazıyla yanıtladığını BİLİR.
      *
-     * SAHTE BAŞARI DÜZELTİLDİ: burada ikisi de başarısız olsa yine
+     * SAHTE BAŞARI DÜZELTİLDİ: burada iki yol da başarısız olsa yine
      * UM_OLDU dönüyordu. ÖTÜKEN'de ses_init() hiç çağrılmadığı için
-     * ses_var() sıfırdı, dede_konus() ilk satırında -1 ile çıkıyordu,
-     * kopuz yolu da sessizdi — ama UMAY "konuştum" diyordu. Dosyanın
-     * başındaki "sessiz başarı üretilmez" ilkesi burada çiğneniyordu.
-     * Artık ikisi de olmazsa DESTEKSIZ döner ve UMAY yalnız yazıyla
-     * yanıtladığını bilir. */
-    if (up_dede_konus(metin) == 0) return UM_OLDU;
-    if (up_ozan_soyle(metin, 2) == 0) return UM_OLDU;
-    return UM_DESTEKSIZ;
+     * ses_var() sıfırdı ve dede_konus() ilk satırında -1 ile çıkıyordu
+     * — ama UMAY "konuştum" diyordu. Dosyanın başındaki "sessiz başarı
+     * üretilmez" ilkesi tam burada çiğneniyordu. */
+    return (up_dede_konus(metin) == 0) ? UM_OLDU : UM_DESTEKSIZ;
 }
 
 static ses_surucu_t g_ozan = {
