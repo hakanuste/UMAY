@@ -174,7 +174,8 @@ int up_metin_en(const char *s) { return (int)um_uzun(s) * 8; }
 /* Ana bilgisayarda ses yok: ezgi gunluge yazilir, sessiz gecilir. */
 /* Ses yoksa metni günlüğe basmak KONUŞMA DEĞİLDİR; yalnız yankı
  * yapar ve yanıtı ikinci kez yazdırır. Sessiz geçilir. */
-void up_ozan_soyle(const char *metin, int hiz) { (void)metin; (void)hiz; }
+int up_ozan_soyle(const char *metin, int hiz)
+{ (void)metin; (void)hiz; return -1; }   /* ana bilgisayarda kopuz yolu yok */
 void up_ses_nota(uint32_t hz, uint32_t ms) { (void)hz; (void)ms; }
 
 /* --- Gerçek konuşma: PIPER ---

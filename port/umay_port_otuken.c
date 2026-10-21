@@ -29,7 +29,8 @@ enum {
     SYS_SISTEM_BIL = 24, SYS_WRITE_FILE = 25, SYS_STAT = 26,
     SYS_MKDIR = 27, SYS_YETKI = 28, SYS_PROC_LISTE = 29,
     SYS_PEN_SUN = 30, SYS_PEN_OLAY = 31,
-    SYS_SES_NOTA = 32, SYS_OZAN_SOYLE = 33, SYS_DEDE_KONUS = 35
+    SYS_SES_NOTA = 32, SYS_OZAN_SOYLE = 33, SYS_DEDE_KONUS = 35,
+    SYS_SES_VAR = 36   /* ÖTÜKEN include/syscall.h ile aynı olmalı */
 };
 
 /* ÖTÜKEN TÖRE yetenek bitleri (include/tore.h) */
@@ -281,12 +282,18 @@ int up_olay_al(up_pencere_t *p, up_olay_t *o) {
 int up_metin_en(const char *s) { return (int)um_uzun(s) * 8; }
 
 /* --- Ses --- */
-void up_ozan_soyle(const char *metin, int hiz) {
-    if (metin) sys(SYS_OZAN_SOYLE, (int64_t)(uintptr_t)metin, hiz, 0, 0);
+int up_ozan_soyle(const char *metin, int hiz) {
+    if (!metin) return -1;
+    return (int)sys(SYS_OZAN_SOYLE, (int64_t)(uintptr_t)metin, hiz, 0, 0);
 }
 
-/* Gerçek konuşma: Türkçe formant sentezi. Ses aygıtı yoksa -1 döner. */
-int up_ses_var_mi(void) { return 1; }   /* AC'97 ya da PC hoparlörü */
+/* SES YOLU GERÇEKTEN AÇIK MI
+ * Burada SABİT 1 yazılıydı: "AC'97 ya da PC hoparlörü". Oysa ÖTÜKEN'de
+ * ses_init() hiç çağrılmıyordu, ses_var() sıfırdı ve ses_cal() ilk
+ * satırında -1 ile çıkıyordu. Sonuç: Dede Korkut sürücüsü açılıyor,
+ * UMAY "konuştum" diyor, kullanıcı sessizlik duyuyordu. Artık
+ * çekirdeğe SORULUR (SYS_SES_VAR). */
+int up_ses_var_mi(void) { return (int)sys(SYS_SES_VAR, 0, 0, 0, 0) == 1; }
 
 /* --- Kütüphane kökü ve dosya yolu ---
  * ÖTÜKEN'in FAT16 birimi DÜZ köktür: alt dizin yok, adlar 8.3 BÜYÜK

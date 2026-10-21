@@ -112,7 +112,9 @@ int up_yetkim_var_mi(up_yetki_t y);
 /* --- Ses ---
  * up_ozan_soyle metni heceleyip kopuz düzeninde ezgiye çevirir.
  * KONUŞMA DEĞİLDİR: PC hoparlörü tek kanal kare dalga üretir. */
-void     up_ozan_soyle(const char *metin, int hiz);
+/* 0 = seslendirildi, -1 = olmadı. Eskiden void'di; başarısızlığı
+ * görünmez oluyordu ve çağıran yine "konuştum" diyordu. */
+int      up_ozan_soyle(const char *metin, int hiz);
 
 /* Kutuphane kokunu bulur: UMAY_KUT, ./kut, ~/.local/share/umay/kut,
  * /usr/local/share/umay/kut sirasiyla denenir. Hicbiri yoksa "kut".

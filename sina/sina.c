@@ -813,6 +813,27 @@ int main(void) {
         ses_surucu_tak(ses_bos_surucu());
     }
 
+    printf("\n41) Ses: hicbir yol yoksa 'konustum' DENMEZ\n");
+    {
+        /* NEDEN BU SINAMA VAR: ozan_soyle() iki yol da basarisiz olsa
+         * yine UM_OLDU donuyordu. ÖTÜKEN'de ses_init() hic cagrilmadigi
+         * icin ses_var() sifirdi, dede_konus() ilk satirinda -1 ile
+         * cikiyordu, kopuz yolu da sessizdi — ama UMAY "konustum"
+         * diyordu. Kullanicinin "dede korkut konusamiyor" dedigi sey
+         * tam olarak bu zincirdi; olcumler yesilken ses yoktu. */
+        ses_surucu_tak(ses_bos_surucu());
+        dene("surucu yokken ses_soyle DESTEKSIZ doner",
+             ses_soyle("Ötüken'in yurdunda ocak tütüyor.") == UM_DESTEKSIZ);
+
+        /* Ozan surucusu zorla takilsa bile (ses yolu yok) soyle()
+         * basarili gorunmemeli. Surucu takilmayi reddettigi icin
+         * g_surucu bostadir; yine DESTEKSIZ beklenir. */
+        ses_surucu_tak(ses_ozan_surucu());
+        dene("acilamayan ozan surucusuyle de DESTEKSIZ doner",
+             ses_soyle("Bilge Kağan sözünü söyledi.") == UM_DESTEKSIZ);
+        ses_surucu_tak(ses_bos_surucu());
+    }
+
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
     return g_kaldi == 0 ? 0 : 1;
 }

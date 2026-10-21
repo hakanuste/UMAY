@@ -73,11 +73,19 @@ static int ozan_soyle(ses_surucu_t *s, const char *metin)
 {
     (void)s;
     if (!metin || !*metin) return UM_YANLIS;
-    /* Önce GERÇEK konuşma denenir (formant sentezi). Ses aygıtı yoksa
-     * kopuz ezgisine düşülür: hece ve vurgu yine duyulur. */
+    /* Önce GERÇEK konuşma denenir (formant sentezi). Olmazsa kopuz
+     * ezgisine düşülür: hece ve vurgu yine duyulur.
+     *
+     * SAHTE BAŞARI DÜZELTİLDİ: burada ikisi de başarısız olsa yine
+     * UM_OLDU dönüyordu. ÖTÜKEN'de ses_init() hiç çağrılmadığı için
+     * ses_var() sıfırdı, dede_konus() ilk satırında -1 ile çıkıyordu,
+     * kopuz yolu da sessizdi — ama UMAY "konuştum" diyordu. Dosyanın
+     * başındaki "sessiz başarı üretilmez" ilkesi burada çiğneniyordu.
+     * Artık ikisi de olmazsa DESTEKSIZ döner ve UMAY yalnız yazıyla
+     * yanıtladığını bilir. */
     if (up_dede_konus(metin) == 0) return UM_OLDU;
-    up_ozan_soyle(metin, 2);
-    return UM_OLDU;
+    if (up_ozan_soyle(metin, 2) == 0) return UM_OLDU;
+    return UM_DESTEKSIZ;
 }
 
 static ses_surucu_t g_ozan = {
