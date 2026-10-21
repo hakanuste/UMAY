@@ -1,0 +1,63 @@
+{
+  "perde_hedef": 108.8,
+  "perde_piper": 96.7,
+  "perde_orani": 1.1255,
+  "bantlar": [
+    [
+      60,
+      200
+    ],
+    [
+      200,
+      300
+    ],
+    [
+      300,
+      1000
+    ],
+    [
+      1000,
+      2000
+    ],
+    [
+      2000,
+      3000
+    ],
+    [
+      3000,
+      5000
+    ],
+    [
+      5000,
+      8000
+    ]
+  ],
+  "kazanc_db": [
+    -4.45,
+    -0.48,
+    0.0,
+    8.04,
+    7.79,
+    2.37,
+    -1.1
+  ],
+  "hedef_ltas_db": [
+    -0.37,
+    -0.53,
+    0.0,
+    -2.03,
+    -9.45,
+    -13.13,
+    -14.84
+  ],
+  "piper_ltas_db": [
+    4.08,
+    -0.05,
+    0.0,
+    -10.07,
+    -17.24,
+    -15.5,
+    -13.74
+  ],
+  "not": "Ses KLONU degildir: olculen perde kusagi ve tayf dengesine oturtur, konusmaci kimligini tasimaz."
+}

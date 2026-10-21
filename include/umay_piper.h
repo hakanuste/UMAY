@@ -7,6 +7,10 @@
 int         piper_var(void);
 /* Kullanilan ses modelinin yolu (yoksa "yok"). */
 const char *piper_ses_adi(void);
+
+/* Hangi yol kullaniliyor: "piper ikilisi", "dogrudan onnx" ya da
+ * "yok". Gunluge elle ad yazmak yerine bu sorulur. */
+const char *piper_yol_adi(void);
 /* Metni seslendirir ve calar. 0 = oldu, -1 = olmadi.
  * SAHTE BASARI YOK: bir asama tutmazsa -1 doner. */
 int         piper_konus(const char *metin);
