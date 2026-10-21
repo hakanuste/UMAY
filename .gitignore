@@ -1,0 +1,16 @@
+# --- derleme ciktilari ---
+*.o
+*.a
+*.so
+*.elf
+kov/
+cik/
+__pycache__/
+*.pyc
+
+# --- egitim ciktilari ---
+us1/c/*.o
+*.log
+
+# --- isletim sistemi ---
+.DS_Store
