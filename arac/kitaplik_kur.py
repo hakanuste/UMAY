@@ -176,6 +176,41 @@ def sadelestir(s):
     return re.sub(r'\s+', ' ', s).strip()[:70]
 
 
+# =====================================================================
+# BELGENIN DILI
+#
+# OLCULDU: kitapligin %33.4'u INGILIZCEDIR — 503 parca, 1.14 milyon
+# karakter — ve neredeyse tamami "tulga" alaninda (524 parcanin 486'si:
+# Musso ve M104 el kitaplari). Kullanici Turkce soruyor, ajan Ingilizce
+# metin getiriyor ve bunu SOYLEMIYORDU.
+#
+# Sezme yontemi: islev sozcukleri + Turkceye ozgu harfler. Sozcuk
+# listesi kisa tutuldu; uzun liste teknik metinde yanlis karar verir.
+# Esik ikili: Turkce lehine 1.2 kat ustunluk aranir, yoksa "belirsiz"
+# denir. BILINMEYENI TURKCE SAYMAK yanlis olurdu — ajan o zaman
+# Ingilizce alintiyi Turkce sanip kaynagi gizler.
+TR_HARF = set('çğıöşüÇĞİÖŞÜ')
+TR_SOZ = set('bir ve bu için ile olarak gibi daha çok var olan ise ancak '
+             'kadar sonra de da ne her hem'.split())
+EN_SOZ = set('the and for with this that from should must have been are '
+             'was will not you your can'.split())
+
+
+def dil_sez(metin):
+    k = metin.lower()
+    kelime = re.findall(r"[a-zçğıöşü']+", k)
+    if len(kelime) < 12:
+        return 'belirsiz'
+    tr = sum(1 for w in kelime if w in TR_SOZ) / len(kelime)
+    en = sum(1 for w in kelime if w in EN_SOZ) / len(kelime)
+    ozel = sum(1 for c in metin if c in TR_HARF) / max(1, len(metin))
+    if tr + ozel * 3 > en * 1.2:
+        return 'tr'
+    if en > tr:
+        return 'en'
+    return 'belirsiz'
+
+
 def etiket_uret(klasor, ad):
     kelimeler = re.findall(r'[a-zçğıöşü]{4,}',
                            (klasor + ' ' + ad).lower()
@@ -231,9 +266,10 @@ def kos(kaynak, hedef, yaz=True):
                 toplam_parca += 1
                 # 8.3 uyumlu, 32 bayttan kisa: b<klasor><belge><parca>
                 ad = 'b%02d%02d%03d.txt' % (bno, dno, i)
+                dl = dil_sez(parca)
                 kunye = ('#kategori: %s\n#baslik: %s (%d/%d)\n'
-                         '#etiket: %s\n#kaynak: %s\n\n'
-                         % (kat, baslik, i, len(parcalar), etiket, dosya))
+                         '#etiket: %s\n#kaynak: %s\n#dil: %s\n\n'
+                         % (kat, baslik, i, len(parcalar), etiket, dosya, dl))
                 if yaz:
                     dz = os.path.join(hedef, kat)
                     os.makedirs(dz, exist_ok=True)

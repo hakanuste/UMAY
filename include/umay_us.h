@@ -74,6 +74,8 @@ typedef struct {
     char baslik[96];
     char kaynak[96];
     kaynak_tur_t kaynak_tur;
+    char dil[BILGI_DIL_MAX];          /* dayanagin dili: "tr", "en", ... */
+    char ozgun_dil[BILGI_DIL_MAX];    /* ceviri ise ozgun dili */
     int  skor;
 } us_dayanak_t;
 

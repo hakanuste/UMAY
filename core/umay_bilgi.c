@@ -11,6 +11,8 @@ typedef struct {
     char baslik[96];
     char kaynak[96];
     kaynak_tur_t kaynak_tur;
+    char dil[BILGI_DIL_MAX];          /* künyeden; boşsa "tr" */
+    char ozgun_dil[BILGI_DIL_MAX];    /* çeviri ise özgün dili */
     char etiket[BILGI_ETIKET_MAX][24];
     int  etiket_sayi;
     char icerik[BILGI_ICERIK_MAX];
@@ -72,8 +74,9 @@ static void etiket_ayikla(kayit_t *k, const char *etiketler) {
     }
 }
 
-static int kayit_ekle_tam(const char *kategori, const char *baslik, const char *kaynak,
-                          kaynak_tur_t kt, const char *etiketler, const char *icerik) {
+static int kayit_ekle_dil(const char *kategori, const char *baslik, const char *kaynak,
+                          kaynak_tur_t kt, const char *etiketler, const char *icerik,
+                          const char *dil, const char *ozgun_dil) {
     /* BENGİ kaydı belge deposuna giremez: hafıza ile kaynak karışmasın. */
     if (kt == KT_BENGI) return UM_YANLIS;
     if (g_sayi >= BILGI_KAYIT_MAX) return UM_DOLU;
@@ -82,6 +85,9 @@ static int kayit_ekle_tam(const char *kategori, const char *baslik, const char *
     um_kopya(k->baslik,   sizeof k->baslik,   baslik);
     um_kopya(k->kaynak,   sizeof k->kaynak,   kaynak ? kaynak : "doktrin");
     k->kaynak_tur = kt;
+    /* Dil verilmediyse "tr": eski kayıtlar ve doktrinler Türkçedir. */
+    um_kopya(k->dil, sizeof k->dil, (dil && *dil) ? dil : "tr");
+    um_kopya(k->ozgun_dil, sizeof k->ozgun_dil, ozgun_dil ? ozgun_dil : "");
     etiket_ayikla(k, etiketler);
     um_kopya(k->icerik,   sizeof k->icerik,   icerik);
     k->kelime_sayisi = kelime_ayikla(k->icerik, k->kelime, BILGI_KELIME_MAX);
@@ -90,9 +96,22 @@ static int kayit_ekle_tam(const char *kategori, const char *baslik, const char *
     return UM_OLDU;
 }
 
+static int kayit_ekle_tam(const char *kategori, const char *baslik, const char *kaynak,
+                          kaynak_tur_t kt, const char *etiketler, const char *icerik) {
+    return kayit_ekle_dil(kategori, baslik, kaynak, kt, etiketler, icerik, 0, 0);
+}
+
 int bilgi_kayit_kat_tur(const char *kategori, const char *baslik, const char *kaynak,
                         kaynak_tur_t kt, const char *etiketler, const char *icerik) {
     return kayit_ekle_tam(kategori, baslik, kaynak, kt, etiketler, icerik);
+}
+
+/* Dili bilinen kayıt (kitaplık yükleyicisi bunu kullanır). */
+int bilgi_kayit_dil(const char *kategori, const char *baslik, const char *kaynak,
+                    kaynak_tur_t kt, const char *etiketler, const char *icerik,
+                    const char *dil, const char *ozgun_dil) {
+    return kayit_ekle_dil(kategori, baslik, kaynak, kt, etiketler, icerik,
+                          dil, ozgun_dil);
 }
 
 int bilgi_kayit_kat(const char *kategori, const char *baslik, const char *kaynak,
@@ -261,10 +280,16 @@ static int belge_yukle(const char *yol) {
     tampon[okundu] = 0;
 
     char kategori[32], baslik[96], etiket[96], kaynak[96];
+    char dil[BILGI_DIL_MAX], ozgun[BILGI_DIL_MAX];
     const char *k = ustveri_al(tampon, "kategori", kategori, sizeof kategori);
     const char *b = ustveri_al(tampon, "baslik",   baslik,   sizeof baslik);
     const char *e = ustveri_al(tampon, "etiket",   etiket,   sizeof etiket);
     const char *s = ustveri_al(tampon, "kaynak",   kaynak,   sizeof kaynak);
+    /* #dil ve #ozgun_dil: kitaplığın %33.4'ü İngilizce. Künyede yoksa
+     * "tr" varsayılır (eski kayıtlar ve doktrinler Türkçedir). */
+    if (!ustveri_al(tampon, "dil", dil, sizeof dil) || !dil[0])
+        um_kopya(dil, sizeof dil, "tr");
+    if (!ustveri_al(tampon, "ozgun_dil", ozgun, sizeof ozgun)) ozgun[0] = 0;
 
     if (!k || !gecerli_kategori(kategori)) {
         gun_yaz("Belge üstverisiz ya da tanınmaz kategoride, ortak havuza koydum: %s", yol);
@@ -277,7 +302,8 @@ static int belge_yukle(const char *yol) {
     if (s && kaynak[0]) um_bicim(kaynak_tam, sizeof kaynak_tam, "%s (%s)", yol, kaynak);
     else um_kopya(kaynak_tam, sizeof kaynak_tam, yol);
 
-    return kayit_ekle_tam(kategori, baslik, kaynak_tam, KT_BELGE, etiket, govde_bul(tampon));
+    return kayit_ekle_dil(kategori, baslik, kaynak_tam, KT_BELGE, etiket,
+                          govde_bul(tampon), dil, ozgun);
 }
 
 /* Depoyu tarar: 13 alan dizini + kök. Kategori yine üstveriden gelir;
@@ -384,6 +410,8 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
         um_kopya(cikan[i].baslik,   sizeof cikan[i].baslik,   r->baslik);
         um_kopya(cikan[i].kaynak,   sizeof cikan[i].kaynak,   r->kaynak);
         cikan[i].kaynak_tur = r->kaynak_tur;
+        um_kopya(cikan[i].dil, sizeof cikan[i].dil, r->dil);
+        um_kopya(cikan[i].ozgun_dil, sizeof cikan[i].ozgun_dil, r->ozgun_dil);
         cikan[i].etiket_sayi = r->etiket_sayi;
         for (int e = 0; e < r->etiket_sayi; e++)
             um_kopya(cikan[i].etiket[e], 24, r->etiket[e]);

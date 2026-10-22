@@ -47,11 +47,25 @@ typedef enum {
     KT_BENGI          /* BENGİ kaydı — BİLGİ'ye GİREMEZ   */
 } kaynak_tur_t;
 
+/* BELGENİN DİLİ
+ * NEDEN GEREKLİ: kitaplığın %33.4'ü (503 parça, 1.14 milyon karakter)
+ * İNGİLİZCEDİR ve neredeyse tamamı "tulga" alanındadır (524 parçanın
+ * 486'sı: Musso ve M104 el kitapları). Kullanıcı Türkçe soruyor, ajan
+ * İngilizce metin getiriyordu ve bunu SÖYLEMİYORDU.
+ *
+ * Dil, kaydın künyesinden okunur (#dil:). Boşsa "tr" varsayılır —
+ * eski kayıtlar Türkçedir. Ajan, Türkçe olmayan bir kaynaktan
+ * yanıtlıyorsa bunu AÇIKÇA bildirir; sessizce başka dilde alıntı
+ * vermek, kaynağı gizlemektir. */
+#define BILGI_DIL_MAX 8
+
 typedef struct {
     char kategori[32];
     char baslik[96];
     char kaynak[96];                     /* dosya yolu ya da kaynak adı */
     kaynak_tur_t kaynak_tur;
+    char dil[BILGI_DIL_MAX];             /* "tr", "en", ... */
+    char ozgun_dil[BILGI_DIL_MAX];       /* çeviri ise özgün dili */
     char etiket[BILGI_ETIKET_MAX][24];
     int  etiket_sayi;
     char alinti[BILGI_ALINTI_MAX];
@@ -89,6 +103,12 @@ int  bilgi_kayit_kat(const char *kategori, const char *baslik, const char *kayna
                      const char *etiketler, const char *icerik);
 int  bilgi_kayit_kat_tur(const char *kategori, const char *baslik, const char *kaynak,
                          kaynak_tur_t kt, const char *etiketler, const char *icerik);
+
+/* Dili bilinen kayit. Kitaplik yukleyicisi bunu kullanir; dil
+ * verilmezse "tr" varsayilir. */
+int  bilgi_kayit_dil(const char *kategori, const char *baslik, const char *kaynak,
+                     kaynak_tur_t kt, const char *etiketler, const char *icerik,
+                     const char *dil, const char *ozgun_dil);
 
 int  bilgi_baglam_bul(const char *soru, baglam_t *cikan, int en_cok);
 int  bilgi_baglam_bul_kat(const char *soru, const char *const *kategoriler,

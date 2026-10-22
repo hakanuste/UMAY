@@ -834,6 +834,79 @@ int main(void) {
         ses_surucu_tak(ses_bos_surucu());
     }
 
+    printf("\n42) Dil: Turkce olmayan dayanak SOYLENIR\n");
+    {
+        /* NEDEN BU SINAMA VAR: kitapligin %33.4'u Ingilizcedir (503
+         * parca, 1.14 milyon karakter) ve neredeyse tamami "tulga"
+         * alaninda — Musso ve M104 el kitaplari. Kullanici Turkce
+         * soruyor; ajan Ingilizce bir metinden yanitlarken bunu
+         * BILDIRMEK zorundadir. Sessizce baska dilde alinti vermek
+         * kaynagi gizlemektir. */
+        bilgi_kayit_dil("tulga", "Musso Transmission Oil", "/kut/tulga/en1.txt",
+                        KT_BELGE, "sanziman,yag",
+                        "The transmission oil level should be checked with the "
+                        "vehicle on level ground. Use ATF Dexron III only.",
+                        "en", "");
+        bilgi_kayit_dil("tulga", "Musso Sanziman Yagi", "/kut/tulga/tr1.txt",
+                        KT_BELGE, "sanziman,yag",
+                        "Sanziman yagi duzeyi arac duz zeminde iken olculur. "
+                        "Yalniz ATF Dexron III kullanilir.",
+                        "tr", "en");
+
+        baglam_t bd[3];
+        int nd = bilgi_baglam_bul_kat("transmission oil Dexron",
+                                      (const char *[]){ "tulga" }, 1, bd, 3);
+        dene("Ingilizce kayit bulunuyor", nd > 0);
+        int ingilizce_var = 0, ceviri_var = 0;
+        for (int i = 0; i < nd; i++) {
+            if (um_esit(bd[i].dil, "en")) ingilizce_var = 1;
+            if (bd[i].ozgun_dil[0])       ceviri_var = 1;
+        }
+        dene("kaydin dili kunyeden tasiniyor", ingilizce_var || ceviri_var);
+
+        /* Ingilizce dayanakla yanit: uyari VE kaynak satirinda dil */
+        us_derle_t istem;
+        us_cikti_t cikti;
+        um_bellek_doldur(&istem, 0, sizeof istem);
+        baglam_t yabanci = bd[0];
+        um_kopya(yabanci.dil, sizeof yabanci.dil, "en");
+        yabanci.ozgun_dil[0] = 0;
+        istem.soru        = "Musso sanziman yagi hangisi";
+        istem.baglam      = &yabanci;
+        istem.baglam_sayi = 1;
+        istem.uzman_ad    = "TULGA";
+        istem.uzman_is    = "demirci";
+        us_cevap_uret(&istem, &cikti);
+        static char rapor[GOREV_SONUC_MAX];
+        us_cikti_yaz(&cikti, rapor, sizeof rapor);
+        dene("yanitta 'Ingilizce' uyarisi var",
+             um_icinde(rapor, "İngilizce") != 0);
+        dene("kaynak satirinda dil anilyor",
+             um_icinde(rapor, "İngilizce]") != 0 ||
+             um_icinde(rapor, ", İngilizce") != 0);
+
+        /* Turkce dayanakta boyle bir uyari OLMAMALI: her yanita dil
+         * notu dusmek gurultu olur ve uyariyi degersizlestirir. */
+        baglam_t turkce = bd[0];
+        um_kopya(turkce.dil, sizeof turkce.dil, "tr");
+        turkce.ozgun_dil[0] = 0;
+        istem.baglam = &turkce;
+        us_cevap_uret(&istem, &cikti);
+        us_cikti_yaz(&cikti, rapor, sizeof rapor);
+        dene("Turkce dayanakta dil uyarisi YOK",
+             um_icinde(rapor, "İngilizce") == 0);
+
+        /* Ceviri kaydi: ozgun dili soylenir */
+        baglam_t cev = bd[0];
+        um_kopya(cev.dil, sizeof cev.dil, "tr");
+        um_kopya(cev.ozgun_dil, sizeof cev.ozgun_dil, "en");
+        istem.baglam = &cev;
+        us_cevap_uret(&istem, &cikti);
+        us_cikti_yaz(&cikti, rapor, sizeof rapor);
+        dene("ceviri kaydinda 'cevrilmis' deniyor",
+             um_icinde(rapor, "çevrilmiş") != 0 || um_icinde(rapor, "çeviri") != 0);
+    }
+
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
     return g_kaldi == 0 ? 0 : 1;
 }

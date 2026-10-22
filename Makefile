@@ -115,6 +115,20 @@ kitaplik:
 	@test -d "$(ARSIV)" || { echo "dizin yok: $(ARSIV)"; exit 2; }
 	python3 -I arac/kitaplik_kur.py "$(ARSIV)" kut
 
+# --- CEVIRI ---
+# Kitapligin Turkce olmayan parcalarini BIR KEZ cevirir. Olculdu:
+# 515 parca, 1.16 milyon karakter, neredeyse tamami "tulga" alaninda
+# (Musso ve M104 el kitaplari). Ceviri bir KURULUM adimidir, sorgu
+# aninda yapilmaz: denetlenebilir olsun ve her soruda baska cikmasin.
+#   make ceviri-say              -> ne kadar is var (kuru kosu)
+#   make ceviri MODEL=qwen2.5    -> Ollama ile cevirir
+MODEL ?=
+EN_COK ?=
+ceviri-say:
+	python3 -I arac/cevir.py kut --kuru
+ceviri:
+	python3 -I arac/cevir.py kut $(if $(MODEL),--model $(MODEL),) $(if $(EN_COK),--en-cok $(EN_COK),)
+
 # --- EGITIM ---
 # Kontrol noktasindan SURDURUR (arac/egit_derlem.py). Kap askiya
 # alinirsa ilerleme kaybolmaz; --sifirdan ile bastan baslar.
@@ -126,4 +140,4 @@ egit:
 temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle kitaplik egit temiz
+.PHONY: all sina kur kaldir ses otuken otuken-denetle kitaplik ceviri ceviri-say egit temiz

@@ -106,7 +106,54 @@ static void dayanak_ekle(us_cikti_t *o, const baglam_t *b) {
     um_kopya(d->baslik,   sizeof d->baslik,   b->baslik);
     um_kopya(d->kaynak,   sizeof d->kaynak,   b->kaynak);
     d->kaynak_tur = b->kaynak_tur;
+    um_kopya(d->dil, sizeof d->dil, b->dil[0] ? b->dil : "tr");
+    um_kopya(d->ozgun_dil, sizeof d->ozgun_dil, b->ozgun_dil);
     d->skor = b->skor;
+}
+
+/* Dil kodunu Türkçe adıyla söyler. Bilinmeyen kod olduğu gibi geçer:
+ * uydurma ad üretmek, kaynağı yanlış tanıtmak olur. */
+static const char *dil_adi(const char *k) {
+    if (!k || !*k)            return "Türkçe";
+    if (um_esit(k, "tr"))     return "Türkçe";
+    if (um_esit(k, "en"))     return "İngilizce";
+    if (um_esit(k, "de"))     return "Almanca";
+    if (um_esit(k, "ru"))     return "Rusça";
+    if (um_esit(k, "fr"))     return "Fransızca";
+    if (um_esit(k, "ar"))     return "Arapça";
+    if (um_esit(k, "belirsiz")) return "dili belirsiz";
+    return k;
+}
+
+/* DAYANAK TÜRKÇE DEĞİLSE SÖYLENİR.
+ * NEDEN: kitaplığın %33.4'ü İngilizce (503 parça, 1.14 milyon
+ * karakter), neredeyse tamamı "tulga" alanında — Musso ve M104 el
+ * kitapları. Kullanıcı Türkçe soruyor; ajan İngilizce bir metinden
+ * yanıtlıyorsa bunu BİLDİRMEK zorundadır. Sessizce başka dilde
+ * alıntı vermek kaynağı gizlemektir; çeviriyi kendi uydurduğunu
+ * saklamak ise daha kötüsü.
+ * Çeviri kaydıysa (ozgun_dil dolu) o da söylenir: okuyan, metnin
+ * aslının başka dilde olduğunu bilsin. */
+static void dil_uyarisi(us_cikti_t *o) {
+    int yabanci = 0, ceviri = 0;
+    const char *ilk = 0;
+    for (int i = 0; i < o->dayanak_sayi; i++) {
+        if (o->dayanak[i].ozgun_dil[0]) { ceviri = 1; if (!ilk) ilk = o->dayanak[i].ozgun_dil; }
+        else if (!um_esit(o->dayanak[i].dil, "tr")) {
+            yabanci = 1; if (!ilk) ilk = o->dayanak[i].dil;
+        }
+    }
+    char n[160];
+    if (yabanci) {
+        um_bicim(n, sizeof n,
+                 "Dayanağım %s bir kaynak; alıntı özgün dilindedir, "
+                 "çevirisi benim değildir.", dil_adi(ilk));
+        uyari_ekle(o, n);
+    } else if (ceviri) {
+        um_bicim(n, sizeof n,
+                 "Dayanağım %s özgünden çevrilmiş bir kayıttır.", dil_adi(ilk));
+        uyari_ekle(o, n);
+    }
 }
 
 int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
@@ -122,6 +169,7 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
 
     for (int b = 0; b < i->baglam_sayi && b < US_DAYANAK_MAX; b++)
         dayanak_ekle(o, &i->baglam[b]);
+    dil_uyarisi(o);
 
     /* çatışma: birleştirme yok, iki kaynak da adıyla anılır */
     if (i->catisma && i->catisma->var) {
@@ -241,10 +289,20 @@ uint32_t us_cikti_yaz(const us_cikti_t *o, char *c, uint32_t n) {
                       "dayanak saymadım.)\n");
 
     for (int i = 0; i < o->dayanak_sayi; i++) {
-        char s[288];
-        um_bicim(s, sizeof s, "(Dayanağım: %s / %s — %s [%s])\n",
-                 o->dayanak[i].kategori, o->dayanak[i].baslik,
-                 o->dayanak[i].kaynak, kaynak_tur_adi(o->dayanak[i].kaynak_tur));
+        char s[352];
+        const us_dayanak_t *d = &o->dayanak[i];
+        /* Dil, Türkçe olmadığında kaynak satırında da anılır: uyarı
+         * yukarıda bir kez geçer, ama HANGİ dayanağın yabancı olduğu
+         * ancak burada görünür. */
+        char dnot[48];
+        dnot[0] = 0;
+        if (d->ozgun_dil[0])
+            um_bicim(dnot, sizeof dnot, ", %s'den çeviri", dil_adi(d->ozgun_dil));
+        else if (!um_esit(d->dil, "tr"))
+            um_bicim(dnot, sizeof dnot, ", %s", dil_adi(d->dil));
+        um_bicim(s, sizeof s, "(Dayanağım: %s / %s — %s [%s%s])\n",
+                 d->kategori, d->baslik, d->kaynak,
+                 kaynak_tur_adi(d->kaynak_tur), dnot);
         um_ekle(c, n, s);
     }
 
