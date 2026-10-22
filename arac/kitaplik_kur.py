@@ -74,9 +74,64 @@ DAMGA = [
 ]
 
 
+# =====================================================================
+# PDF YAZITIPI BOZULMALARI
+#
+# PDF'ler gomulu alt kume yazitipi kullanir; cikaricinin o yazitipinin
+# kendi eslemesini yanlis okumasi TURKCE HARFLERI baska imlere
+# cevirir. Olculdu: derlemde 8493 sozluk disi im (%0.238), 342 ayri
+# isaret. Onemli olanlar bozulmus HARFLERDIR — duzeltilince gercek
+# metin geri gelir.
+#
+# Esleme TAHMINLE DEGIL BAGLAMDAN dogrulandi:
+#   'G' (U+0122) -> 'ş'   "hazirlanmiG" -> hazırlanmış ; "GoruG" -> Görüş
+#                         "BirleGik" -> Birleşik                 (1701 kez)
+#   'I' (U+0120) -> 'İ'   "MILLI EGITIM" -> MİLLÎ EĞİTİM          (220 kez)
+#   'g' (U+0121) -> 'Ş'   "GIRIg" -> GİRİŞ ; "KOgUL" -> KOŞUL     (116 kez)
+#
+# ILK TAHMIN YANLISTI: U+0121 icin 'ı' sanilmisti (kucuk harf
+# goruntusu yaniltici). Baglama bakilinca hepsinin BUYUK harfli
+# basliklarda oldugu ve 'Ş' oldugu gorundu: "GIRIı" anlamsiz,
+# "GİRİŞ" dogru. Tek bayt kodlama cevrimleri de denendi
+# (cp1254 / iso8859-4 / -13 / cp1257): hicbiri bu imleri uretmiyor,
+# yani kodlama karisikligi DEGIL, yazitipi eslemesi.
+#
+# U+00DE (207 kez) HARF DEGILDIR: Ingilizce Musso kilavuzunda
+# "<im> 1.0 . ECU:power" gibi gecer, madde imidir. 'Ş' yazmak metni
+# bozardi — bu yuzden isaret olarak ele alinir.
+HARF_ONARIM = {
+    '\u0122': 'ş',
+    '\u0120': '\u0130',
+    '\u0121': '\u015e',
+}
+
+# Yazitipinin ozel kullanim alanindan (U+F0xx) gelen imler: Symbol ve
+# Wingdings madde/matematik glifleri. Harf degil, isaret.
+ISARET_ONARIM = {
+    '\uf0b7': '\u00b7',
+    '\uf0d8': '-',
+    '\uf0d7': '-',
+    '\uf03d': '=',
+    '\uf061': '\u03b1',
+    '\u00de': '-',
+    '\u00d8': '-',
+    '\u25a0': '-',
+    '\u2022': '\u00b7',
+    '\x00': '',
+}
+
+
+def imleri_onar(m):
+    for k, v in HARF_ONARIM.items():
+        m = m.replace(k, v)
+    for k, v in ISARET_ONARIM.items():
+        m = m.replace(k, v)
+    return m
+
+
 def temizle(metin):
     """PDF cikarim gurultusunu siler."""
-    m = metin
+    m = imleri_onar(metin)
     for d in DAMGA:
         m = d.sub('', m)
     m = re.sub(r'-{2,}\s*SAYFA\s*\d+\s*-{2,}', '\n', m)   # sayfa isaretcisi
