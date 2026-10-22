@@ -125,17 +125,35 @@ static int soylet_bul(char *c, size_t n)
 }
 
 /* <model>.onnx -> <model>.onnx.json, olmazsa <model>.json */
+/* <model>.onnx -> <model>.onnx.json, olmazsa <model>.json
+ *
+ * YOL KIRPILMASI: snprintf sigmazsa SESSIZCE kirpar ve geriye gecerli
+ * gorunen ama yanlis bir yol kalir. ".json" eklemesi tamponu asiyorsa
+ * basarisiz olunur — kirpilmis yolla dosya aramak, var olan bir ayari
+ * "yok" saymak ya da baska bir dosyayi acmak demektir.
+ * -Werror=format-truncation yakaladi. */
+static int ek_ile(char *c, size_t n, const char *kok, size_t kok_uz,
+                  const char *ek)
+{
+    if (kok_uz + strlen(ek) + 1 > n) return 0;      /* sigmaz */
+    memcpy(c, kok, kok_uz);
+    memcpy(c + kok_uz, ek, strlen(ek) + 1);
+    return 1;
+}
+
 static int ayar_bul(const char *model, char *c, size_t n)
 {
     const char *v = getenv("UMAY_PIPER_AYAR");
-    if (v && *v) { snprintf(c, n, "%s", v); return dosya_var(c); }
-    snprintf(c, n, "%s.json", model);
-    if (dosya_var(c)) return 1;
-    size_t L = strlen(model);
-    if (L > 5 && strcmp(model + L - 5, ".onnx") == 0) {
-        snprintf(c, n, "%.*s.json", (int)(L - 5), model);
-        if (dosya_var(c)) return 1;
+    if (v && *v) {
+        if (strlen(v) + 1 > n) return 0;
+        snprintf(c, n, "%s", v);
+        return dosya_var(c);
     }
+    size_t L = strlen(model);
+    if (ek_ile(c, n, model, L, ".json") && dosya_var(c)) return 1;
+    if (L > 5 && strcmp(model + L - 5, ".onnx") == 0 &&
+        ek_ile(c, n, model, L - 5, ".json") && dosya_var(c)) return 1;
+    c[0] = 0;
     return 0;
 }
 

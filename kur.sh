@@ -30,11 +30,21 @@ echo "UMAY kurulumu  (onek: $ONEK)"
 echo
 
 # --- 1) gereksinimler ---
-command -v make >/dev/null 2>&1 || hata "make yok. Debian/Ubuntu: sudo apt install build-essential"
+# Isletim sistemi: oneriler ona gore verilir. Eskiden her hata
+# "Debian/Ubuntu: sudo apt install ..." diyordu; macOS'ta o oneri
+# ise yaramaz.
+case "$(uname -s)" in
+  Darwin) OS=macos; DERLEYICI_ONERI="xcode-select --install" ;;
+  Linux)  OS=linux; DERLEYICI_ONERI="sudo apt install build-essential" ;;
+  *)      OS=bilinmeyen; DERLEYICI_ONERI="C derleyicisi ve make kurun" ;;
+esac
+yaz "isletim sistemi: $OS"
+
+command -v make >/dev/null 2>&1 || hata "make yok. $DERLEYICI_ONERI"
 if   command -v cc  >/dev/null 2>&1; then DERLEYICI=cc
-elif command -v gcc >/dev/null 2>&1; then DERLEYICI=gcc
 elif command -v clang >/dev/null 2>&1; then DERLEYICI=clang
-else hata "C derleyicisi yok. Debian/Ubuntu: sudo apt install build-essential"; fi
+elif command -v gcc >/dev/null 2>&1; then DERLEYICI=gcc
+else hata "C derleyicisi yok. $DERLEYICI_ONERI"; fi
 yaz "derleyici: $DERLEYICI"
 
 # --- 2) derle ---

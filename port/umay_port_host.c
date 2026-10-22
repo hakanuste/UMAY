@@ -1,7 +1,14 @@
 /* Ana makine (POSIX) taşıma katmanı — YALNIZ SINAMA İÇİNDİR.
- * ÖTÜKEN'e gitmez. Çekirdek mantığın doğruluğunu QEMU'suz denemeye yarar. */
+ * ÖTÜKEN'e gitmez. Çekirdek mantığın doğruluğunu QEMU'suz denemeye yarar.
+ *
+ * YALNIZ _POSIX_C_SOURCE: eskiden _DEFAULT_SOURCE da tanımlıydı, çünkü
+ * usleep() POSIX.1-2008'de KALDIRILDI ve glibc onu o makroyla geri
+ * getiriyor. Ama _DEFAULT_SOURCE glibc'ye özgüdür; macOS'ta karşılığı
+ * _DARWIN_C_SOURCE'tur ve orada usleep bildirilmemiş sayılırdı —
+ * örtük bildirim, C11'de hata. MacBook'ta derlenmemesinin sebebi bu
+ * olurdu. Çözüm makro eklemek değil, POSIX'te DURAN çağrıyı
+ * kullanmak: nanosleep. */
 #define _POSIX_C_SOURCE 200809L
-#define _DEFAULT_SOURCE 1
 #include "umay_port.h"
 #include "umay_piper.h"
 #include "umay_us.h"
@@ -22,7 +29,14 @@ uint64_t up_ms(void) {
     if (!g_bas) g_bas = ms;
     return ms - g_bas;
 }
-void up_uyu(uint32_t ms) { usleep(ms * 1000); }
+void up_uyu(uint32_t ms)
+{
+    struct timespec t;
+    t.tv_sec  = (time_t)(ms / 1000u);
+    t.tv_nsec = (long)(ms % 1000u) * 1000000L;
+    /* Sinyal kesebilir: kalan süre tamamlanır. */
+    while (nanosleep(&t, &t) == -1) { }
+}
 void up_birak(void) { }
 void up_gunluk(const char *s) { printf("%s\n", s); fflush(stdout); }
 void *up_ayir(uint64_t n) { return malloc(n); }

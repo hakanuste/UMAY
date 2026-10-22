@@ -14,3 +14,15 @@ us1/c/*.o
 
 # --- isletim sistemi ---
 .DS_Store
+
+# --- KITAPLIK ICERIGI ---
+# kut/ altindaki parcalar HAM ARSIVDEN uretilir (make kitaplik).
+# Iceride el kitaplari ve yayinlanmis kitap metinleri var; onlarin
+# yeri bir kaynak deposu degil. Ornek belgeler ve ayarlar kalir.
+kut/*/
+kut/b[0-9]*.txt
+
+# --- EGITIM CIKTILARI ---
+# kontrol.npz 5 MB'lik Adam durumudur, her olcumde yeniden yazilir.
+egitim/
+*.npz

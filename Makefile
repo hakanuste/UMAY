@@ -103,7 +103,27 @@ kaldir:
 	rm -rf $(ONEK)/share/umay
 	@echo "kaldirildi: $(ONEK)/bin/umay"
 
+# --- KITAPLIK ---
+# Ham arsivi UMAY'in okudugu parcalara cevirir. Parcalar DEPOYA
+# GIRMEZ (.gitignore): iceride el kitaplari ve yayinlanmis kitap
+# metinleri var, onlarin yeri bir kaynak deposu degil. Kurulan
+# makinede bu hedefle yeniden uretilir.
+#   make kitaplik ARSIV=/yol/Umay_Kutuphanesi
+ARSIV ?=
+kitaplik:
+	@test -n "$(ARSIV)" || { echo "kullanim: make kitaplik ARSIV=/yol/Umay_Kutuphanesi"; exit 2; }
+	@test -d "$(ARSIV)" || { echo "dizin yok: $(ARSIV)"; exit 2; }
+	python3 -I arac/kitaplik_kur.py "$(ARSIV)" kut
+
+# --- EGITIM ---
+# Kontrol noktasindan SURDURUR (arac/egit_derlem.py). Kap askiya
+# alinirsa ilerleme kaybolmaz; --sifirdan ile bastan baslar.
+EGITIM_CIK ?= egitim
+ADIM       ?= 400000
+egit:
+	python3 -I arac/egit_derlem.py kut "$(EGITIM_CIK)" $(ADIM)
+
 temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle temiz
+.PHONY: all sina kur kaldir ses otuken otuken-denetle kitaplik egit temiz
