@@ -29,6 +29,32 @@
 #define US1_AZAMI_SOZLUK  128
 #define US1_AZAMI_BAGLAM   96
 
+/* AZAMI MODEL DOSYA BOYU — SIHIRLI SAYI DEGIL, HESAP.
+ *
+ * NEDEN: yukleyicinin tamponu elle "192 KB" yaziliydi. Egitici ise
+ * motorun IZIN VERDIGI EN BUYUK modeli kuruyor (d=96, katman=4,
+ * ffn=256, sozluk=128) ve o model 485.100 bayt. Dosya 192 KB'ta
+ * kirpilarak okunuyor, tensor dongusu sondan tasiyor ve model
+ * "bozuk" sayiliyordu: 120.000 adim egitilen model HIC CALISMADI,
+ * sistem sessizce stub'a dusuyordu.
+ *
+ * Artik sinir tavanlardan turetilir; tavanlar degisirse tampon da
+ * degisir ve bir daha kucuk kalamaz.
+ *
+ * Bir tensorun diskteki boyu: 8 bayt (satir, sutun) + satir basina
+ * (4 bayt f32 olcek + sutun bayt int8). */
+#define US1_TENSOR_BOY(satir, sutun)  (8u + (uint32_t)(satir) * (4u + (uint32_t)(sutun)))
+
+#define US1_MODEL_AZAMI ( 48u                                               \
+    + US1_TENSOR_BOY(US1_AZAMI_SOZLUK, US1_AZAMI_D)                         \
+    + (uint32_t)US1_AZAMI_KATMAN * (                                        \
+          2u * US1_TENSOR_BOY(1, US1_AZAMI_D)             /* n1, n2   */    \
+        + 4u * US1_TENSOR_BOY(US1_AZAMI_D, US1_AZAMI_D)   /* wq..wo   */    \
+        + 2u * US1_TENSOR_BOY(US1_AZAMI_FFN, US1_AZAMI_D) /* w1, w3   */    \
+        + 1u * US1_TENSOR_BOY(US1_AZAMI_D, US1_AZAMI_FFN) /* w2       */ )  \
+    + US1_TENSOR_BOY(1, US1_AZAMI_D)                      /* son_norm */    \
+    + US1_TENSOR_BOY(US1_AZAMI_SOZLUK, US1_AZAMI_D) )     /* cikis    */
+
 typedef struct {
     uint32_t satir, sutun;
     const uint8_t *veri;    /* satır başına: f32 ölçek + int8[sutun] */

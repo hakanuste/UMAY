@@ -38,7 +38,28 @@ void up_uyu(uint32_t ms)
     while (nanosleep(&t, &t) == -1) { }
 }
 void up_birak(void) { }
-void up_gunluk(const char *s) { printf("%s\n", s); fflush(stdout); }
+/* GUNLUK STDERR'E GIDER, STDOUT'A DEGIL.
+ *
+ * NEDEN: "umay 'soru' > cevap.txt" calistirildiginda dosyaya 49 satir
+ * baslatma tanisi giriyordu ve yanit onlarin arasinda kayboluyordu.
+ * Kurulu bir programda stdout YANITTIR; tani, uyari ve ilerleme
+ * stderr'e aittir. Boylece boru hattina sokulabilir:
+ *     umay "soru" | less        -> yalniz yanit
+ *     umay "soru" 2>/dev/null   -> yalniz yanit
+ *     umay "soru" 2>gunluk.txt  -> tani ayri dosyada
+ * UMAY_GUNLUK_STDOUT=1 ile eski davranisa donulur. */
+void up_gunluk(const char *s)
+{
+    static int bakildi, stdout_a;
+    if (!bakildi) {
+        const char *v = getenv("UMAY_GUNLUK_STDOUT");
+        stdout_a = (v && *v && *v != '0');
+        bakildi = 1;
+    }
+    FILE *f = stdout_a ? stdout : stderr;
+    fprintf(f, "%s\n", s);
+    fflush(f);
+}
 void *up_ayir(uint64_t n) { return malloc(n); }
 void up_biraktir(void *p) { free(p); }
 
@@ -123,12 +144,42 @@ int up_yetkim_var_mi(up_yetki_t y) { return (g_yetki & (uint32_t)y) != 0; }
  * dogrudan dondurmek, Ollama yokken US1'i de kaybettirirdi. */
 static umay_us_t *g_secilen;
 
+/* MOTOR SIRASI — NEDEN US1 ONDE DEGIL
+ *
+ * Once sira "Ollama, sonra US1" idi. US1 modelinin yuklenmesi
+ * duzeltilince (tampon 192 KB'ta kirpiyordu) ortaya cikan sey sudur:
+ * model yanit metnini URETIYOR ve cikan sey cumle degil.
+ * Gercek ornek, "töre yetki düzeni nedir" sorusuna:
+ *     "li hase ve yer bu keyitir, tepa the ın aladığı ne sup şek..."
+ * ustelik altinda "Güven: orta" yaziyordu.
+ *
+ * Bu beklenen bir sonuc: 467 bin degiskenli, KARAKTER duzeyinde bir
+ * model Turkcenin harf dizilimini ogrenir, cumle kurmaz (dogrulama
+ * kaybi 1.9751 — kendi tavani). Boyle bir cikti yanit diye sunulursa
+ * kullaniciya anlamsiz metin, ustune de guven etiketi verilir.
+ *
+ * Stub ("stub-ozan") ise URETMEZ, ALINTI YAPAR: bulunan kaynaktan iki
+ * cumle doner. Dayanak gercek, metin gercek, kaynak adiyla anilir.
+ * 467 bin degiskenle yarismasi gereken sey budur ve stub kazanir.
+ *
+ * Bu yuzden US1, yanit uretici olarak YALNIZ ACIKCA istenirse
+ * kullanilir (UMAY_US1=1). Ollama tutmazsa us_kur() zaten stub'a
+ * duser; alintili yanit, uydurma cumleden iyidir.
+ *
+ * US1 silinmedi: egitim hatti, motor ve model yerinde duruyor ve
+ * ÖTÜKEN icinde (Ollama'nin olmadigi yerde) dil katmani olarak
+ * anlamini koruyor. Degisen tek sey, anlamsiz metni yanit diye
+ * SUNMAMAK. */
 static int konak_hazirla(umay_us_t *u, const char *model_yolu)
 {
     umay_us_t *adaylar[2];
     int n = 0;
     adaylar[n++] = us_ollama_motor();
-    adaylar[n++] = (umay_us_t *)us_yerel_motor();
+    {
+        const char *istek = getenv("UMAY_US1");
+        if (istek && *istek && *istek != '0')
+            adaylar[n++] = (umay_us_t *)us_yerel_motor();
+    }
 
     for (int i = 0; i < n; i++) {
         umay_us_t *m = adaylar[i];

@@ -1,6 +1,10 @@
+#kategori: yargu
+#baslik: TÖRE Yetki Düzeni
+#etiket: tore,yetki,guvenlik
+#kaynak: tore-belgesi
+#dil: tr
+
 TORE YETKI DUZENI
-kaynak: tore-belgesi
-alan: yargu
 
 Yetkiler bit maskesidir. Denetim uc kapida yapilir: syscall katmani,
 gorev motoru ve ajanin kendi denetimi. Reddedilen her erisim gunluge

@@ -21,7 +21,10 @@
 
 #define MODEL_YOLU   "/UMAY.US1"
 #define SOZLUK_YOLU  "/SOZLUK.TXT"
-#define MODEL_AZAMI  (192 * 1024)
+/* Motorun izin verdigi EN BUYUK model ne kadarsa o kadar. Elle
+ * yazilan 192 KB, egiticinin urettigi 485.100 baytlik modeli
+ * kirpiyordu (bkz. us1.h / US1_MODEL_AZAMI). */
+#define MODEL_AZAMI  US1_MODEL_AZAMI
 #define URET_AZAMI   160
 
 typedef struct {
@@ -46,6 +49,15 @@ static int32_t    g_mantik[US1_MANTIK_BOY];
 /* ÖTÜKEN'in SYS_READ'i tek çağrıda en çok 4096 bayt döndürür; tüm
  * dosyayı almak için DÖNGÜ şart. Tek çağrıya güvenmek modeli 4 KB'ta
  * kesiyordu ve "bozuk model" gibi görünüyordu. */
+/* Dosyayi tampona okur. Dosya tampondan BUYUKSE -2 doner.
+ *
+ * NEDEN: eskiden tampon dolunca duruluyor ve okunan bayt sayisi
+ * donuyordu — yani buyuk bir model SESSIZCE kirpilip "bozuk" diye
+ * reddediliyordu. Hata iletisi "model bozuk" diyordu, oysa model
+ * saglamdi, TAMPON kucuktu. Yanlis yere bakmaya yol acan bir ileti,
+ * hatanin kendisi kadar zarar verir. */
+#define DOSYA_BUYUK (-2)
+
 static int dosya_oku(const char *yol, void *tampon, uint32_t azami)
 {
     up_tut_t t = up_ac(yol, UP_OKU);
@@ -57,8 +69,14 @@ static int dosya_oku(const char *yol, void *tampon, uint32_t azami)
         if (n <= 0) break;
         toplam += (uint32_t)n;
     }
+    /* Tampon doldu ve dosyada DAHA VAR mi? Bir bayt daha okumayi dene. */
+    int buyuk = 0;
+    if (toplam == azami) {
+        uint8_t fazla;
+        if (up_oku(t, &fazla, 1) > 0) buyuk = 1;
+    }
     up_kapat(t);
-    return (int)toplam;
+    return buyuk ? DOSYA_BUYUK : (int)toplam;
 }
 
 static int utf8_boy(unsigned char b)
@@ -113,6 +131,12 @@ static int yerel_hazirla(umay_us_t *u, const char *model_yolu)
         return UM_YANLIS;
     }
     int n = dosya_oku(yol, g_model_veri, MODEL_AZAMI);
+    if (n == DOSYA_BUYUK) {
+        gun_yaz("US-YEREL: model %u bayttan BUYUK (%s) — motorun tavanı bu. "
+                "Daha küçük bir model gerekir; dosya kırpılmadı.",
+                (unsigned)MODEL_AZAMI, yol);
+        return UM_YANLIS;
+    }
     if (n <= 0) {
         gun_yaz("US-YEREL: model dosyası yok (%s).", yol);
         return UM_YANLIS;

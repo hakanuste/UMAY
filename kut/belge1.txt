@@ -1,6 +1,10 @@
+#kategori: demir
+#baslik: ÖTÜKEN Çekirdek Notları
+#etiket: cekirdek,otuken,asama
+#kaynak: cekirdek-denetimi
+#dil: tr
+
 OTUKEN CEKIRDEK NOTLARI
-kaynak: cekirdek-denetimi
-alan: demir
 
 Bellek yonetimi iki katmandir. PMM 4 KB cerceveleri bit haritasiyla
 dagitir; VMM dort seviyeli sayfa tablosu kurar ve her surece kendi

@@ -459,6 +459,37 @@ int bilgi_baglam_bul(const char *soru, baglam_t *cikan, int en_cok) {
  * Bu bir anlam denetimi değildir: iki ayrı kaynağın aynı konuda söz
  * söylediğini saptar ve kararı kullanıcıya bırakır.
  * ------------------------------------------------------------------ */
+/* ÇATIŞMA AYNI BELGENİN İKİ PARÇASI ARASINDA OLMAZ.
+ *
+ * kaynak alanı "kut/yer-su/b0802018.txt (02_KompostRehber_web.txt)"
+ * biçimindedir: parça yolu + parantez içinde ÖZGÜN belge. Çatışma
+ * denetimi bütün dizgeyi karşılaştırıyordu, dolayısıyla tek bir
+ * belgenin 18. ve 47. parçası "iki ayrı kaynak" sayılıyor ve her
+ * çok parçalı yanıtta "Dikkat: iki ayrı kaynak" uyarısı çıkıyordu.
+ * Ölçülen örnek: "kompost nedir" sorusunda üç dayanağın üçü de
+ * 02_KompostRehber_web.txt'ti ve yine çatışma bildirildi.
+ *
+ * Her yanıtta çıkan bir uyarı, uyarı olmaktan çıkar: kullanıcı onu
+ * görmezden gelmeyi öğrenir ve GERÇEK çatışmayı da kaçırır. Artık
+ * özgün belge adları karşılaştırılır. */
+static void kaynak_koku(const char *k, char *c, uint32_t n) {
+    c[0] = 0;
+    if (!k) return;
+    /* son parantez çiftinin içi */
+    const char *ac = 0, *kapa = 0;
+    for (const char *p = k; *p; p++) {
+        if (*p == '(') ac = p + 1;
+        else if (*p == ')' && ac) kapa = p;
+    }
+    if (ac && kapa && kapa > ac) {
+        uint32_t o = 0;
+        for (const char *p = ac; p < kapa && o + 1 < n; p++) c[o++] = *p;
+        c[o] = 0;
+        return;
+    }
+    um_kopya(c, n, k);
+}
+
 int bilgi_catisma_bul(const baglam_t *dizi, int sayi, catisma_t *c) {
     if (c) um_bellek_doldur(c, 0, sizeof *c);
     if (!dizi || sayi < 2) return 0;
@@ -466,6 +497,11 @@ int bilgi_catisma_bul(const baglam_t *dizi, int sayi, catisma_t *c) {
         for (int j = i + 1; j < sayi; j++) {
             if (!um_esit(dizi[i].kategori, dizi[j].kategori)) continue;
             if (um_esit(dizi[i].kaynak, dizi[j].kaynak)) continue;
+            /* AYNI özgün belgenin ayrı parçaları çatışma değildir. */
+            char ka[96], kb[96];
+            kaynak_koku(dizi[i].kaynak, ka, sizeof ka);
+            kaynak_koku(dizi[j].kaynak, kb, sizeof kb);
+            if (ka[0] && um_esit(ka, kb)) continue;
             if (dizi[i].skor - dizi[j].skor > 1) continue;   /* biri açıkça baskınsa çatışma sayılmaz */
             if (!c) return 1;
             c->var = 1;

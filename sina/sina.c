@@ -10,6 +10,7 @@
 #include "umay_bengi.h"
 #include "umay_onay.h"
 #include "umay_us.h"
+#include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ses.h"
 #include <stdio.h>
@@ -905,6 +906,133 @@ int main(void) {
         us_cikti_yaz(&cikti, rapor, sizeof rapor);
         dene("ceviri kaydinda 'cevrilmis' deniyor",
              um_icinde(rapor, "çevrilmiş") != 0 || um_icinde(rapor, "çeviri") != 0);
+    }
+
+    printf("\n43) US1: motorun EN BUYUK modeli yuklenebiliyor\n");
+    {
+        /* NEDEN BU SINAMA VAR: yukleyicinin tamponu elle "192 KB"
+         * yaziliydi. Egitici ise motorun IZIN VERDIGI en buyuk modeli
+         * kuruyor (d=96 katman=4 ffn=256 sozluk=128) ve o model
+         * 485.100 bayt. Dosya 192 KB'ta kirpilarak okunuyor, tensor
+         * dongusu sondan tasiyor, model "bozuk" sayiliyor ve sistem
+         * SESSIZCE stub'a dusuyordu: 120.000 adim egitilen model hic
+         * calismadi. Ustelik ileti "model bozuk" diyordu, oysa model
+         * saglamdi, TAMPON kucuktu.
+         *
+         * Burada en buyuk model BELLEKTE kurulup yukletilir; dosya
+         * gerektirmez, dolayisiyla her yerde kosar. */
+        uint32_t beklenen = 48u
+            + US1_TENSOR_BOY(US1_AZAMI_SOZLUK, US1_AZAMI_D)
+            + (uint32_t)US1_AZAMI_KATMAN * (
+                  2u * US1_TENSOR_BOY(1, US1_AZAMI_D)
+                + 4u * US1_TENSOR_BOY(US1_AZAMI_D, US1_AZAMI_D)
+                + 2u * US1_TENSOR_BOY(US1_AZAMI_FFN, US1_AZAMI_D)
+                + 1u * US1_TENSOR_BOY(US1_AZAMI_D, US1_AZAMI_FFN))
+            + US1_TENSOR_BOY(1, US1_AZAMI_D)
+            + US1_TENSOR_BOY(US1_AZAMI_SOZLUK, US1_AZAMI_D);
+
+        char beklenen_s[96];
+        um_bicim(beklenen_s, sizeof beklenen_s,
+                 "azami model boyu hesaptan geliyor (%u bayt)",
+                 (unsigned)US1_MODEL_AZAMI);
+        dene(beklenen_s, US1_MODEL_AZAMI == beklenen);
+
+        static uint8_t ham[US1_MODEL_AZAMI];
+        uint8_t *p = ham;
+        um_bellek_doldur(ham, 0, sizeof ham);
+        p[0]='U'; p[1]='S'; p[2]='1'; p[3]=0;
+        /* surum=1, sonra d, katman, bas, ffn, sozluk, baglam */
+        uint32_t basl[7] = { 1, US1_AZAMI_D, US1_AZAMI_KATMAN, 4,
+                             US1_AZAMI_FFN, US1_AZAMI_SOZLUK, US1_AZAMI_BAGLAM };
+        for (int i = 0; i < 7; i++)
+            um_bellek_kopya(ham + 4 + i * 4, &basl[i], 4);
+        p = ham + 48;
+
+        /* Tensorler: 8 bayt boyut + satir basina (4 bayt olcek + sutun) */
+        uint32_t boyut[][2] = {
+            { US1_AZAMI_SOZLUK, US1_AZAMI_D },        /* gomme */
+        };
+        (void)boyut;
+        #define TENSOR_YAZ(satir, sutun) do {                               \
+            uint32_t _r = (uint32_t)(satir), _c = (uint32_t)(sutun);        \
+            um_bellek_kopya(p, &_r, 4); um_bellek_kopya(p + 4, &_c, 4);     \
+            p += 8;                                                         \
+            for (uint32_t _i = 0; _i < _r; _i++) {                          \
+                float _o = 1.0f / 127.0f;                                   \
+                um_bellek_kopya(p, &_o, 4); p += 4;                         \
+                for (uint32_t _j = 0; _j < _c; _j++) *p++ = (uint8_t)1;     \
+            }                                                               \
+        } while (0)
+
+        TENSOR_YAZ(US1_AZAMI_SOZLUK, US1_AZAMI_D);
+        for (int L = 0; L < US1_AZAMI_KATMAN; L++) {
+            TENSOR_YAZ(1, US1_AZAMI_D);                      /* n1 */
+            TENSOR_YAZ(US1_AZAMI_D, US1_AZAMI_D);            /* wq */
+            TENSOR_YAZ(US1_AZAMI_D, US1_AZAMI_D);            /* wk */
+            TENSOR_YAZ(US1_AZAMI_D, US1_AZAMI_D);            /* wv */
+            TENSOR_YAZ(US1_AZAMI_D, US1_AZAMI_D);            /* wo */
+            TENSOR_YAZ(1, US1_AZAMI_D);                      /* n2 */
+            TENSOR_YAZ(US1_AZAMI_FFN, US1_AZAMI_D);          /* w1 */
+            TENSOR_YAZ(US1_AZAMI_D, US1_AZAMI_FFN);          /* w2 */
+            TENSOR_YAZ(US1_AZAMI_FFN, US1_AZAMI_D);          /* w3 */
+        }
+        TENSOR_YAZ(1, US1_AZAMI_D);                          /* son_norm */
+        TENSOR_YAZ(US1_AZAMI_SOZLUK, US1_AZAMI_D);           /* cikis */
+        #undef TENSOR_YAZ
+
+        uint32_t yazilan = (uint32_t)(p - ham);
+        char y[96];
+        um_bicim(y, sizeof y, "en buyuk model tam tampona siğiyor (%u bayt)",
+                 (unsigned)yazilan);
+        dene(y, yazilan == US1_MODEL_AZAMI);
+
+        us1_model_t mdl;
+        int r = us1_yukle(&mdl, ham, yazilan);
+        dene("en buyuk model YUKLENIYOR", r == US1_OLDU);
+
+        /* Kirpilmis dosya SESSIZCE kabul edilmemeli. */
+        int rk = us1_yukle(&mdl, ham, 192u * 1024u);
+        dene("192 KB'a kirpilmis model reddediliyor", rk != US1_OLDU);
+    }
+
+    printf("\n44) Catisma: ayni belgenin parcalari catisma DEGIL\n");
+    {
+        /* NEDEN: kaynak alani "kut/.../b0802018.txt (Kompost.txt)"
+         * bicimindedir — parca yolu + parantezde OZGUN belge. Denetim
+         * butun dizgeyi karsilastiriyordu, dolayisiyla tek belgenin
+         * 18. ve 47. parcasi "iki ayri kaynak" sayiliyor ve her cok
+         * parcali yanitta uyari cikiyordu. Olculdu: "kompost nedir"
+         * sorusunda uc dayanagin ucu de ayni belgeydi, yine catisma
+         * bildirildi. Her yanitta cikan uyari, uyari olmaktan cikar. */
+        baglam_t p[2];
+        um_bellek_doldur(p, 0, sizeof p);
+        um_kopya(p[0].kategori, sizeof p[0].kategori, "yer-su");
+        um_kopya(p[1].kategori, sizeof p[1].kategori, "yer-su");
+        um_kopya(p[0].kaynak, sizeof p[0].kaynak,
+                 "kut/yer-su/b0802018.txt (02_KompostRehber_web.txt)");
+        um_kopya(p[1].kaynak, sizeof p[1].kaynak,
+                 "kut/yer-su/b0802047.txt (02_KompostRehber_web.txt)");
+        um_kopya(p[0].baslik, sizeof p[0].baslik, "KompostRehber (18/53)");
+        um_kopya(p[1].baslik, sizeof p[1].baslik, "KompostRehber (47/53)");
+        p[0].skor = 7; p[1].skor = 7;
+        catisma_t c;
+        dene("ayni belgenin iki parcasi catisma degil",
+             bilgi_catisma_bul(p, 2, &c) == 0);
+
+        /* AYRI belgeler hala catisma sayilmali. */
+        um_kopya(p[1].kaynak, sizeof p[1].kaynak,
+                 "kut/yer-su/b0701054.txt (01_Tibbi_Bitkiler.txt)");
+        dene("ayri belgeler catisma sayiliyor",
+             bilgi_catisma_bul(p, 2, &c) == 1);
+
+        /* Parantezsiz kaynaklar (doktrin gibi) eskisi gibi calismali. */
+        um_kopya(p[0].kaynak, sizeof p[0].kaynak, "doktrin-a");
+        um_kopya(p[1].kaynak, sizeof p[1].kaynak, "doktrin-b");
+        dene("parantezsiz kaynaklar da karsilastiriliyor",
+             bilgi_catisma_bul(p, 2, &c) == 1);
+        um_kopya(p[1].kaynak, sizeof p[1].kaynak, "doktrin-a");
+        dene("ayni parantezsiz kaynak catisma degil",
+             bilgi_catisma_bul(p, 2, &c) == 0);
     }
 
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
