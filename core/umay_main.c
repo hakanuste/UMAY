@@ -241,6 +241,19 @@ void umay_tur(void) {
     umay_ileti_t i;
     um_bellek_doldur(&i, 0, sizeof i);
 
+    /* KAPANMA ISTEGI HER TURDA DENETLENIR.
+     *
+     * Eskiden yalnizca "gorev acmayan" dalda (selam/veda/durum)
+     * bakiliyordu; gorev acan bir soru geldiginde islev erken donuyor
+     * ve istek HIC okunmuyordu. Olculdu: borudan beslenen konusma
+     * kipi ("printf 'kompost nedir\ncik\n' | umay") hic cikmadi,
+     * 10 dakika askida kaldi. "cik" yazilmis, bayrak kurulmus, ama
+     * kimse bakmamisti. Ucbirimde Ctrl-D de ayni kapiya gelir.
+     *
+     * Istek kurulmussa bekleyen is BITIRILIR, sonra kapanilir: yarim
+     * yanit birakmak da bir kusurdur. */
+    if (gui_kapat_istendi() && !otag_mesgul(&g_otag)) g_kosuyor = 0;
+
     if (gui_giris_yokla(&i)) {
         /* "otag" uçbirime özgü bir görüntüleme buyruğudur: ajanlara
          * gitmez, otağ tablosunu basar. ÜLGEN'de otağ zaten çizilidir. */

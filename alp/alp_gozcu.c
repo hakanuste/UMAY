@@ -16,7 +16,26 @@ typedef struct {
 
 static gozcu_ic_t g_ic;
 
-static const char *GEREKLI[] = { "/kut/umay", "/kut/umay/ayar.txt", 0 };
+/* GEREKLI IZLER — yollar PORT'tan sorulur, gomulu degil.
+ *
+ * Eskiden "/kut/umay" ve "/kut/umay/ayar.txt" yaziliydi: ÖTÜKEN'in
+ * duz FAT16 kokundeki yollar. Ana bilgisayarda kutuphane baska
+ * yerdedir, dolayisiyla SAGLAM bir kurulumda GOZCU "2 gerekli iz
+ * eksik" diyor ve "Aksaklik var; ONARICI'yi cagirmak gerek" diye
+ * uyariyordu. Yanlis yeri yoklayan bir denetim, hic denetlememekten
+ * kotudur: gercek bir aksaklik ciktiginda uyari zaten inandiriciligini
+ * yitirmis olur. */
+#define GEREKLI_SAYI 2
+
+static void gerekli_yol(int i, char *c, uint32_t n)
+{
+    if (i == 0) {
+        const char *k = up_kut_kok();
+        um_kopya(c, n, (k && *k) ? k : ".");
+    } else {
+        up_kut_dosya("ayar.txt", c, n);
+    }
+}
 
 static int uygun(const gorev_t *g) { (void)g; return 1; }  /* tür maskesi yeter */
 
@@ -40,8 +59,11 @@ static alp_durum_t adim(alp_t *a) {
         return ALP_KOSUYOR;
     }
     case 1:                                     /* dosyalar */
-        for (int i = 0; GEREKLI[i]; i++)
-            if (!up_var_mi(GEREKLI[i])) ic->eksik_dosya++;
+        for (int i = 0; i < GEREKLI_SAYI; i++) {
+            char yol[UMAY_YOL_MAX];
+            gerekli_yol(i, yol, sizeof yol);
+            if (!up_var_mi(yol)) ic->eksik_dosya++;
+        }
         return ALP_KOSUYOR;
     case 2: {                                   /* rapor */
         char s[128];

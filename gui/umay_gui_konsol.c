@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -176,8 +177,19 @@ int gui_giris_yokla(umay_ileti_t *i)
     static char tampon[UMAY_ILETI_MAX];
     static uint32_t o = 0;
 
+    /* DOSYA SONU (EOF) KAPANMA DEMEKTIR.
+     *
+     * read() EOF'ta 0 doner; kod yalniz "== 1"e bakiyordu, dolayisiyla
+     * girdi tukenince dongu SONSUZA gidiyordu. Olculdu: borudan
+     * beslenen konusma kipi ("printf 'soru\ncik\n' | umay") hic
+     * cikmadi, 10 dakika askida kaldi. Ucbirimde Ctrl-D de ayni
+     * kapiya gelir.
+     *
+     * O_NONBLOCK aciksa veri YOKKEN de read() -1/EAGAIN doner; o
+     * EOF degildir, beklemek gerekir. Ikisi ayrilmali. */
     char c;
-    while (read(STDIN_FILENO, &c, 1) == 1) {
+    ssize_t r;
+    while ((r = read(STDIN_FILENO, &c, 1)) == 1) {
         if (c == '\n' || c == '\r') {
             if (o == 0) continue;
             tampon[o] = 0;
@@ -197,6 +209,21 @@ int gui_giris_yokla(umay_ileti_t *i)
             return 1;
         }
         if (o + 1 < sizeof tampon) tampon[o++] = c;
+    }
+    if (r == 0) {
+        /* EOF: once elde kalan yarim satiri teslim et, sonra kapan. */
+        if (o > 0) {
+            tampon[o] = 0;
+            o = 0;
+            g_kapat_istendi = 1;
+            i->tur     = KANAL_KLAVYE;
+            i->damga   = up_ms();
+            i->kaynak  = 1;
+            i->uzunluk = um_kopya(i->govde, sizeof i->govde, tampon);
+            return 1;
+        }
+        g_kapat_istendi = 1;
+        return 0;
     }
 
     /* EOF (Ctrl-D ya da boru kapandı): kapanma isteği sayılır.

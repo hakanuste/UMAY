@@ -16,13 +16,42 @@ typedef struct {
 
 static onarici_ic_t g_ic;
 
-/* Onarılabilir bilinen aksaklıklar: eksik dizin/dosya */
-static const struct { const char *yol; const char *ne; const char *cozum; } DENETIM[] = {
-    { "/kut/umay",          "kütüphane dizini",  "dizini yarat" },
-    { "/kut/umay/ayar.txt", "ayar bitiği",       "varsayılan ayarı yaz" },
-    { "/kut/umay/bengi.txt","kalıcı bellek",     "boş bengi bitiği aç" },
-    { 0, 0, 0 }
+/* Onarılabilir bilinen aksaklıklar: eksik dizin/dosya
+ *
+ * YOLLAR PORT'TAN SORULUR, GÖMÜLÜ DEĞİL.
+ *
+ * Eskiden burada "/kut/umay", "/kut/umay/ayar.txt" ve
+ * "/kut/umay/bengi.txt" yazılıydı — bunlar ÖTÜKEN'in düz FAT16
+ * kökündeki yollar. Ana bilgisayarda kütüphane başka yerdedir
+ * (UMAY_KUT, çalışma dizinindeki kut/, ~/.local/share/umay/kut …).
+ *
+ * ÖLÇÜLDÜ: sağlam bir kurulumda ONARICI üç şeyi "eksik" bildiriyor,
+ * GÖZCÜ de aynı listeden "2 gerekli iz eksik" diyordu. Yani dizge
+ * yerindeyken kendini BOZUK sanıyor — ve üstüne dosya sisteminin
+ * KÖKÜNDE "/kut/umay" dizini yaratmayı öneriyordu.
+ *
+ * Yanlış yeri arayan bir denetim, hiç denetlememekten kötüdür:
+ * gerçek bir aksaklık çıktığında kullanıcı uyarıyı zaten görmezden
+ * gelmeyi öğrenmiş olur. Artık kök up_kut_kok()'tan, dosya yolları
+ * up_kut_dosya()'dan gelir; iki yapıda da doğru yere bakılır. */
+#define DENETIM_SAYI 3
+
+static const struct { const char *ad; const char *ne; const char *cozum; } DENETIM[] = {
+    { 0,           "kütüphane dizini",  "dizini yarat" },
+    { "ayar.txt",  "ayar bitiği",       "varsayılan ayarı yaz" },
+    { "bengi.txt", "kalıcı bellek",     "boş bengi bitiği aç" },
 };
+
+/* i. denetimin GERÇEK yolunu yazar. ad == 0 ise kütüphane kökü. */
+static void denetim_yolu(int i, char *c, uint32_t n)
+{
+    if (!DENETIM[i].ad) {
+        const char *k = up_kut_kok();
+        um_kopya(c, n, (k && *k) ? k : ".");
+        return;
+    }
+    up_kut_dosya(DENETIM[i].ad, c, n);
+}
 
 static int uygun(const gorev_t *g) { (void)g; return 1; }
 
@@ -43,13 +72,15 @@ static alp_durum_t adim(alp_t *a) {
     }
 
     int i = ic->adim_no - 1;
-    if (DENETIM[i].yol) {
-        if (!up_var_mi(DENETIM[i].yol)) {
+    if (i < DENETIM_SAYI) {
+        char yol[UMAY_YOL_MAX];
+        denetim_yolu(i, yol, sizeof yol);
+        if (!up_var_mi(yol)) {
             char s[256];
             um_bicim(s, sizeof s, "Eksik: %s (%s) → önerim: %s.\n",
-                     DENETIM[i].yol, DENETIM[i].ne, DENETIM[i].cozum);
+                     yol, DENETIM[i].ne, DENETIM[i].cozum);
             um_ekle(ic->rapor, sizeof ic->rapor, s);
-            um_kopya(ic->is, sizeof ic->is, DENETIM[i].yol);
+            um_kopya(ic->is, sizeof ic->is, yol);
             ic->bulgu++;
         }
         ic->adim_no++;

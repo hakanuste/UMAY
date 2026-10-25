@@ -368,13 +368,46 @@ int otag_dondur(otag_t *o, sonuc_t *cikan, int en_cok) {
             continue;
         }
 
-        /* --- İKİNCİ KAPI: kullanıcı onayı --- */
+        /* --- İKİNCİ KAPI: kullanıcı onayı ---
+         *
+         * ONAY BEKLEME ARTIK SÖYLENİR.
+         *
+         * Eskiden görev sessizce GD_ONAY_BEKLER durumuna geçip
+         * kuyruktan çıkıyordu: onay kimliği üretiliyor ama kullanıcıya
+         * TEK KELİME söylenmiyordu. ÖLÇÜLDÜ — "kaydet sarnıç hacmi 12
+         * ton" dendiğinde ekranda yalnız "· UYGULA" göründü, sonra
+         * hiçbir şey. YAZMAN ajanı hiç koşmadı, kullanıcı da nedenini
+         * bilmedi; ajanın bozuk olduğunu sanırdı. Oysa dizge doğru
+         * davranıyordu: yazma işi onay ister.
+         *
+         * Sessiz engelleme, bu projenin kendi ilkesine aykırıdır
+         * ("sahte başarı yok" ilkesinin diğer yüzü: sessiz BAŞARISIZLIK
+         * da yok). Artık ne beklediği ve nasıl verileceği yazılır. */
         if (g->onay_gerekli && !g->onay_kimlik[0]) {
             const char *k = onay_iste(gorev_tur_adi(g->tur), "Görev onayı",
                                       g->istem, g->konu);
             if (k) um_kopya(g->onay_kimlik, sizeof g->onay_kimlik, k);
             g->durum = GD_ONAY_BEKLER;
             kuyruktan_al(o, en_iyi);
+            if (c < en_cok) {
+                sonuc_t *s = &cikan[c++];
+                um_bellek_doldur(s, 0, sizeof *s);
+                s->kimlik = g->kimlik;
+                s->basarili = 0;
+                s->tur = g->tur;
+                um_kopya(s->ad, sizeof s->ad, "OTAĞ");
+                if (k)
+                    um_bicim(s->oz, sizeof s->oz,
+                             "Bu iş (%s) yazma yetkisi ister; elimi işe atmadan "
+                             "sana sorarım. Onay belgesi: %s\n"
+                             "\"onay ver %s\" dersen yaparım.\n",
+                             gorev_tur_adi(g->tur), k, k);
+                else
+                    um_bicim(s->oz, sizeof s->oz,
+                             "Bu iş (%s) onay ister ama onay yeri dolu; "
+                             "önce eski onayları karara bağla.\n",
+                             gorev_tur_adi(g->tur));
+            }
             continue;
         }
 

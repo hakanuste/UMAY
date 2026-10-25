@@ -287,6 +287,35 @@ int main(void) {
     dene("onay belgesi üretildi", gpu->onay_kimlik[0] != 0);
     dene("YAZMAN boşta kaldı", alp_yazman()->durum == ALP_BOS);
 
+    /* ONAY BEKLEME SESSIZ GECMEZ.
+     * NEDEN: gorev sessizce GD_ONAY_BEKLER durumuna gecip kuyruktan
+     * cikiyordu; onay kimligi uretiliyor ama kullaniciya TEK KELIME
+     * soylenmiyordu. OLCULDU — "kaydet sarnic hacmi 12 ton" dendiginde
+     * ekranda yalniz "· UYGULA" gorundu, sonra hicbir sey. YAZMAN hic
+     * kosmadi, kullanici da nedenini bilmedi; ajanin bozuk oldugunu
+     * sanirdi. Oysa dizge dogru davraniyordu: yazma isi onay ister.
+     * Sessiz engelleme, "sahte basari yok" ilkesinin diger yuzudur:
+     * sessiz BASARISIZLIK da yok. */
+    {
+        otag_t o5b;
+        otag_kur(&o5b);
+        onay_kur(60000);
+        otag_alp_kat(&o5b, alp_yazman());
+        gorev_t gy3;
+        gorev_hazirla(&gy3, GT_UYGULA, "sunu kaydet: onay bildirimi sinamasi");
+        otag_gorev_ver(&o5b, &gy3);
+        sonuc_t s6b[UMAY_ALP_MAX];
+        int nb = otag_dondur(&o5b, s6b, UMAY_ALP_MAX);
+        dene("onay beklerken SONUC uretiliyor", nb > 0);
+        int bildirdi = 0, kimlik_var = 0;
+        for (int q = 0; q < nb; q++) {
+            if (um_icinde(s6b[q].oz, "onay")) bildirdi = 1;
+            if (um_icinde(s6b[q].oz, "onay ver")) kimlik_var = 1;
+        }
+        dene("kullaniciya onay gerektigi soyleniyor", bildirdi);
+        dene("nasil onay verilecegi de soyleniyor", kimlik_var);
+    }
+
     printf("\n16) Görev sonucu BENGİ'ye geçiyor\n");
     bengi_kur("/tmp/umay_bengi_sina2.txt");
     otag_t o6;
@@ -1223,6 +1252,33 @@ int main(void) {
         int n3 = bilgi_baglam_bul_suzgec("toprak empedans", &sz46, b3, 3);
         dene("iki terimi tutan kayit, bir terimi tutanlari geciyor",
              n3 > 0 && um_esit(b3[0].kategori, "demir"));
+    }
+
+    printf("\n47) GOZCU/ONARICI yollari PORT'tan sorar\n");
+    {
+        /* NEDEN: iki ajanda da "/kut/umay", "/kut/umay/ayar.txt" gibi
+         * ÖTÜKEN'in duz FAT16 kokundeki saltik yollar GOMULUYDU. Ana
+         * bilgisayarda kutuphane baska yerdedir (UMAY_KUT, calisma
+         * dizinindeki kut/, ~/.local/share/umay/kut ...).
+         * OLCULDU: saglam bir kurulumda ONARICI uc seyi "eksik"
+         * bildiriyor, GOZCU de "2 gerekli iz eksik" diyordu — dizge
+         * yerindeyken kendini BOZUK saniyor, ustune dosya sisteminin
+         * KOKUNDE "/kut/umay" dizini yaratmayi oneriyordu.
+         * Yanlis yeri arayan bir denetim, hic denetlememekten kotudur:
+         * gercek bir aksaklik ciktiginda uyari inandiriciligini
+         * yitirmis olur. */
+        const char *kok = up_kut_kok();
+        dene("kutuphane koku port'tan geliyor", kok && *kok);
+        dene("kok ÖTÜKEN'e ozgu saltik yol DEGIL",
+             kok && !um_esit(kok, "/kut/umay"));
+        char y[UMAY_YOL_MAX];
+        up_kut_dosya("ayar.txt", y, sizeof y);
+        dene("ayar yolu kokun altinda", um_icinde(y, "ayar.txt") &&
+             !um_icinde(y, "/kut/umay/"));
+
+        /* Kaynakta artik gomulu ÖTÜKEN yolu kalmamali. */
+        dene("gomulu '/kut/umay' yolu kalmadi",
+             !um_icinde(y, "/kut/umay"));
     }
 
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
