@@ -14,6 +14,7 @@
 #include "umay_port.h"
 #include "umay_ses.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 extern void host_yetki_ayarla(uint32_t y);   /* port/umay_port_host.c */
 
@@ -1033,6 +1034,128 @@ int main(void) {
         um_kopya(p[1].kaynak, sizeof p[1].kaynak, "doktrin-a");
         dene("ayni parantezsiz kaynak catisma degil",
              bilgi_catisma_bul(p, 2, &c) == 0);
+    }
+
+    printf("\n45) US1: GERCEK model + Python referansiyla sayisal karsilastirma\n");
+    {
+        /* NEREDEN GELDI: bu denetimler depoda us1/sinama/us1_sina.c
+         * altinda, AYRI bir ikilide duruyordu ve Makefile'da hicbir
+         * hedefe bagli degildi — yani hic kosmuyordu. Once kurtarildi
+         * ("make sina-us1"), sonra buraya alindi: iki sinama takimi
+         * iki ayri sonuc satiri veriyordu ve kur.sh "tail -1" ile
+         * yalniz ikincisini okuyup "10 gecti" yaziyordu. Tek takim,
+         * tek sonuc satiri.
+         *
+         * 43. sinama BELLEKTE kurulan en buyuk modeli yukluyor; burada
+         * DISKTEKI GERCEK egitilmis model okunur ve C sabit nokta
+         * motoru Python referansiyla sayisal olarak karsilastirilir.
+         * Ayni nicelenmis agirliklar iki tarafta da okunur, yani
+         * karsilastirma gercektir; birebir esitlik beklenmez (Q8
+         * niceleme + sabit nokta payi). */
+        const char *myol = getenv("UMAY_SINA_MODEL");
+        if (!myol || !*myol) myol = "kut/umay.us1";
+        const char *rdizin = getenv("UMAY_SINA_REF");
+        if (!rdizin || !*rdizin) rdizin = "kov";
+
+        FILE *f = fopen(myol, "rb");
+        if (!f) {
+            /* Sessiz atlama YOK: model bulunamadiysa bu bir eksiktir. */
+            printf("      (model acilamadi: %s)\n", myol);
+            dene("gercek model dosyasi bulundu", 0);
+        } else {
+            /* Tampon, motorun kendi tavani kadar — 4 MB'lik sihirli
+             * sayi yerine US1_MODEL_AZAMI. Dosya tavandan buyukse bu
+             * zaten reddedilmeli. */
+            static uint8_t veri[US1_MODEL_AZAMI];
+            uint32_t boy = (uint32_t)fread(veri, 1, sizeof veri, f);
+            int fazla = (fgetc(f) != EOF);
+            fclose(f);
+            dene("model motorun tavanini asmiyor", !fazla);
+
+            us1_model_t m;
+            dene("gercek model yuklendi", us1_yukle(&m, veri, boy) == US1_OLDU);
+            dene("bicim alanlari tutarli",
+                 m.d > 0 && m.katman > 0 && m.bas > 0 && m.d % m.bas == 0 &&
+                 m.sozluk > 0 && m.baglam > 0);
+
+            uint8_t bozuk[64];
+            for (int i = 0; i < 64; i++) bozuk[i] = (uint8_t)i;
+            us1_model_t m2;
+            dene("bozuk dosya reddedildi", us1_yukle(&m2, bozuk, 64) != US1_OLDU);
+            veri[4] = 9;
+            dene("bilinmeyen surum reddedildi",
+                 us1_yukle(&m2, veri, boy) == US1_SURUM);
+            veri[4] = 1;
+            dene("kisa dosya reddedildi", us1_yukle(&m2, veri, 200) == US1_BOZUK);
+
+            /* Referans imleri: arac/us1/referans.py uretir. */
+            char imy[256], mny[256];
+            um_bicim(imy, sizeof imy, "%s/referans_imler.txt", rdizin);
+            um_bicim(mny, sizeof mny, "%s/referans_mantik.txt", rdizin);
+
+            uint32_t imler[8];
+            int n = 0;
+            FILE *g = fopen(imy, "r");
+            if (g) {
+                while (n < 8 && fscanf(g, "%u", &imler[n]) == 1) n++;
+                fclose(g);
+            }
+            int referans_var = (n > 0);
+            if (!referans_var) { imler[0] = 1; imler[1] = 2; n = 2; }
+
+            static int32_t mantik[US1_MANTIK_BOY];
+            dene("ileri gecis kostu",
+                 us1_ileri(&m, imler, (uint32_t)n, mantik) == US1_OLDU);
+
+            uint32_t kotu[2] = { 0, 9999 };
+            dene("sozluk disi im reddedildi",
+                 us1_ileri(&m, kotu, 2, mantik) == US1_BOZUK);
+            us1_ileri(&m, imler, (uint32_t)n, mantik);
+
+            /* SESSIZ ATLAMA KAPATILDI: eski surumde referans dosyasi
+             * yoksa karsilastirma hic yapilmiyor, hicbir sey de
+             * yazilmiyordu — kosan kisi sayisal denetimin yapildigini
+             * saniyordu. Artik ya karsilastirilir ya da ATLANDIGI
+             * soylenir. */
+            FILE *r = referans_var ? fopen(mny, "r") : 0;
+            if (!r) {
+                printf("      (referans yok: %s — sayisal karsilastirma "
+                       "ATLANDI; uretmek icin: "
+                       "python3 arac/us1/referans.py %s %s)\n",
+                       mny, myol, rdizin);
+            } else {
+                double enb = 0.0, genlik = 0.0;
+                int say = 0;
+                for (int t = 0; t < n; t++) {
+                    for (uint32_t i = 0; i < m.sozluk; i++) {
+                        double bekle;
+                        if (fscanf(r, "%lf", &bekle) != 1) break;
+                        double bul = (double)mantik[t * m.sozluk + i] / 65536.0;
+                        double fark = bul - bekle;
+                        if (fark < 0) fark = -fark;
+                        double b = (bekle < 0) ? -bekle : bekle;
+                        if (b > genlik) genlik = b;
+                        if (fark > enb) enb = fark;
+                        say++;
+                    }
+                }
+                fclose(r);
+                printf("      referans: %d deger, en buyuk fark %.4f, "
+                       "genlik %.4f (%%%.2f)\n",
+                       say, enb, genlik,
+                       genlik > 0 ? 100.0 * enb / genlik : 0.0);
+                dene("referansa yakin (Q8 + sabit nokta payi)",
+                     say > 0 && enb < genlik * 0.25 + 0.5);
+            }
+
+            uint32_t en = us1_sec(mantik, m.sozluk, 0);
+            dene("belirlenimci secim gecerli im veriyor", en < m.sozluk);
+            uint32_t tohum = 42;
+            uint32_t s1 = us1_sec(mantik, m.sozluk, &tohum);
+            tohum = 42;
+            uint32_t s2 = us1_sec(mantik, m.sozluk, &tohum);
+            dene("ayni tohum ayni imi veriyor", s1 == s2 && s1 < m.sozluk);
+        }
     }
 
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);

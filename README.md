@@ -205,13 +205,23 @@ bozulmasını engeller. Ayrıntı: `port/OTUKEN.md`.
 
 ## Sınamak
 
-    make sina         # UMAY sınamaları + US1 motor sınaması
-    make sina-us1     # yalnız motor
+    make sina
 
-**223 + 10 sınama.** Motor sınaması, C sabit nokta motorunu Python
-referansıyla sayısal olarak karşılaştırır: aynı nicelenmiş ağırlıklar
-iki tarafta da okunur, sapma niceleme payının içinde kalmalıdır
-(ölçülen: 0,0933 / genlik 21,59).
+**234 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
+süre ayrı bir ikilideydi; iki ayrı sonuç satırı veriyordu ve `kur.sh`
+yalnız sonuncusunu okuyup "10 geçti" yazıyordu. Hepsi `sina/sina.c`de.
+
+Motor sınaması C sabit nokta motorunu Python referansıyla **sayısal**
+karşılaştırır: aynı nicelenmiş ağırlıklar iki tarafta da okunur, sapma
+niceleme payının içinde kalmalıdır (ölçülen: 0,0933 / genlik 21,59,
+yani %0,43). Referans değerleri `make sina` içinde üretilir.
+
+Hiçbir denetim sessizce atlanmaz: model bulunamazsa sınama **kalır**,
+referans dosyası yoksa karşılaştırmanın atlandığı ve nasıl
+üretileceği **yazılır**. Sessizce geçilen bir denetim, yapılmış
+sayılır ve en kötü yanılgı odur.
+
+Yollar değiştirilebilir: `UMAY_SINA_MODEL`, `UMAY_SINA_REF`.
 
 Sınanan şeyler arasında, her biri gerçekten yaşanmış bir hatanın
 karşılığı olarak: ses aygıtı yokken sürücünün açılmaması, hiçbir yol
