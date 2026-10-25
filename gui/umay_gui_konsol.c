@@ -25,6 +25,20 @@
 #include <errno.h>
 
 static int  g_acik = 0;
+
+/* TEK SORU KIPINDE STDIN OKUNMAZ.
+ *
+ * NEDEN: tek soru kipi de konusma kipinin tur dongusunu kosturuyor,
+ * dolayisiyla stdin'i yokluyordu ve BOSALTIYORDU. Olculdu:
+ *     printf 'a\nb\nc\n' | { umay "soru" >/dev/null; cat; }
+ * ciktisi BOS geldi — ucu de yutulmus. Betikten dongu icinde
+ * cagrilamaz demek bu; nitekim 12 ajani sinayan betigim ikinci
+ * soruda soru listesini kaybetti.
+ *
+ * Program bir soru sorup cikacaksa ucbirim girdisiyle isi yoktur. */
+static int g_girdi_kapali;
+
+void gui_girdi_kapat(void) { g_girdi_kapali = 1; }
 static int  g_kapat_istendi = 0;
 static int  g_renk = 0;
 static char g_durum[128];
@@ -71,9 +85,13 @@ int gui_ac(int en, int boy)
     const char *term = getenv("TERM");
     g_renk = isatty(STDOUT_FILENO) && term && !um_esit(term, "dumb");
 
-    /* stdin bloklamasın: UMAY'ın turu girdi beklerken durmamalı. */
-    int bayrak = fcntl(STDIN_FILENO, F_GETFL, 0);
-    if (bayrak != -1) fcntl(STDIN_FILENO, F_SETFL, bayrak | O_NONBLOCK);
+    /* stdin bloklamasın: UMAY'ın turu girdi beklerken durmamalı.
+     * Girdi kapalıysa (tek soru kipi) stdin'e HİÇ dokunulmaz —
+     * çağıranın borusunun kipini değiştirmek de bir yan etkidir. */
+    if (!g_girdi_kapali) {
+        int bayrak = fcntl(STDIN_FILENO, F_GETFL, 0);
+        if (bayrak != -1) fcntl(STDIN_FILENO, F_SETFL, bayrak | O_NONBLOCK);
+    }
 
     g_acik = 1;
     g_kapat_istendi = 0;
@@ -150,9 +168,10 @@ void gui_otag_yaz(const otag_t *o)
     fflush(stdout);
 }
 
+
 int gui_giris_yokla(umay_ileti_t *i)
 {
-    if (!g_acik || !i) return 0;
+    if (!g_acik || !i || g_girdi_kapali) return 0;
 
     static char tampon[UMAY_ILETI_MAX];
     static uint32_t o = 0;

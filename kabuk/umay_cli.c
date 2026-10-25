@@ -16,6 +16,7 @@
 #include "umay.h"
 #include "umay_kabuk.h"
 #include "umay_str.h"
+#include "umay_gui.h"
 #include "umay_port.h"
 
 static void kullanim(const char *ad)
@@ -67,6 +68,9 @@ int main(int argc, char **argv)
             fprintf(stderr, "UMAY: baslatilamadi\n");
             return 1;
         }
+        /* Bir soru sorup cikacagiz: ucbirim girdisiyle isimiz yok.
+         * Yoklasaydik cagiranin stdin'ini BOSALTIRDIK (olculdu). */
+        gui_girdi_kapat();
         umay_sor(soru);
         /* Ajanlar koşut çalışır; yanıt gelene dek dönülür. Üst sınır
          * var: bir ajan takılırsa program sonsuza dek beklemesin. */

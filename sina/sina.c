@@ -1158,6 +1158,73 @@ int main(void) {
         }
     }
 
+    printf("\n46) Arama: yanlis eslesme ve agirliksiz puan\n");
+    {
+        /* Indeks sifirlanamiyor (bilgi katmaninda boyle bir islev yok),
+         * bu yuzden sinama kayitlari BENZERSIZ bir kaynak damgasiyla
+         * yazilir ve arama o damgaya SUZULUR. Boylece var olan 1500
+         * gercek kayit sonucu kirletmez. Seyreklik agirligi gene butun
+         * indeks uzerinden hesaplanir — olcumun gercekciligi icin
+         * istenen de bu. */
+        const char *DAMGA = "sinama46";
+
+        /* (a) UNSUZ YUMUSAMASI ucus harflik sozcukte YANLIS ESLEME
+         * uretiyordu. OLCULDU: Ingilizce "and", Turkce "anten"
+         * sorgusuyla eslesiyordu — a-n-d ~ a-n-t, son harfte d->t
+         * yumusamasi serbest; kisa sozcuk 3 harf, ek "en" unluyle
+         * basliyor, kural tamamlaniyor. Sonuc: "anten" sorusunda uc
+         * dayanagin ucu de tibbi bitkiler ve kompost belgelerinden
+         * geliyordu; sozcugun gercekten gectigi 31 parcanin (demir,
+         * alpagu) hicbiri degil. Esik 4 harfe cikarildi. */
+        bilgi_kayit_kat("demir", "Telsiz sinama46", "/sinama46/telsiz.txt",
+                        "telsiz",
+                        "Anten empedansi elli ohm olmalidir, anten kablosu kisa.");
+        bilgi_kayit_kat("yer-su", "Bitki sinama46", "/sinama46/bitki.txt",
+                        "bitki",
+                        "The plant and the soil and the water and the root and more.");
+        bilgi_suzgec_t sz46 = { 0, 0, 0, DAMGA };
+        baglam_t b1[3];
+        int n1 = bilgi_baglam_bul_suzgec("anten", &sz46, b1, 3);
+        dene("'anten' kayit buluyor", n1 > 0);
+        dene("'and' iceren kayit 'anten' ile ESLESMIYOR",
+             n1 > 0 && um_esit(b1[0].kategori, "demir"));
+        dene("yalnizca 'and' tutan kayit hic gelmiyor", n1 == 1);
+
+        /* Gercek Turkce yumusama BOZULMADI. */
+        bilgi_kayit_kat("balbal", "Harc sinama46", "/sinama46/harc.txt", "harc",
+                        "Horasan harci kirectasi ve tuglayla yapilir.");
+        bilgi_kayit_kat("yazit", "Kitap sinama46", "/sinama46/kitap.txt", "kitap",
+                        "Kitap rafta durur ve okunur, sayfalari temizdir.");
+        baglam_t b2[3];
+        dene("harc ~ harci hala tutuyor",
+             bilgi_baglam_bul_suzgec("harci", &sz46, b2, 3) > 0);
+        dene("kitap ~ kitabi hala tutuyor",
+             bilgi_baglam_bul_suzgec("kitabi", &sz46, b2, 3) > 0);
+
+        /* (b) PUAN AGIRLIKSIZDI: "sorgu sozcuklerinden kaci gecti"
+         * sayisiydi. Uc sozcuklu sorguda yuzlerce kayit 1 puanda
+         * esitlenip siralama INDEKS SIRASINA dusuyordu — yani
+         * rastgele. OLCULDU: "telsiz anten empedans" sorusunda uc
+         * dayanagin ucu de "oyun" alanindan geldi, halbuki "telsiz"
+         * tek basina dogru alani buluyordu.
+         * Artik her sozcuk seyrekligine gore agirlik tasir. Asagida
+         * "toprak" bircok kayitta, "empedans" cok az kayitta gecer:
+         * ikisini birden tutan kayit, yalniz "toprak" tutani GECMELI. */
+        for (int i = 0; i < 10; i++) {
+            char ad[48];
+            um_bicim(ad, sizeof ad, "/sinama46/toprak%d.txt", i);
+            bilgi_kayit_kat("yer-su", "Toprak sinama46", ad, "toprak",
+                            "Toprak nemli kalir ve toprak bitkiyi besler.");
+        }
+        bilgi_kayit_kat("demir", "Olcum sinama46", "/sinama46/olcum.txt",
+                        "olcum",
+                        "Empedans olcumunde toprak hatti kullanilir.");
+        baglam_t b3[3];
+        int n3 = bilgi_baglam_bul_suzgec("toprak empedans", &sz46, b3, 3);
+        dene("iki terimi tutan kayit, bir terimi tutanlari geciyor",
+             n3 > 0 && um_esit(b3[0].kategori, "demir"));
+    }
+
     printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
     return g_kaldi == 0 ? 0 : 1;
 }

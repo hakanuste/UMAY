@@ -20,6 +20,10 @@ void gui_satir_ekle(const char *kim, const char *metin);   /* konuşma akışı 
 void gui_durum(const char *metin);
 void gui_ciz(const otag_t *o);
 int  gui_giris_yokla(umay_ileti_t *i);                     /* 1 = yeni söz */
+
+/* Ucbirim girdisini tumuyle kapatir (tek soru kipi). Cagrilmazsa
+ * davranis degismez. */
+void gui_girdi_kapat(void);
 /* Otağ görünümünü istek üzerine basar. Konsol ön yüzünde anlamlıdır;
  * ÜLGEN ön yüzü otağı zaten sürekli çizer, orada boştur. */
 void gui_otag_yaz(const otag_t *o);

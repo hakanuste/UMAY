@@ -111,6 +111,25 @@ static alp_durum_t uzman_adim(alp_t *a) {
         u->nereden = 0;
         um_bellek_doldur(&u->catisma, 0, sizeof u->catisma);
 
+        /* KADEMELİ ARAMA: ilk bulunan kademe kullanılır.
+         *
+         * DENENDI VE GERI ALINDI: "en yüksek puanlı kademeyi seç"
+         * biçimine çevrildi, çünkü ajan ortak havuzda ZAYIF bir
+         * eşleşme bulunca genel depoya hiç inmiyordu ("telsiz anten
+         * empedans" sorusu Sümer tarihi belgelerine düşüyordu).
+         * Değişiklik o durumu düzeltti ama İKİSİNİ BOZDU: "kompost
+         * nasıl yapılır" yer-su yerine yargu'ya, "kerpiç duvar harç"
+         * balbal yerine ortak'a gitti.
+         *
+         * Sebep: puanlar kademeler arasında KARŞILAŞTIRILABILIR
+         * DEĞİL. Uzunluk normalizasyonu yok, dolayısıyla kısa bir
+         * doktrin kaydı uzun bir belge parçasıyla aynı ağırlığı
+         * toplayıp öne geçebiliyor. Doğru çözüm ham puan
+         * karşılaştırmak değil, dayanağın soruyu KAPSAYIP
+         * kapsamadığını ölçmek (ÖTÜKEN ağacındaki KANIT katmanı:
+         * terim ağırlıklı kapsama + odak teriminin kapsanması).
+         * O katman birleştirilene kadar eski, ölçülmüş davranış
+         * korunuyor: bir kademede sonuç varsa o kullanılır. */
         const char *birincil[1] = { t->kategori[0] };
         u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, birincil, 1, u->baglam, 3);
 

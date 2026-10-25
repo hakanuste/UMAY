@@ -364,6 +364,200 @@ int bilgi_tara(const char *kok) {
 }
 
 
+/* SÖZCÜK LİSTESİ YETMEZ, İÇERİĞE DE BAKILIR.
+ *
+ * ÖLÇÜLDÜ: BILGI_KELIME_MAX 96'dır, ama 2600 baytlık bir parçada
+ * ortanca 215 AYRI sözcük var (en çok 401). Parçaların %95,5'inde
+ * sözcük dağarcığının bir kısmı aramaya HİÇ GÖRÜNMÜYORDU.
+ *
+ * Somut sonuç: "horasan harcı karışımı nedir" sorusunda kazanan parça
+ * yer-su/b0802018 idi ve içinde "horasan", "harç", "harcı" HİÇ
+ * geçmiyor — yalnız "karışım" tutuyordu. Oysa balbal'da horasan geçen
+ * 17 parça var; o parçada "harç" 102., "karışım" 132. ayrı sözcük,
+ * yani ikisi de 96 sınırının dışındaydı. Soru doğru alana gitmiyordu.
+ *
+ * Sınırı 320'ye çıkarmak kapsamı %99,4'e taşır ama sözcük tablosunu
+ * 9,4 MB'tan 31,5 MB'a çıkarır — ÖTÜKEN'in Ring3 belleğinde kabul
+ * edilemez. İçerik ZATEN kayıtta duruyor: liste tutmazsa içerik
+ * taranır. Ek bellek SIFIR; bedel yalnızca tutmayan sözcük için bir
+ * tarama ve o da liste DOLMUŞSA yapılır.
+ *
+ * Tam sözcük aranır: "harç" ararken "harçlık" tutmasın. */
+/* Metindeki sıradaki sözcüğü küçük harfli olarak verir; sonunu
+ * döndürür, bitince 0. Durak ayıklaması YAPMAZ. */
+static const char *sonraki_sozcuk(const char *p, char kelime[24])
+{
+    if (!p) return 0;
+    uint32_t o = 0;
+    kelime[0] = 0;
+    /* sözcük başına kadar atla */
+    while (*p) {
+        uint32_t b = 0, kn = um_utf8_oku(p, &b);
+        if (!kn || !b) return 0;
+        if (um_kelime_karakteri(um_kucuk(kn))) break;
+        p += b;
+    }
+    if (!*p) return 0;
+    while (*p) {
+        uint32_t b = 0, kn = um_utf8_oku(p, &b);
+        if (!kn || !b) break;
+        uint32_t kk = um_kucuk(kn);
+        if (!um_kelime_karakteri(kk)) break;
+        char gec[8];
+        uint32_t gb = um_utf8_yaz(kk, gec);
+        if (o + gb + 1 >= 24) { p += b; continue; }   /* uzun sözcük kırpılır */
+        for (uint32_t i = 0; i < gb; i++) kelime[o++] = gec[i];
+        p += b;
+    }
+    kelime[o] = 0;
+    return o ? p : 0;
+}
+
+static int icerikte_tam_sozcuk(const char *icerik, const char *kw)
+{
+    uint32_t kn = um_uzun(kw);
+    if (!kn || !icerik) return 0;
+    for (const char *p = icerik; *p; p++) {
+        if (p != icerik) {
+            uint32_t b = 0, onceki = um_utf8_oku(p - 1, &b);
+            /* Çok baytlı imin ortasına denk gelmemek için: önceki bayt
+             * sözcük karakteriyse bu konum sözcük başı değildir. */
+            if (um_kelime_karakteri(um_kucuk(onceki))) continue;
+        }
+        uint32_t i = 0, j = 0;
+        int tutar = 1;
+        while (j < kn) {
+            uint32_t ab = 0, bb = 0;
+            uint32_t x = um_utf8_oku(p + i, &ab);
+            uint32_t y = um_utf8_oku(kw + j, &bb);
+            if (!x || um_kucuk(x) != um_kucuk(y)) { tutar = 0; break; }
+            i += ab; j += bb;
+        }
+        if (tutar) {
+            uint32_t sb = 0, sonraki = um_utf8_oku(p + i, &sb);
+            if (!sonraki || !um_kelime_karakteri(um_kucuk(sonraki))) return 1;
+        }
+    }
+    return 0;
+}
+
+/* TÜRKÇE EKLİ SÖZCÜK EŞLEMESİ
+ *
+ * ÖLÇÜLDÜ: eşleme tam eşitlikti (um_esit) ve Türkçenin eklemeli yapısı
+ * onu bozuyordu. Kütüphanede geçiş sayıları:
+ *       telsiz 38 parça   /  telsizde   0 parça
+ *       yazıt   3 parça   /  yazıtları 1 parça
+ *       harç   21 parça   /  harcı     16 parça
+ * Soru "telsizde SWR değeri ne olmalı" olduğunda ayıklanan sözcükler
+ * telsizde(0), swr(0), değeri(1), olmalı(0) — yani HİÇBİR ayırt edici
+ * sözcük tutmuyor ve soru rastgele bir alana düşüyor. Ekler elle
+ * çıkarılıp "telsiz SWR değer" sorulduğunda doğru alana (demir)
+ * gidiyordu: kusurun eşlemede olduğu böyle doğrulandı.
+ *
+ * Kural (ÖTÜKEN ağacındaki kanıt katmanının belgelediği ölçüt):
+ *   - aynı sözcük;
+ *   - ikisi de >= 5 harfse ilk 5 harf aynı;
+ *   - kısa olan 3-4 harfse, uzun olan onunla başlayıp en çok 2 harflik
+ *     ve ünlüyle başlayan bir ek alıyorsa.
+ * Son kök harfinde ünsüz yumuşaması serbest: harç~harcı, kireç~kireci,
+ * kitap~kitabı, ahenk~ahengi.
+ *
+ * HARF sayılır, BAYT değil: Türkçe imler UTF-8'de çok baytlıdır,
+ * "ilk 5 bayt" demek "ilk 2-3 harf" demek olurdu. */
+static uint32_t yumusak(uint32_t h)
+{
+    switch (h) {
+    case 0x00E7: return 'c';          /* ç -> c */
+    case 'p':    return 'b';
+    case 't':    return 'd';
+    case 'k':    return 0x011F;       /* k -> ğ */
+    default:     return h;
+    }
+}
+
+/* Sözcüğü harflere ayırır; en çok n harf. Harf sayısını döndürür. */
+static int harflere(const char *s, uint32_t *h, int n)
+{
+    int k = 0;
+    while (*s && k < n) {
+        uint32_t b = 0;
+        uint32_t kn = um_utf8_oku(s, &b);
+        if (!kn || !b) break;
+        h[k++] = um_kucuk(kn);
+        s += b;
+    }
+    return k;
+}
+
+static int unlu_mu(uint32_t h)
+{
+    static const uint32_t U[] = { 'a','e',0x0131,'i','o','u',
+                                  0x00F6, 0x00FC };   /* ö ü */
+    for (unsigned i = 0; i < sizeof U / sizeof U[0]; i++)
+        if (h == U[i]) return 1;
+    return 0;
+}
+
+static int sozcuk_esles(const char *sorgu, const char *kayit)
+{
+    if (um_esit(sorgu, kayit)) return 1;
+
+    uint32_t a[32], b[32];
+    int na = harflere(sorgu, a, 32), nb = harflere(kayit, b, 32);
+    if (na < 3 || nb < 3) return 0;
+
+    const uint32_t *kisa = a; int nk = na;
+    const uint32_t *uzun = b; int nu = nb;
+    if (nb < na) { kisa = b; nk = nb; uzun = a; nu = na; }
+
+    /* Önek karşılaştırması; son kök harfinde yumuşama serbest.
+     *
+     * YUMUŞAMA EN AZ 4 HARFLİK KÖKTE: üç harflik sözcükte bu kural
+     * yanlış eşleşme üretiyordu. ÖLÇÜLDÜ — İngilizce "and", Türkçe
+     * "anten" sorgusuyla eşleşiyordu:
+     *     a-n-d ~ a-n-t  (son harfte d->t yumuşaması serbest)
+     *     kısa 3 harf, ek 2 harf ("en"), ünlüyle başlıyor -> eşleşti
+     * Sonuç: "anten" sorgusunda üç dayanağın üçü de tıbbi bitkiler ve
+     * kompost belgelerinden geliyordu; sözcüğün gerçekten geçtiği 31
+     * parçanın (demir, alpagu) hiçbiri değil.
+     *
+     * Eşik 4'e çıkarıldı ve gerçek Türkçe çiftlerle sınandı: harç~harcı,
+     * kitap~kitabı, ağaç~ağacı, renk~rengi, kök~kökü, kerpiç~kerpici,
+     * toprak~toprağı — hepsi tutmaya devam ediyor. */
+    int ortak = (nk < 5) ? nk : 5;
+    for (int i = 0; i < ortak; i++) {
+        if (kisa[i] == uzun[i]) continue;
+        /* yalnız kısa sözcüğün SON harfinde, 4+ harflik kökte */
+        if (i == nk - 1 && nk >= 4 &&
+            yumusak(kisa[i]) == yumusak(uzun[i])) continue;
+        return 0;
+    }
+    if (nk >= 5) return 1;                 /* ilk 5 harf aynı */
+
+    /* kısa 3-4 harf: ek en çok 2 harf ve ÜNLÜYLE başlamalı
+     * (kök+ünsüz birleşmesi ayrı sözcük olabilir: "kan" ~ "kanca" değil) */
+    int ek = nu - nk;
+    if (ek < 1 || ek > 2) return 0;
+    return unlu_mu(uzun[nk]);
+}
+
+static int kayit_tasiyor(const kayit_t *r, const char *kw)
+{
+    /* Hızlı yol: kapaklı sözcük listesi (küçük harfli saklanır). */
+    for (int b = 0; b < r->kelime_sayisi; b++)
+        if (sozcuk_esles(kw, r->kelime[b])) return 1;
+    /* Liste DOLDUYSA geri kalan dağarcık görünmez; içeriğe bakılır. */
+    if (r->kelime_sayisi >= BILGI_KELIME_MAX) {
+        if (icerikte_tam_sozcuk(r->icerik, kw)) return 1;
+        /* İçerikte de ekli biçimle arama: sözcük sözcük gez. */
+        char k[24];
+        const char *p = r->icerik;
+        while ((p = sonraki_sozcuk(p, k)) != 0)
+            if (sozcuk_esles(kw, k)) return 1;
+    }
+    return 0;
+}
+
 /* V9.2 baglam_bul() ile aynı: kesişim skoru + ilk eşleşme çevresinde pencere.
  * kategoriler verilirse yalnız o kategorilerdeki kayıtlara bakılır. */
 int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
@@ -373,6 +567,33 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
     char kw[24][24];
     int kws = kelime_ayikla(soru, kw, 24);
     if (kws == 0 || en_cok <= 0) return 0;
+
+    /* SEYREKLİK AĞIRLIĞI (IDF)
+     *
+     * Puan eskiden "sorgu sözcüklerinden kaçı kayıtta geçiyor"
+     * sayısıydı: ağırlık yok, sıklık yok, uzunluk normalizasyonu yok.
+     * Üç sözcüklü bir sorguda yüzlerce kayıt 1 puanda eşitleniyor ve
+     * sıralama eşitlikte İNDEKS SIRASINA düşüyordu — yani rastgele.
+     * ÖLÇÜLDÜ: "telsiz anten empedans" sorusunda üç dayanağın üçü de
+     * "oyun" alanından geldi, halbuki "telsiz" tek başına doğru
+     * alanı (demir) buluyordu.
+     *
+     * Artık her sorgu sözcüğü, kütüphanede NE KADAR SEYREK olduğuna
+     * göre ağırlık taşır: tamsayı log2(kayıt/belge_sıklığı) + 1.
+     * "telsiz" 33 kayıtta -> ağır; "and" gibi her yerde geçen bir
+     * sözcük -> 1. Böylece bir sözcüğü tutan zayıf bir kayıt, üç
+     * sözcüğü tutan kaydı geçemez.
+     *
+     * Tamsayı aritmetiği: ÖTÜKEN'de kayan nokta yok. */
+    int agirlik[24];
+    for (int a = 0; a < kws; a++) {
+        int df = 0;
+        for (int i = 0; i < g_sayi; i++)
+            if (kayit_tasiyor(&g_indeks[i], kw[a])) df++;
+        int w = 1;
+        for (int n = g_sayi / (df + 1); n > 1; n >>= 1) w++;
+        agirlik[a] = w;
+    }
 
     int skor[BILGI_KAYIT_MAX], sira[BILGI_KAYIT_MAX], es = 0;
     for (int i = 0; i < g_sayi; i++) {
@@ -391,8 +612,7 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
         if (sz && sz->kaynak && !um_icinde(g_indeks[i].kaynak, sz->kaynak)) continue;
         int ortak = 0;
         for (int a = 0; a < kws; a++)
-            for (int b = 0; b < g_indeks[i].kelime_sayisi; b++)
-                if (um_esit(kw[a], g_indeks[i].kelime[b])) { ortak++; break; }
+            if (kayit_tasiyor(&g_indeks[i], kw[a])) ortak += agirlik[a];
         if (ortak > 0) { skor[es] = ortak; sira[es] = i; es++; }
     }
     for (int i = 0; i < es; i++)
