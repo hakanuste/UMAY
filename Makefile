@@ -41,8 +41,12 @@ kov/umay: $(KAYNAK) $(BASLIK)
 	$(CC) $(CFLAGS) -DUMAY_SES_ACIK=1 -o $@ $(KAYNAK) $(LDFLAGS)
 	@echo "kov/umay hazir — ./kov/umay ile calistirin."
 
+# "make sina" IKI takimi da kosar: UMAY sinamalari ve US1 motor
+# sinamasi. Ikincisi depoda vardi ama hicbir hedefe bagli degildi,
+# yani hic kosmuyordu — bagli olmayan sinama, olmayan sinamadir.
 sina: kov/umay_sina
 	./kov/umay_sina
+	@$(MAKE) --no-print-directory sina-us1
 
 kov/umay_sina: $(SINA_KAYNAK) $(BASLIK)
 	@mkdir -p kov
@@ -115,6 +119,24 @@ kitaplik:
 	@test -d "$(ARSIV)" || { echo "dizin yok: $(ARSIV)"; exit 2; }
 	python3 -I arac/kitaplik_kur.py "$(ARSIV)" kut
 
+# --- US1 MOTOR SINAMASI ---
+# Motorun KENDISINI sinar: yukleme, bozuk/kisa/yanlis surum dosyalari,
+# ileri gecis, sozluk disi im, belirlenimci ve tohumlu secim, ve
+# Python referansiyla SAYISAL karsilastirma (ayni nicelenmis
+# agirliklar iki tarafta da okunur).
+#
+# NEDEN AYRI HEDEF: bu sinama depoda us1/sinama/ altinda duruyordu ve
+# Makefile'da HIC YOKTU, yani hic kosmuyordu. Icinde gomulu makine
+# yollari vardi. Artik kosuyor ve yollar argumanla geliyor.
+sina-us1: kov/umay_us1_sina
+	@python3 -I arac/us1/referans.py kut/umay.us1 kov >/dev/null 2>&1 || \
+	  echo "  (referans uretilemedi — numpy yok mu? sayisal karsilastirma atlanir)"
+	./kov/umay_us1_sina kut/umay.us1 kov/referans_imler.txt kov/referans_mantik.txt
+
+kov/umay_us1_sina: sina/us1_sina.c us/us1.c us/us1.h
+	@mkdir -p kov
+	$(CC) $(CFLAGS) -o $@ sina/us1_sina.c us/us1.c
+
 # --- CEVIRI ---
 # Kitapligin Turkce olmayan parcalarini BIR KEZ cevirir. Olculdu:
 # 515 parca, 1.16 milyon karakter, neredeyse tamami "tulga" alaninda
@@ -138,6 +160,7 @@ egit:
 	python3 -I arac/egit_derlem.py kut "$(EGITIM_CIK)" $(ADIM)
 
 temiz:
-	rm -f kov/umay kov/umay_sina kov/umay.elf
+	rm -f kov/umay kov/umay_sina kov/umay_us1_sina kov/umay.elf \
+	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle kitaplik ceviri ceviri-say egit temiz
+.PHONY: all sina sina-us1 kur kaldir ses otuken otuken-denetle kitaplik ceviri ceviri-say egit temiz

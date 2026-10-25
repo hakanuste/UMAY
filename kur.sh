@@ -55,7 +55,11 @@ yaz "derlendi: kov/umay"
 # --- 3) sina ---
 yaz "sinamalar kosuluyor..."
 if make CC="$DERLEYICI" sina >/tmp/umay_sina.txt 2>&1; then
-  yaz "$(grep -o '[0-9]* gecti, [0-9]* kaldi' /tmp/umay_sina.txt | tail -1)"
+  # IKI takim kosuyor (UMAY + US1 motoru); "tail -1" yalniz
+  # ikincisini gosteriyordu ve "10 gecti" yaziyordu. Ikisi de yazilir.
+  grep -o '[0-9]* gecti, [0-9]* kaldi' /tmp/umay_sina.txt | while read -r r; do
+    yaz "$r"
+  done
 else
   yaz "UYARI: sinamalar gecmedi, ayrinti: /tmp/umay_sina.txt"
 fi

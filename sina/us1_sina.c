@@ -1,7 +1,15 @@
-/* US1 motorunun REFERANSLA sayisal karsilastirmasi. Beklenen degerler
+/* US1 motorunun REFERANSLA sayisal karsilastirmasi.
+ *
+ * NEREDEN GELDI: bu dosya depoda us1/sinama/ altinda duruyordu ve
+ * MAKEFILE'DA HIC YOKTU — yani hic kosmuyordu. us1/ agacinin tamami
+ * golge bir kopyaydi: us1/c/us1.c ile us/us1.c birebir ayni, ama
+ * us1/c/us1.h GERIDE KALMISTI (US1_MODEL_AZAMI duzeltmesi orada yok)
+ * ve us1/umay.us1 egitilmemis 112 KB'lik eski modeldi — ayni adi
+ * tasidigi icin yanlis modeli okumaya yol aciyordu. Kopya silindi;
+ * kosan tek sinama buraya tasindi. Beklenen degerler
  * arac/referans.py tarafindan AYNI model dosyasindan uretilir; birebir
  * esitlik beklenmez (Q8 niceleme + sabit nokta payi). */
-#include "../c/us1.h"
+#include "../us/us1.h"
 #include <stdio.h>
 
 static int gecti = 0, kaldi = 0;
@@ -11,7 +19,10 @@ static void dene(const char *ad, int k) {
 }
 
 int main(int argc, char **argv) {
-    const char *yol = (argc > 1) ? argv[1] : "/home/claude/us1/umay.us1";
+    /* Model yolu argumanla verilir; gomulu yol YOK. Eskiden
+     * "/home/claude/us1/umay.us1" yaziliydi — yalniz bir makinede
+     * calisan bir sinama, sinama degildir. */
+    const char *yol = (argc > 1) ? argv[1] : "kut/umay.us1";
     FILE *f = fopen(yol, "rb");
     if (!f) { printf("model acilamadi: %s\n", yol); return 1; }
     static uint8_t veri[4 * 1024 * 1024];
@@ -35,7 +46,9 @@ int main(int argc, char **argv) {
 
     uint32_t imler[8];
     int n = 0;
-    FILE *g = fopen("/tmp/referans_imler.txt", "r");
+    const char *im_yolu = (argc > 2) ? argv[2] : "kov/referans_imler.txt";
+    const char *mantik_yolu = (argc > 3) ? argv[3] : "kov/referans_mantik.txt";
+    FILE *g = fopen(im_yolu, "r");
     if (g) { while (n < 8 && fscanf(g, "%u", &imler[n]) == 1) n++; fclose(g); }
     if (n == 0) { imler[0] = 1; imler[1] = 2; n = 2; }
 
@@ -47,7 +60,7 @@ int main(int argc, char **argv) {
     dene("sozluk disi im reddedildi", us1_ileri(&m, kotu, 2, mantik) == US1_BOZUK);
     us1_ileri(&m, imler, (uint32_t)n, mantik);
 
-    FILE *r = fopen("/tmp/referans_mantik.txt", "r");
+    FILE *r = fopen(mantik_yolu, "r");
     if (r) {
         double enb = 0.0, genlik = 0.0;
         int say = 0;
