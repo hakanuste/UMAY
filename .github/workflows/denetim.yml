@@ -1,0 +1,106 @@
+# =====================================================================
+# UMAY — her itiste ve her PR'da KAPILAR KOSAR.
+#
+# NEDEN: depoda hic is akisi yoktu. Kapilar (sinama takimi, ÖTÜKEN
+# dikisi, baglama denetimi) yalnizca elle kosuldugunda isliyordu —
+# yani kosmayi unutan bir degisiklik depoya girebiliyordu. Kapinin
+# degeri, kendiliginden kosmasindadir.
+#
+# Ayrica bir INCELEME on kosulu: Codex/Copilot gibi inceleyiciler
+# PR'a baglanir. Dal + PR duzeni olmadan inceleyecek bir sey olmaz.
+# =====================================================================
+name: denetim
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  kapilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: derleyici surumu
+        run: cc --version
+
+      # 1. KONAK YAPISI — -Werror ile. Uyari hatadir: bir islev
+      #    bildirimi bir kez #ifdef dalina dustu, konak yapisi uyari
+      #    sayip ikiliyi uretti, hata ancak -Werror kullanan ÖTÜKEN
+      #    kapisinda cikti.
+      - name: konak yapisi
+        run: make
+
+      # 2. SINAMA TAKIMI — tek ikili, tek sonuc satiri.
+      #    Egitilmis model ve kitaplik parcalari depoya girmez; eksik
+      #    VERI "atlandi" sayilir (gecti sayilmaz, gizlenmez), eksik
+      #    KOD kalir.
+      - name: sinama takimi
+        run: make sina
+
+      # 2b. KATI POSIX — Linux'a ozgu varsayim var mi.
+      #     UMAY Linux programi DEGIL; bu kapi onu soz olmaktan
+      #     cikarir. glibc _DEFAULT_SOURCE ile POSIX'te olmayan
+      #     uzantilari acar; onlari kullanan kod Linux'ta derlenir,
+      #     macOS/*BSD'de kalir. Bir kez yasandi (usleep).
+      - name: kati POSIX kipinde derleme
+        run: make posix
+
+      # 3. ÖTÜKEN DIKISI — sozdizimi (serbest duran kip) + BAGLAMA.
+      #    Baglama kapisi _start'in TANIMLI oldugunu ve hicbir simgenin
+      #    cozulmemis olmadigini kanitlar. -fsyntax-only bunu goremez:
+      #    umay.ld ENTRY(_start) derken _start hic yokken "make otuken"
+      #    BAGLANIYORDU ve giris um_bellek_kopya'ya dusuyordu.
+      - name: ÖTÜKEN dikisi ve baglama kapisi
+        run: make otuken-denetle
+
+      # 4. KAPININ KENDISI CALISIYOR MU — kapiya guvenmek yetmez.
+      #    _start sokulur, kapi HATA vermezse is akisi KALIR.
+      - name: baglama kapisi gercekten yakaliyor mu
+        run: |
+          cp port/umay_port_otuken.c /tmp/yedek.c
+          # TEK TIRNAK ICINDE SATIR BOLMEK YOK: kabuk tek tirnak icinde
+          # ters egik cizgi + satir sonunu BIRLESTIRMEZ, sed'e bozuk
+          # betik gider. Her degisiklik ayri cagri.
+          sed -i 's/".globl _start\\n"/".globl _yok\\n"/' port/umay_port_otuken.c
+          sed -i 's/"_start:\\n"/"_yok:\\n"/' port/umay_port_otuken.c
+          sed -i 's/".type _start, @function\\n"//' port/umay_port_otuken.c
+          sed -i 's/".size _start, . - _start\\n"//' port/umay_port_otuken.c
+          if make otuken-bag 2>&1 | grep -q "_start TANIMLI DEGIL"; then
+            echo "kapi _start eksikligini yakaladi"
+          else
+            echo "HATA: kapi _start eksikligini YAKALAMADI"
+            cp /tmp/yedek.c port/umay_port_otuken.c
+            exit 1
+          fi
+          cp /tmp/yedek.c port/umay_port_otuken.c
+          make otuken-bag
+
+      # 5. TEMIZ KURULUM — kitaplik YOKKEN de kurulmali.
+      #    "cp -r kut" bir kez temiz klonda patliyordu ve ikili
+      #    KURULDUKTAN SONRA sifir disi kodla cikiyordu.
+      - name: temiz kurulum (kitapliksiz)
+        run: |
+          rm -rf /tmp/kaynak /tmp/hedef && mkdir -p /tmp/kaynak /tmp/hedef
+          tar cf - --exclude=kov --exclude=.git --exclude=kut . \
+            | (cd /tmp/kaynak && tar xf -)
+          make -C /tmp/kaynak
+          make -C /tmp/kaynak kur ONEK=/tmp/hedef
+          /tmp/hedef/bin/umay --surum
+          make -C /tmp/kaynak kaldir ONEK=/tmp/hedef
+          test "$(find /tmp/hedef -type f | wc -l)" = "0" \
+            || { echo "HATA: kaldirma dosya birakti"; exit 1; }
+
+      # 6. BETIK KIPI — stdout YALNIZ yanit olmali.
+      #    README bir sure "stdout yanittir" diyordu ama levha, selam
+      #    ve veda stdout'a basiliyordu; cagiran hepsini suzmek
+      #    zorundaydi.
+      - name: tek soru kipi stdout temiz mi
+        run: |
+          ./kov/umay "kompost nasil yapilir" 2>/dev/null > /tmp/cikti.txt
+          if grep -q "ocak tütüyor\|╔\|ocak söndü" /tmp/cikti.txt; then
+            echo "HATA: susleme stdout'a basiliyor:"; cat /tmp/cikti.txt; exit 1
+          fi
+          echo "stdout temiz:"; cat /tmp/cikti.txt

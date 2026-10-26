@@ -2,8 +2,18 @@
 # UMAY — tek basina calisan surum
 #
 # ÖTÜKEN'e bagli degildir: ne cekirdek kaynagi, ne baglayici betigi,
-# ne de ÖTÜKEN'e ozgu bir kosullu derleme kalmistir. Sira bir Linux
-# programidir.
+# ne de ÖTÜKEN'e ozgu bir kosullu derleme kalmistir.
+#
+# UMAY BIR LINUX PROGRAMI DEGILDIR. Isletim sistemine bakan her sey
+# port/ katmanindadir; cekirdekte (core/, alp/, us/, bilgi/) tek bir
+# isletim sistemi basligi yoktur — olculdu, yalnizca stdarg.h gecer ve
+# o da serbest duran C'nin parcasidir. Yeni bir isletim sistemi
+# eklemek, port arayuzunu (35 islev) bir dosyada gerceklemektir;
+# cekirdege dokunulmaz. Bugun iki port var:
+#   port/umay_port_host.c     POSIX  -> Linux, macOS, *BSD, MSYS2/Cygwin
+#   port/umay_port_otuken.c   ÖTÜKEN -> cagri numaralariyla, dogrudan
+# "make posix" konak portunu KATI POSIX kipinde derler: boylece
+# yalnizca glibc'de olan bir uzanti sessizce iceri giremez.
 #
 #   make          -> kov/umay          (program)
 #   make sina     -> kov/umay_sina     (sinama takimi) ve kosar
@@ -94,6 +104,25 @@ kur: $(KAYNAK) $(BASLIK)
 	@echo "kuruldu: $(ONEK)/bin/umay"
 	@case ":$$PATH:" in *":$(ONEK)/bin:"*) ;; \
 	  *) echo "UYARI: $(ONEK)/bin PATH'te degil." ;; esac
+
+# KATI POSIX KAPISI — tasinabilirligi SOZ olmaktan cikarir.
+#
+# UMAY Linux'a degil POSIX'e dayanir. Ama "dayanir" demek yetmez:
+# glibc, _DEFAULT_SOURCE ile POSIX'te OLMAYAN uzantilari da acar ve
+# onlari kullanan kod Linux'ta derlenir, macOS ya da *BSD'de KALIR.
+# Bu daha once yasandi: up_uyu usleep() cagiriyordu — usleep
+# POSIX.1-2008'de KALDIRILDI; glibc onu _DEFAULT_SOURCE ile geri
+# veriyordu ama macOS'un karsiligi _DARWIN_C_SOURCE'tur ve orada
+# bildirilmemis sayiliyordu. Linux'ta sessizce derlenen kod macOS'ta
+# kirilacakti. Simdi nanosleep kullaniliyor.
+#
+# _POSIX_C_SOURCE=200809L yalnizca POSIX.1-2008'i acar; glibc'ye ozgu
+# ne varsa ortaya cikar. Bu kapi her uc isletim sisteminde ayni kodu
+# derleyebildigimizi KANITLAR, varsaymaz.
+posix:
+	@$(CC) -std=c11 -Wall -Wextra -Werror -D_POSIX_C_SOURCE=200809L \
+	       -O2 -Iinclude -DUMAY_SES_ACIK=1 -o /dev/null $(KAYNAK) \
+	  && echo "KATI POSIX: temiz derlendi (glibc uzantisi yok)."
 
 # --- ÖTÜKEN dikisi ---
 # UMAY, ÖTÜKEN bittiginde buradan baglanir. Degisen TEK sey port
@@ -216,4 +245,4 @@ temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf \
 	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz
+.PHONY: all sina kur kaldir ses posix otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz
