@@ -37,7 +37,13 @@ static int  g_acik = 0;
  * soruda soru listesini kaybetti.
  *
  * Program bir soru sorup cikacaksa ucbirim girdisiyle isi yoktur. */
+static int g_sade = 0;      /* betik kipi: susleme basilmaz        */
+static int g_sade_coz = 0;  /* sade kipte yanitlar artik basilabilir */
 static int g_girdi_kapali;
+
+void gui_sade_kip(void)  { g_sade = 1; }
+void gui_sade_coz(void)  { g_sade_coz = 1; }
+int  gui_sade_mi(void)   { return g_sade; }
 
 void gui_girdi_kapat(void) { g_girdi_kapali = 1; }
 static int  g_kapat_istendi = 0;
@@ -98,6 +104,18 @@ int gui_ac(int en, int boy)
     g_kapat_istendi = 0;
     g_durum[0] = 0;
 
+    /* SADE KIP: levha, selam, durum satirlari ve veda BASILMAZ.
+     *
+     * NEDEN: "umay \"soru\"" kipinin kendi yardim yazisi onu
+     * "betikler icin" diye tanitir ve README "stdout yanittir" der.
+     * Oysa cikti soyleydi:
+     *     [levha] [selam] [durum: YER-SU] [YANIT] [durum: hazir]
+     *     [— ocak sondu —]
+     * Cagiran hepsini suzmek zorunda kaliyordu — kendi olcum betigim
+     * nitekim grep ile suzuyordu. Betige verilen ciktinin YALNIZ yanit
+     * olmasi gerekir; susleme konusma kipinin isidir. */
+    if (g_sade) { fflush(stdout); return UM_OLDU; }
+
     printf("\n%s╔══════════════════════════════════════════════╗%s\n",
            renk(R_TURKUAZ), sifir());
     printf("%s║%s  UMAY — Dede Korkut dili ile                 %s║%s\n",
@@ -118,6 +136,7 @@ void gui_kapat(void)
 {
     if (!g_acik) return;
     g_acik = 0;
+    if (g_sade) return;
     printf("\n%s  — ocak söndü —%s\n\n", renk(R_GRI), sifir());
     fflush(stdout);
 }
@@ -129,13 +148,17 @@ void gui_satir_ekle(const char *kim, const char *metin)
     if (!g_acik || !kim || !metin) return;
     /* Kullanıcının kendi sözünü geri basmayız: uçbirim zaten gösterdi. */
     if (um_esit(kim, "SEN")) return;
+    /* Sade kipte, SORU SORULMADAN once uretilen satirlar (umay_kur
+     * icindeki selam) basilmaz; yanit baslayinca cozulur. */
+    if (g_sade && !g_sade_coz) return;
+    if (g_sade) { printf("%s\n", metin); fflush(stdout); return; }
     printf("%s%s%s  %s\n", renk(R_LAVANTA), kim, sifir(), metin);
     fflush(stdout);
 }
 
 void gui_durum(const char *metin)
 {
-    if (!g_acik || !metin) return;
+    if (!g_acik || !metin || g_sade) return;
     /* Aynı durumu tekrar tekrar basmayalım; akışı boğar. */
     if (um_esit(g_durum, metin)) return;
     um_kopya(g_durum, sizeof g_durum, metin);

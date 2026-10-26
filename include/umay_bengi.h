@@ -36,7 +36,11 @@ int  bengi_sil(const char *anahtar);
 int  bengi_ara(const char *kelime, const char **cikan, int en_cok);
 int  bengi_turu_ara(bengi_tur_t tur, const bengi_kayit_t **cikan, int en_cok);
 void bengi_ozet(char *c, uint32_t n);
-void bengi_baglam(char *c, uint32_t n);        /* US'e verilecek hafıza özeti */
+void bengi_baglam(char *c, uint32_t n);        /* süzgeçsiz: TÜM doğrulanmış kayıtlar */
+/* Soruya DEĞEN doğrulanmış kayıtlar. Görev bağlamı için bunu kullan:
+ * süzgeçsiz dökümde alakasız bir not hem yanıtın başına düşer hem de
+ * "dayanağım var" kapısını haksız yere açar (ölçüldü, bkz. .c). */
+void bengi_baglam_soru(char *c, uint32_t n, const char *soru);
 int  bengi_sakla(void);
 int  bengi_sayi(void);
 const char *bengi_tur_adi(bengi_tur_t t);

@@ -33,7 +33,11 @@ Kaldırmak:
     umay --surum
     umay --yardim
 
-Tek soru kipi betiklerden çağırmak içindir. **stdout yanıttır**; tanı,
+Tek soru kipi betiklerden çağırmak içindir. **stdout yalnız yanıttır**:
+karşılama levhası, selam, durum satırları ve kapanış yazısı bu kipte
+hiç basılmaz — bunlar konuşma kipine aittir. (Bir süre basılıyordu ve
+README burada yine "stdout yanıttır" diyordu; doğru değildi. Çağıran
+hepsini süzmek zorundaydı.) Tanı,
 uyarı ve ilerleme stderr'e gider, böylece boru hattına girer:
 
     umay "soru" | less
@@ -198,16 +202,29 @@ Bağlanma noktası tek bir katmandır: `port/`. Çekirdekte (`core/`,
 `alp/`, `us/`) tek bir koşullu derleme yoktur.
 
     make otuken-denetle      # dikiş sağlam mı (ÖTÜKEN ağacı gerekmez)
+    make otuken-bag          # bağlama düzeyi kapısı (denetle bunu koşturur)
     make otuken OT=../ot     # gerçek yapım -> kov/umay.elf
 
-`otuken-denetle` her değişiklikten sonra koşulabilir; dikişin sessizce
-bozulmasını engeller. Ayrıntı: `port/OTUKEN.md`.
+`otuken-denetle` iki kapıyı birlikte koşturur:
+
+1. **sözdizimi** — 22 dosya serbest duran kipte derlenir
+2. **bağlama** — dosyalar nesneye derlenir (`-Werror`), sonra `_start`in
+   **tanımlı** olduğu ve **hiçbir simgenin çözülmemiş** olmadığı
+   kanıtlanır
+
+İkincisi gerekliydi: `-fsyntax-only` tanımsız bir simgeyi göremez.
+`umay.ld` `ENTRY(_start)` diyordu, `_start` hiçbir dosyada yoktu ve
+`make otuken` yine de **bağlanıyordu** — bağlayıcı yalnız uyarıyor,
+giriş noktası `um_bellek_kopya`ya düşüyordu. ELF'in bağlanması
+çalışacağı anlamına gelmez. Kapı üç bozuk sürümle sınandı (eksik
+`_start`, sızan `printf`, bağlayıcı betiğinde adı değişen simge);
+üçünü de yakaladı. Ayrıntı: `port/OTUKEN.md`.
 
 ## Sınamak
 
     make sina
 
-**234 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
+**268 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
 süre ayrı bir ikilideydi; iki ayrı sonuç satırı veriyordu ve `kur.sh`
 yalnız sonuncusunu okuyup "10 geçti" yazıyordu. Hepsi `sina/sina.c`de.
 

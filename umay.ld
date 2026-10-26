@@ -30,5 +30,9 @@ SECTIONS
     . = ALIGN(0x1000);
 
     .data : { *(.data*) } :veri
+    /* .bss SINIRLARI: port/umay_port_otuken.c icindeki giris islevi
+     * bolgeyi elle sifirlar; yukleyicinin sifirladigina guvenilmez. */
+    __bss_basi = .;
     .bss  : { *(.bss*) *(COMMON) } :veri
+    __bss_sonu = .;
 }

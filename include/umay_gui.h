@@ -23,6 +23,17 @@ int  gui_giris_yokla(umay_ileti_t *i);                     /* 1 = yeni söz */
 
 /* Ucbirim girdisini tumuyle kapatir (tek soru kipi). Cagrilmazsa
  * davranis degismez. */
+/* SADE (BETIK) KIPI — "umay \"soru\"" icin.
+ * gui_sade_kip() : levha, selam, durum satirlari ve veda basilmaz.
+ *                  umay_kur()'DAN ONCE cagrilmali (levha orada basilir).
+ * gui_sade_coz() : bundan sonraki satirlar basilir. Soruyu sormadan
+ *                  hemen once cagrilir; boylece kurulus sirasindaki
+ *                  selam ciktiya karismaz.
+ * Ciktinin yalniz yanit olmasi betiklerin suzgec yazmasini onler. */
+void gui_sade_kip(void);
+void gui_sade_coz(void);
+int  gui_sade_mi(void);
+
 void gui_girdi_kapat(void);
 /* Otağ görünümünü istek üzerine basar. Konsol ön yüzünde anlamlıdır;
  * ÜLGEN ön yüzü otağı zaten sürekli çizer, orada boştur. */

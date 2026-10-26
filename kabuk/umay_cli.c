@@ -64,6 +64,12 @@ int main(int argc, char **argv)
             if (i > 1) um_ekle(soru, sizeof soru, " ");
             um_ekle(soru, sizeof soru, argv[i]);
         }
+        /* SADE KIP, umay_kur()'DAN ONCE: levha orada basilir.
+         * Bu kip "betikler icin" diye tanitiliyor, oysa cikti levha,
+         * selam, durum satirlari ve "— ocak sondu —" ile geliyordu;
+         * cagiran hepsini suzmek zorundaydi. Artik cikti yalniz
+         * yanittir. Konusma kipi suslemesini korur. */
+        gui_sade_kip();
         if (umay_kur() != 0) {
             fprintf(stderr, "UMAY: baslatilamadi\n");
             return 1;
@@ -71,6 +77,7 @@ int main(int argc, char **argv)
         /* Bir soru sorup cikacagiz: ucbirim girdisiyle isimiz yok.
          * Yoklasaydik cagiranin stdin'ini BOSALTIRDIK (olculdu). */
         gui_girdi_kapat();
+        gui_sade_coz();        /* kurulus selami gecti; yanit basilabilir */
         umay_sor(soru);
         /* Ajanlar koşut çalışır; yanıt gelene dek dönülür. Üst sınır
          * var: bir ajan takılırsa program sonsuza dek beklemesin. */

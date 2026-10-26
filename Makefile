@@ -11,7 +11,14 @@
 #   make temiz
 # =====================================================================
 CC      ?= cc
-CFLAGS  ?= -std=c11 -Wall -Wextra -O2 -Iinclude
+# -Werror: UYARIYI HATA SAY.
+# OLCULDU: bir islev bildirimi yanlislikla bir #ifdef dalinin icine
+# dustu. Konak yapisi bunu "implicit declaration of function" UYARISI
+# olarak gecti ve ikili uretildi; hata ancak -Werror kullanan ÖTÜKEN
+# kapisinda ortaya cikti. Ortuk bildirim C'de islevin int dondurdugunu
+# VARSAYAR — imlec donduren bir islevde bu sessiz bozulmadir.
+# Iki yapi ayni siddette olmali.
+CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude
 LDFLAGS ?=
 
 KAYNAK = core/umay_str.c core/umay_ortak.c core/umay_bilgi.c \
@@ -68,9 +75,23 @@ kur: $(KAYNAK) $(BASLIK)
 	      -o kov/umay $(KAYNAK) $(LDFLAGS)
 	install -d $(ONEK)/bin $(ONEK)/share/umay
 	install -m755 kov/umay $(ONEK)/bin/umay
-	cp -r kut $(ONEK)/share/umay/
+	@# KITAPLIK ZORUNLU DEGILDIR — temiz bir kopyada YOKTUR.
+	@# Parcalar .gitignore'dadir; "make kitaplik" ile uretilir.
+	@# OLCULMUS HATA: burada duz "cp -r kut" vardi. Temiz klonda
+	@#   cp: cannot stat 'kut': No such file or directory
+	@#   make: *** [kur] Error 1
+	@# ikili KURULDUKTAN SONRA patliyordu: yarim kurulum, sifir disi
+	@# cikis kodu, "kuruldu" satirini hic gormeyen kullanici.
+	@# Kurulum, elde olmayan veriye BAGLI OLMAMALI.
+	@if [ -d kut ]; then \
+	  cp -r kut $(ONEK)/share/umay/ && \
+	  echo "veri    : $(ONEK)/share/umay/kut"; \
+	else \
+	  echo "veri    : YOK — kitaplik kurulmadi (zorunlu degil)."; \
+	  echo "          uretmek icin: make kitaplik ARSIV=<ham_arsiv>"; \
+	  echo "          sonra yeniden: make kur ONEK=$(ONEK)"; \
+	fi
 	@echo "kuruldu: $(ONEK)/bin/umay"
-	@echo "veri    : $(ONEK)/share/umay/kut"
 	@case ":$$PATH:" in *":$(ONEK)/bin:"*) ;; \
 	  *) echo "UYARI: $(ONEK)/bin PATH'te degil." ;; esac
 
@@ -92,7 +113,51 @@ otuken-denetle:
 	        -ffreestanding -fno-stack-protector -fsyntax-only $$d \
 	    || exit 1; \
 	done
-	@echo "ÖTÜKEN dikisi saglam: $(words $(OTUKEN_KAYNAK)) dosya derlendi."
+	@echo "  sozdizimi: $(words $(OTUKEN_KAYNAK)) dosya derlendi."
+	@$(MAKE) -s otuken-bag
+	@echo "ÖTÜKEN dikisi saglam."
+
+# BAGLAMA DUZEYI KAPISI — otuken-denetle'nin GOREMEDIGI hatalar icin.
+#
+# NEDEN GEREKLI: otuken-denetle yalniz -fsyntax-only yapar. Bir simge
+# hic TANIMLI OLMASA bile sozdizimi denetiminden gecer. Nitekim gecti:
+# umay.ld "ENTRY(_start)" diyordu, _start hicbir dosyada yoktu, ve
+# "make otuken" BAGLANDI — baglayici yalniz uyardi:
+#     cannot find entry symbol _start; defaulting to 0000008000a00000
+# O adresteki simge um_bellek_kopya'ydi: ÖTÜKEN programi yukleyip bir
+# bellek kopyalama islevine atlardi. Hata calistirana kadar gorunmezdi.
+#
+# Bu kapi ÖTÜKEN AGACI OLMADAN kosar: kaynaklar nesneye derlenir,
+# sonra iki sey kanitlanir:
+#   1. _start TANIMLI (giris noktasi gercekten var)
+#   2. hicbir simge cozulmemis degil (konak kitapligi sizmamis)
+otuken-bag:
+	@rm -rf kov/otn && mkdir -p kov/otn
+	@for d in $(OTUKEN_KAYNAK); do \
+	  o=kov/otn/`echo $$d | tr / _`.o; \
+	  $(CC) -std=c11 -Wall -Wextra -Werror -O1 -Iinclude -DUMAY_OTUKEN \
+	        -ffreestanding -fno-stack-protector -fno-pie -c $$d -o $$o \
+	    || exit 1; \
+	done
+	@nm kov/otn/*.o | grep -qw 'T _start' \
+	  || { echo "HATA: _start TANIMLI DEGIL — umay.ld ENTRY(_start) diyor."; \
+	       echo "      ÖTÜKEN bu ELF'i yukleyip yanlis adrese atlar."; exit 1; }
+	@nm --defined-only kov/otn/*.o | awk 'NF==3{print $$3}' | sort -u > kov/otn/tanimli
+	@nm -u kov/otn/*.o | awk 'NF==2 && $$1=="U"{print $$2}' | sort -u > kov/otn/gereken
+	@# BAGLAYICI BETIGININ VERDIGI SIMGELER: umay.ld icindeki "ad = ."
+	@# atamalari nesne duzeyinde cozulmemis gorunur, baglamada cozulur.
+	@# Betikten OKUNUR, elle yazilmaz: boylece betikte adi degisen ya da
+	@# yanlis yazilan bir simge de hata verir.
+	@sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' \
+	   umay.ld | sort -u > kov/otn/betikten
+	@eksik=`comm -23 kov/otn/gereken kov/otn/tanimli | comm -23 - kov/otn/betikten`; \
+	 if [ -n "$$eksik" ]; then \
+	   echo "HATA: cozulmemis simge (konak kitapligi sizmis olabilir):"; \
+	   echo "$$eksik" | sed 's/^/        /'; exit 1; \
+	 fi
+	@kullanilan=`comm -12 kov/otn/gereken kov/otn/betikten | tr '\n' ' '`; \
+	 [ -n "$$kullanilan" ] && echo "  baglayici betiginden: $$kullanilan" || true
+	@echo "  baglama: _start tanimli, cozulmemis simge yok ($(words $(OTUKEN_KAYNAK)) nesne)."
 
 # Gercek ÖTÜKEN yapimi: cekirdek agacindaki ulib ve baglayici betigi
 # gerekir. OT=... ile ÖTÜKEN kokunu verin.
@@ -151,4 +216,4 @@ temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf \
 	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle kitaplik ceviri ceviri-say egit temiz
+.PHONY: all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz

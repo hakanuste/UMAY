@@ -36,7 +36,12 @@ static int durak_mi(const char *k) {
 }
 
 /* metinden en çok 'en_cok' benzersiz, küçük harfli kelime çıkarır */
-static int kelime_ayikla(const char *metin, char cikan[][24], int en_cok) {
+/* SOZCUK AYIRICI — TEK TANE OLMALI.
+ * bengi katmani da soru ile kaydin ilgisini olcmek icin buna ihtiyac
+ * duyar. Orada ikinci bir ayirici yazilsa durak sozcuk listesi ve
+ * Turkce kucultme iki yerde ayri ayri yasar, biri degisince oteki
+ * sessizce sapar. Bu yuzden dis ada baglanir. */
+int bilgi_kelime_ayikla(const char *metin, char cikan[][24], int en_cok) {
     int n = 0;
     const char *p = metin;
     while (*p && n < en_cok) {
@@ -90,7 +95,7 @@ static int kayit_ekle_dil(const char *kategori, const char *baslik, const char *
     um_kopya(k->ozgun_dil, sizeof k->ozgun_dil, ozgun_dil ? ozgun_dil : "");
     etiket_ayikla(k, etiketler);
     um_kopya(k->icerik,   sizeof k->icerik,   icerik);
-    k->kelime_sayisi = kelime_ayikla(k->icerik, k->kelime, BILGI_KELIME_MAX);
+    k->kelime_sayisi = bilgi_kelime_ayikla(k->icerik, k->kelime, BILGI_KELIME_MAX);
     k->dolu = 1;
     g_sayi++;
     return UM_OLDU;
@@ -565,7 +570,7 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
     const char *const *kategoriler = sz ? sz->kategoriler : 0;
     int kat_sayi = sz ? sz->kategori_sayi : 0;
     char kw[24][24];
-    int kws = kelime_ayikla(soru, kw, 24);
+    int kws = bilgi_kelime_ayikla(soru, kw, 24);
     if (kws == 0 || en_cok <= 0) return 0;
 
     /* SEYREKLİK AĞIRLIĞI (IDF)

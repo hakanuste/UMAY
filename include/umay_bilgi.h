@@ -116,4 +116,11 @@ int  bilgi_baglam_bul_kat(const char *soru, const char *const *kategoriler,
 int  bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *s,
                              baglam_t *cikan, int en_cok);
 int  bilgi_catisma_bul(const baglam_t *dizi, int sayi, catisma_t *c);
+
+/* Soruyu/metni durak sozcukleri atilmis, Turkce kucultulmus sozcuklere
+ * ayirir. Donen deger sozcuk sayisidir. bengi katmani da kullanir:
+ * ayirici ve durak listesi TEK yerde durmali — iki ayri ayirici
+ * yazilsa biri degisince oteki sessizce sapar. */
+int bilgi_kelime_ayikla(const char *metin, char cikan[][24], int en_cok);
+
 #endif

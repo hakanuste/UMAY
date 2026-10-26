@@ -1,5 +1,6 @@
 /* BENGİ — türlenmiş kalıcı hafıza. VFS üstünde düz satır deposu. */
 #include "umay_bengi.h"
+#include "umay_bilgi.h"
 #include "umay_port.h"
 #include "umay_str.h"
 
@@ -119,18 +120,75 @@ void bengi_ozet(char *c, uint32_t n) {
     }
 }
 
-/* US'e verilecek özet: yalnız doğrulanmış KULLANICI/PROJE/KARAR kayıtları.
- * Doğrulanmamış görev çıktıları modele dayanak olarak sunulmaz. */
-void bengi_baglam(char *c, uint32_t n) {
+/* Iki sozcuk ayni seyden mi soz ediyor: biri otekinin onu olacak ve
+ * paylasilan on en az 5 bayt olacak. Turkce ekler sozcugu uzatir
+ * ("kompost" / "kompostla" / "kompostu"), govde ortaktir. 5 bayt
+ * esigi, "su" ya da "yol" gibi kisa sozcuklerin her seye degmesini
+ * onler. */
+static int sozcuk_degiyor(const char *a, const char *b) {
+    uint32_t i = 0;
+    while (a[i] && b[i] && a[i] == b[i]) i++;
+    if (i < 5) return 0;
+    return a[i] == 0 || b[i] == 0;
+}
+
+/* US'e verilecek ozet: yalniz dogrulanmis KULLANICI/PROJE/KARAR
+ * kayitlari, VE yalniz soruya DEGEN kayitlar.
+ *
+ * OLCULMUS HATA: suzgec yoktu, butun dogrulanmis kayitlar her gorevin
+ * baglamina giriyordu. kut/bengi.txt'te "kaydet sarnic hacmi 12 ton"
+ * notu duruyordu ve cikti soyle oluyordu:
+ *     "kompost nasil yapilir" -> YER-SU soyler: kaydet sarnic hacmi 12 ton
+ *     "kerpic duvar harc"     -> BALBAL soyler: kaydet sarnic hacmi 12 ton
+ *     "telsiz anten empedans" -> OYUN   soyler: kaydet sarnic hacmi 12 ton
+ * Bellek baglamin BASINA konduğu icin, alinti cikaran motor onu
+ * yanitin ilk satiri yapiyordu. Bellek bosaltilinca yanitlar duzeldi.
+ *
+ * Ikinci ve daha agir yuzu: us/umay_us.c'deki dayanak kapisi
+ *     if (i->baglam_sayi <= 0 && !bengi_var) -> dayanaksiz
+ * bicimindedir. Yani ALAKASIZ tek bir not, hic kaynagi olmayan bir
+ * soruda "dayanagim var" kapisini aciyordu. Suzgec o kapiyi da
+ * duzeltir: ilgili kayit varsa bellek gercekten dayanaktir (kullanici
+ * kendi soylemistir), ilgisizse bellek hic girmez.
+ *
+ * soru == 0 verilirse suzgec uygulanmaz (eski davranis; bellek dokumu
+ * isteyen yerler icin). */
+void bengi_baglam_soru(char *c, uint32_t n, const char *soru) {
+    char kw[24][24];
+    int kws = soru ? bilgi_kelime_ayikla(soru, kw, 24) : 0;
+
     um_kopya(c, n, "");
     for (int i = 0; i < g_sayi && um_uzun(c) + 96 < n; i++) {
         const bengi_kayit_t *k = &g_bengi[i];
         if (!k->dolu || !k->dogrulandi) continue;
         if (k->tur == BENGI_SONUC) continue;
+
+        if (kws > 0) {
+            char dk[24][24];
+            int dn = bilgi_kelime_ayikla(k->deger, dk, 24);
+            int degdi = 0;
+            for (int a = 0; a < kws && !degdi; a++)
+                for (int b = 0; b < dn; b++)
+                    if (sozcuk_degiyor(kw[a], dk[b])) { degdi = 1; break; }
+            /* Anahtar da sayilir: "sarnic_hacmi" gibi adlar deger
+             * metninde gecmeyebilir. */
+            if (!degdi && k->anahtar[0]) {
+                char ak[8][24];
+                int an = bilgi_kelime_ayikla(k->anahtar, ak, 8);
+                for (int a = 0; a < kws && !degdi; a++)
+                    for (int b = 0; b < an; b++)
+                        if (sozcuk_degiyor(kw[a], ak[b])) { degdi = 1; break; }
+            }
+            if (!degdi) continue;
+        }
+
         um_ekle(c, n, k->deger);
         um_ekle(c, n, "\n");
     }
 }
+
+void bengi_baglam(char *c, uint32_t n) { bengi_baglam_soru(c, n, 0); }
+
 
 int bengi_kur(const char *yol) {
     g_sayi = 0; g_kirli = 0;

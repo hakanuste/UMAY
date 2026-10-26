@@ -15,6 +15,7 @@
 #include "umay_port.h"
 #include "umay_str.h"
 #include "umay_us.h"
+#include "umay_kabuk.h"
 
 #ifdef UMAY_OTUKEN
 
@@ -335,6 +336,70 @@ int up_dede_konus(const char *metin) {
 
 void up_ses_nota(uint32_t hz, uint32_t ms) {
     sys(SYS_SES_NOTA, (int64_t)hz, (int64_t)ms, 0, 0);
+}
+
+/* =====================================================================
+ * GİRİŞ NOKTASI — _start
+ *
+ * NEDEN BURADA: UMAY'ın ana bilgisayar girişi kabuk/umay_cli.c'deki
+ * main()'dir; o dosya ÖTÜKEN yapımına GİRMEZ (stdio ister). ÖTÜKEN
+ * karşılığı bu dosyada olmak zorundadır, çünkü giriş noktası yalnız
+ * iki şey kullanır: UMAY'ın yaşam döngüsü çağrıları ve ÖTÜKEN
+ * çağrıları. İkisi de bu katmanın işidir.
+ *
+ * ÖLÇÜLMÜŞ HATA: bu işlev yokken "make otuken" BAĞLANIYORDU ve
+ * bağlayıcı yalnız uyarıyordu:
+ *     cannot find entry symbol _start; defaulting to 0000008000a00000
+ * O adreste duran simge um_bellek_kopya'ydı. ÖTÜKEN bu ELF'i yükleyip
+ * bir bellek kopyalama işlevine atlardı; program hiç koşmazdı.
+ * ELF'in bağlanması çalışacağı anlamına GELMEZ.
+ *
+ * Neden üst düzey asm: GCC x86-64'te naked niteliğini yoksayar ve
+ * giriş/çıkış kodu üretir — yığını bozar. Üst düzey asm bloğu hem GCC
+ * hem Clang'da çalışır ve .text içine girer.
+ *
+ * Yığın hizası: SysV ABI çağrı anında RSP'nin 16'ya hizalı olmasını
+ * ister. Çekirdek yükleyicisinin ne bıraktığına GÜVENİLMEZ, elle
+ * hizalanır. RBP sıfırlanır: geri iz süren araçlar zincirin sonunu
+ * böyle anlar.
+ * ===================================================================== */
+__asm__(
+    ".text\n"
+    ".globl _start\n"
+    ".type _start, @function\n"
+    "_start:\n"
+    "    xorq %rbp, %rbp\n"          /* iz zincirinin sonu       */
+    "    andq $-16, %rsp\n"          /* SysV ABI: 16 bayt hiza   */
+    "    callq umay_otuken_giris\n"
+    "    hlt\n"                      /* giriş dönmez; dönerse dur */
+    ".size _start, . - _start\n"
+);
+
+/* Bağlayıcı betiğinin (umay.ld) verdiği .bss sınırları. */
+extern char __bss_basi[];
+extern char __bss_sonu[];
+
+void umay_otuken_giris(void);
+
+/* _start'ın atladığı C işlevi. Dönmez.
+ *
+ * .bss SIFIRLAMA: ELF yükleyicisinin p_memsz > p_filesz bölgesini
+ * sıfırladığına güvenilmez. Sıfırlamak, yükleyici zaten sıfırlamışsa
+ * zararsızdır; sıfırlamamışsa program çöp değerle açılır — UMAY'ın
+ * bütün sayaçları, indeksleri ve "kuruldu mu" bayrakları .bss'tedir.
+ * Döngü yalnız kayıt ve yığın kullanır, kendi sildiği belleğe
+ * dayanmaz. */
+void umay_otuken_giris(void)
+{
+    for (char *p = __bss_basi; p < __bss_sonu; p++) *p = 0;
+
+    int k = umay_kur();
+    if (k == 0) {
+        while (umay_kosuyor()) umay_tur();
+        umay_kapan();
+    }
+    sys(SYS_EXIT, (int64_t)k, 0, 0, 0);
+    for (;;) sys(SYS_YIELD, 0, 0, 0, 0);   /* çekirdek döndürürse */
 }
 
 #endif /* UMAY_OTUKEN */

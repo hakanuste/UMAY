@@ -63,3 +63,83 @@ ikisi de yok. Orada çekirdeğin kendi formant sentezleyicisi
 
 Piper'ı ÖTÜKEN'e taşımak, VITS çıkarımını tamsayı C'ye yazmak demektir
 — US1'de bir kez yapılan işin büyüğü.
+
+## Giriş noktası (_start) — YAZILDI
+
+`umay.ld` `ENTRY(_start)` diyor; karşılığı artık
+`port/umay_port_otuken.c` içinde duruyor.
+
+**Önceki durum (ölçülmüş):** `_start` hiçbir dosyada tanımlı değildi ve
+`make otuken` yine de **bağlanıyordu** — bağlayıcı yalnız uyarıyordu:
+
+    cannot find entry symbol _start; defaulting to 0000008000a00000
+
+O adreste duran simge `um_bellek_kopya`'ydı. ÖTÜKEN bu ELF'i yükleyip
+bir bellek kopyalama işlevine atlardı; UMAY hiç koşmazdı. **ELF'in
+bağlanması çalışacağı anlamına gelmez.**
+
+### Ne yapıyor
+
+`_start` üst düzey asm bloğudur — GCC x86-64'te `naked` niteliğini
+yoksayar ve giriş/çıkış kodu üretip yığını bozar:
+
+1. `RBP` sıfırlanır — geri iz süren araçlar zincirin sonunu böyle anlar
+2. `RSP` 16'ya hizalanır — SysV ABI şartı; yükleyicinin ne bıraktığına
+   güvenilmez
+3. `umay_otuken_giris()` çağrılır, dönmez
+
+`umay_otuken_giris()` sırayla:
+
+1. **`.bss`'i elle sıfırlar.** `umay.ld` `__bss_basi`/`__bss_sonu`
+   simgelerini verir. Yükleyicinin `p_memsz > p_filesz` bölgesini
+   sıfırladığına güvenilmez; UMAY'ın bütün sayaçları, indeksleri ve
+   "kuruldu mu" bayrakları `.bss`'tedir. Yükleyici zaten sıfırlamışsa
+   ikinci kez sıfırlamak zararsızdır.
+2. `umay_kur()` — ayar, kütüphane, motor, ajanlar
+3. `while (umay_kosuyor()) umay_tur();`
+4. `umay_kapan()` — belleği saklar, kanalları kapatır
+5. `SYS_EXIT` (5) ile çıkar
+
+Konak karşılığı `kabuk/umay_cli.c`'deki `main()`'dir; o dosya ÖTÜKEN
+yapımına girmez (stdio ister), bu yüzden karşılığı port katmanındadır.
+Çekirdek (`core/`) ikisini de tanımaz, yalnız yaşam döngüsü
+çağrılarını bilir.
+
+### Bir daha kaçmaması için: `make otuken-bag`
+
+`make otuken-denetle` bu hatayı **göremezdi**, çünkü yalnız
+`-fsyntax-only` yapar: tanımsız bir simge sözdizimi denetiminden geçer.
+
+`otuken-bag` kapısı ÖTÜKEN ağacı olmadan koşar. Kaynakları nesneye
+derler (`-Werror`, serbest duran kip) ve iki şeyi kanıtlar:
+
+1. `_start` **tanımlı** (`nm` ile)
+2. **Hiçbir simge çözülmemiş değil** — konak kitaplığı sızmamış.
+   Bağlayıcı betiğinin verdiği simgeler `umay.ld`'den **okunur**, elle
+   yazılmaz; böylece betikte adı değişen bir simge de yakalanır.
+
+`otuken-denetle` artık bu kapıyı kendisi koşturur.
+
+**Kapı üç bozuk sürümle sınandı, üçünü de yakaladı:**
+
+| Bozma | Sonuç |
+|---|---|
+| `_start` sökülmesi | `HATA: _start TANIMLI DEGIL` |
+| `printf` sızması | `HATA: cozulmemis simge: printf` |
+| `umay.ld`'de simge adının değişmesi | `HATA: cozulmemis simge: __bss_basi` |
+
+Sınamanın kendisi de bir kez yanlış kuruldu: `.globl`/etiket satırları
+değiştirilip `.type _start, @function` ile `.size _start, . - _start`
+yerinde bırakılınca birleştirici `_start` simgesini yine üretti, kapı
+da doğru olarak "tanımlı" gördü. Kapı değil sınama hatalıydı.
+
+`make sina` içinde 48. bölüm aynı şeyi kaynak düzeyinde yokluyor
+(15 denetim), takım tek başına koşulduğunda da eksiklik görünsün diye.
+
+### Kalan: gerçek donanımda koşturma
+
+`_start` yazıldı ve bağlama düzeyinde kanıtlandı, ama **ÖTÜKEN
+üzerinde henüz koşturulmadı.** Bunun için çekirdek ağacı (`OT=...`),
+`ulib` ve FAT16 kökü gerekir. Bağlanan bir ELF'in çalıştığını
+varsaymamak gerektiğini bu dosya bir kez öğretti; aynısı buraya da
+geçerli.

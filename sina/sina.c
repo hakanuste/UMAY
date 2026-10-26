@@ -18,7 +18,7 @@
 
 extern void host_yetki_ayarla(uint32_t y);   /* port/umay_port_host.c */
 
-static int g_gecti, g_kaldi;
+static int g_gecti, g_kaldi, g_atlandi;
 
 /* --- sınama için sahte motorlar --- */
 static int g_cagri;
@@ -36,9 +36,49 @@ static int cokan_uret(umay_us_t *u, const us_istem_t *i, char *c, uint32_t n) {
     (void)u; (void)i; (void)c; (void)n; g_cagri++; return UM_YANLIS;   /* hep düşer */
 }
 static umay_us_t g_cokan = { .ad = "cokan", .hazirla = sahte_hazir, .uret = cokan_uret };
+/* Kaynak dosyasini bellege okur; yoksa 0 doner. Yalniz STATIK
+ * denetimler icin: ÖTÜKEN ikilisi ana bilgisayarda baglanamaz, ama
+ * kaynakta bir seyin VAR OLDUGU okunabilir. */
+static char *kaynak_oku(const char *yol)
+{
+    FILE *f = fopen(yol, "rb");
+    if (!f) return 0;
+    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return 0; }
+    long n = ftell(f);
+    if (n < 0 || n > (long)(4 * 1024 * 1024)) { fclose(f); return 0; }
+    rewind(f);
+    char *t = (char *)malloc((size_t)n + 1);
+    if (!t) { fclose(f); return 0; }
+    size_t o = fread(t, 1, (size_t)n, f);
+    fclose(f);
+    t[o] = 0;
+    return t;
+}
+
 static void dene(const char *ad, int kosul) {
     if (kosul) { g_gecti++; printf("  [GECTI] %s\n", ad); }
     else       { g_kaldi++; printf("  [KALDI] %s\n", ad); }
+}
+
+/* ATLAMA — yalnizca KURULU OLMAYAN VERI icin, ve asla sessiz degil.
+ *
+ * Ayrim kati: dosya YOKSA atlanir (veri kurulmamis, bozuk bir sey
+ * yok); dosya VARSA ve yanlissa KALIR. "Yok" ile "bozuk" ayni sey
+ * degildir ve ayni satiri yazmamalari gerekir.
+ *
+ * NEDEN GEREKLI: egitilmis US1 modeli ve kitaplik parcalari depoya
+ * girmez (.gitignore). Temiz bir klonda 45. bolum "gercek model
+ * dosyasi bulundu" sinamasini KALDI yaziyordu — oysa kod saglamdi,
+ * yalnizca veri kurulu degildi. Kurulumu deneyen biri sifir disi
+ * cikis kodu ve bir "KALDI" satiri goruyordu.
+ *
+ * Ters yone de kacmamak icin atlananlar GECTI SAYILMAZ ve sonuc
+ * satirinda ayri bir sayiyla durur: sessiz atlama bu takimda bir kez
+ * yasandi (iki ayri ikili, iki sonuc satiri, kur.sh yalniz
+ * sonuncusunu okuyup "10 gecti" yaziyordu) ve bir daha yasanmayacak. */
+static void atla(const char *ad, const char *neden) {
+    g_atlandi++;
+    printf("  [ATLANDI] %s — %s\n", ad, neden);
 }
 
 int main(void) {
@@ -1088,9 +1128,12 @@ int main(void) {
 
         FILE *f = fopen(myol, "rb");
         if (!f) {
-            /* Sessiz atlama YOK: model bulunamadiysa bu bir eksiktir. */
-            printf("      (model acilamadi: %s)\n", myol);
-            dene("gercek model dosyasi bulundu", 0);
+            /* DOSYA YOK = veri kurulmamis, ATLANIR (sessizce degil).
+             * Egitilmis model depoya girmez; temiz klonda yoktur.
+             * Bozuk olani KALDI yazar, olmayani ATLANDI — bkz. atla(). */
+            atla("gercek model + Python referansi", myol);
+            printf("      egitilmis model depoya girmez; uretmek icin:\n");
+            printf("      make egit   ya da  UMAY_SINA_MODEL=<yol> make sina\n");
         } else {
             /* Tampon, motorun kendi tavani kadar — 4 MB'lik sihirli
              * sayi yerine US1_MODEL_AZAMI. Dosya tavandan buyukse bu
@@ -1281,6 +1324,108 @@ int main(void) {
              !um_icinde(y, "/kut/umay"));
     }
 
-    printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
+    printf("\n48) OTUKEN GIRIS NOKTASI kaynakta duruyor\n");
+    {
+        /* NEDEN STATIK DENETIM: bu sinama ana bilgisayarda kosar,
+         * ÖTÜKEN ikilisini baglayamaz. Ama GIRIS NOKTASININ VARLIGI
+         * kaynaktan okunabilir ve okunmalidir.
+         *
+         * OLCULMUS HATA: umay.ld "ENTRY(_start)" diyordu, _start
+         * hicbir dosyada tanimli DEGILDI, ve "make otuken" yine de
+         * BAGLANDI — baglayici yalniz uyardi:
+         *   cannot find entry symbol _start; defaulting to 0x8000a00000
+         * O adresteki simge um_bellek_kopya'ydi. ÖTÜKEN programi
+         * yukleyip bir bellek kopyalama islevine atlardi; UMAY hic
+         * kosmazdi. "make otuken-denetle" de goremezdi: o yalniz
+         * -fsyntax-only yapar, baglama yoktur.
+         *
+         * Asil kapi Makefile'daki "otuken-bag" hedefidir: nesneye
+         * derler, _start'in TANIMLI oldugunu ve cozulmemis simge
+         * olmadigini kanitlar. Burasi ikinci kapi: "make sina" tek
+         * basina kosuldugunda da kaynak eksikligi gorunsun.
+         *
+         * BURAYA "naked kullanilmamis" DENETIMI KONMAYACAK: oyle bir
+         * denetim yazildi ve IKI KEZ kaldi — once "naked" sozcugunu,
+         * sonra "__attribute__((naked" dizgisini aradi; ikisi de o
+         * niteligin NEDEN kullanilmadigini anlatan YORUMDA geciyor.
+         * Kaynak metninde dizgi aramak yorumu koddan ayirt edemez.
+         * Dizgiyi yorumdan silip denetimi gecirmek, bilgiyi silerek
+         * yesil isik almak olurdu. */
+        char *k = kaynak_oku("port/umay_port_otuken.c");
+        dene("ÖTÜKEN portu okunabildi", k != 0);
+        if (k) {
+            dene("_start tanimi var", (um_icinde(k, ".globl _start") != 0));
+            dene("_start yasam dongusunu cagiriyor",
+                 (um_icinde(k, "umay_otuken_giris") != 0));
+            dene("giris umay_kur cagiriyor", (um_icinde(k, "umay_kur()") != 0));
+            dene("giris tur dongusu kuruyor",
+                 (um_icinde(k, "umay_kosuyor()") != 0) &&
+                 (um_icinde(k, "umay_tur()") != 0));
+            dene("giris umay_kapan ile kapatiyor",
+                 (um_icinde(k, "umay_kapan()") != 0));
+            dene("giris SYS_EXIT ile cikiyor", (um_icinde(k, "SYS_EXIT") != 0));
+            dene(".bss elle sifirlaniyor",
+                 (um_icinde(k, "__bss_basi") != 0) &&
+                 (um_icinde(k, "__bss_sonu") != 0));
+            free(k);
+        }
+        char *l = kaynak_oku("umay.ld");
+        dene("umay.ld okunabildi", l != 0);
+        if (l) {
+            dene("umay.ld ENTRY(_start) diyor", (um_icinde(l, "ENTRY(_start)") != 0));
+            dene("umay.ld .bss sinirlarini veriyor",
+                 (um_icinde(l, "__bss_basi") != 0) &&
+                 (um_icinde(l, "__bss_sonu") != 0));
+            free(l);
+        }
+        char *m = kaynak_oku("Makefile");
+        dene("Makefile okunabildi", m != 0);
+        if (m) {
+            dene("baglama kapisi (otuken-bag) var", (um_icinde(m, "otuken-bag") != 0));
+            dene("kapi _start'i ariyor", (um_icinde(m, "T _start") != 0));
+            dene("otuken-denetle kapiyi kosuyor",
+                 (um_icinde(m, "$(MAKE) -s otuken-bag") != 0));
+            dene("konak yapisi da -Werror kullaniyor",
+                 (um_icinde(m, "-Wextra -Werror") != 0));
+            free(m);
+        }
+    }
+
+    printf("\n49) BENGI BAGLAMI SORUYA GORE SUZULUR\n");
+    {
+        /* OLCULMUS HATA: suzgec yoktu; "kaydet sarnic hacmi 12 ton"
+         * notu komposta, kerpice, telsize verilen her yanitin ILK
+         * SATIRI oluyordu. Ustelik dayanak kapisi
+         *   if (baglam_sayi <= 0 && !bengi_var) -> dayanaksiz
+         * oldugu icin ALAKASIZ bir not, hic kaynagi olmayan soruda
+         * "dayanagim var" kapisini aciyordu. */
+        bengi_kur(0);
+        bengi_kaydet(BENGI_KULLANICI, "not1", "sarnic hacmi 12 ton", 1);
+        bengi_kaydet(BENGI_KULLANICI, "not2", "kerpic harcinda saman var", 1);
+        char c[GOREV_BAGLAM_MAX];
+
+        bengi_baglam_soru(c, sizeof c, "sarnic hacmi ne kadar");
+        dene("ilgili kayit baglama girer", (um_icinde(c, "sarnic hacmi") != 0));
+        dene("ilgisiz kayit ayni baglamda yok", um_icinde(c, "kerpic harcinda") == 0);
+
+        bengi_baglam_soru(c, sizeof c, "telsiz anten empedansi");
+        dene("alakasiz soruda bellek BOS kalir", c[0] == 0);
+
+        bengi_baglam_soru(c, sizeof c, "kerpic duvar harci nasil");
+        dene("oteki ilgili kayit da bulunur", (um_icinde(c, "kerpic harcinda") != 0));
+
+        bengi_baglam(c, sizeof c);
+        dene("suzgecsiz dokum hala TUMUNU verir",
+             (um_icinde(c, "sarnic hacmi") != 0) &&
+             (um_icinde(c, "kerpic harcinda") != 0));
+        bengi_kur(0);
+    }
+
+    /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
+    if (g_atlandi)
+        printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",
+               g_gecti, g_kaldi, g_atlandi);
+    else
+        printf("\n=== SONUC: %d gecti, %d kaldi ===\n", g_gecti, g_kaldi);
     return g_kaldi == 0 ? 0 : 1;
 }

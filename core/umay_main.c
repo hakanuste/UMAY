@@ -104,7 +104,10 @@ static void ileti_isle(const umay_ileti_t *i) {
     if (c.niyet == NIYET_DENETIM) g.oncelik = ONC_YUKSEK;
 
     /* kalıcı hafızayı göreve dayanak olarak ver */
-    bengi_baglam(g.baglam, sizeof g.baglam);
+    /* Yalniz soruya DEGEN kayitlar: suzgecsiz dokumde alakasiz bir not
+     * yanitin ilk satiri oluyordu ve kaynaksiz sorularda "dayanagim
+     * var" kapisini aciyordu (olculdu; core/umay_bengi.c'de yazili). */
+    bengi_baglam_soru(g.baglam, sizeof g.baglam, i->govde);
 
     /* araştırma, çözümleme ve tasarım çıktıları bengi taşa geçer */
     g.bengiye_yaz = (g.tur == GT_ARASTIR || g.tur == GT_ANALIZ ||
