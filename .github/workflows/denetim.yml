@@ -40,6 +40,14 @@ jobs:
       - name: sinama takimi
         run: make sina
 
+      # 2b. KATI POSIX — Linux'a ozgu varsayim var mi.
+      #     UMAY Linux programi DEGIL; bu kapi onu soz olmaktan
+      #     cikarir. glibc _DEFAULT_SOURCE ile POSIX'te olmayan
+      #     uzantilari acar; onlari kullanan kod Linux'ta derlenir,
+      #     macOS/*BSD'de kalir. Bir kez yasandi (usleep).
+      - name: kati POSIX kipinde derleme
+        run: make posix
+
       # 3. ÖTÜKEN DIKISI — sozdizimi (serbest duran kip) + BAGLAMA.
       #    Baglama kapisi _start'in TANIMLI oldugunu ve hicbir simgenin
       #    cozulmemis olmadigini kanitlar. -fsyntax-only bunu goremez:

@@ -19,8 +19,21 @@ sınamaları koşar, `~/.local`a kurar, PATH'i denetler ve sonunda
 **başka bir dizinden çalıştırarak doğrular**. Eksik olan sessizce
 geçilmez.
 
-Linux ve macOS'ta kurulur. macOS'ta derleyici için `xcode-select
---install`, Linux'ta `build-essential` yeterlidir.
+**UMAY bir Linux programı değildir.** İşletim sistemine bakan her şey
+`port/` katmanındadır; çekirdekte tek bir işletim sistemi başlığı
+yoktur. Ölçüldü: çekirdek + port serbest duran kipte derlenir ve
+**sıfır çözülmemiş konak simgesi** verir (`make otuken-denetle`).
+Yeni bir işletim sistemi eklemek, port arayüzünü (35 işlev) bir
+dosyada gerçeklemektir — çekirdeğe dokunulmaz.
+
+POSIX portu (`port/umay_port_host.c`) ile bugün kurulan sistemler:
+Linux, macOS, \*BSD, ve Windows'ta MSYS2/Cygwin. `make posix` bunu
+**katı POSIX** kipinde derler, böylece yalnız glibc'de olan bir
+uzantı sessizce içeri giremez. macOS'ta derleyici için `xcode-select
+--install`, Debian/Ubuntu'da `build-essential` yeterlidir.
+
+Android, iOS ve yerli Windows için gereken iş `port/TASINABILIRLIK.md`
+içinde ölçümle yazılı.
 
 Kaldırmak:
 

@@ -33,10 +33,30 @@ echo
 # Isletim sistemi: oneriler ona gore verilir. Eskiden her hata
 # "Debian/Ubuntu: sudo apt install ..." diyordu; macOS'ta o oneri
 # ise yaramaz.
+# UMAY Linux'a degil POSIX'e dayanir; tanima listesi de oyle olmali.
+# Eskiden yalniz Darwin ve Linux taniniyordu, geri kalan her sey
+# "bilinmeyen" olup genel oneri aliyordu — oysa *BSD, MSYS2 ve Termux
+# bu portla CALISIR, yalnizca derleyici onerisi baska.
 case "$(uname -s)" in
-  Darwin) OS=macos; DERLEYICI_ONERI="xcode-select --install" ;;
-  Linux)  OS=linux; DERLEYICI_ONERI="sudo apt install build-essential" ;;
-  *)      OS=bilinmeyen; DERLEYICI_ONERI="C derleyicisi ve make kurun" ;;
+  Darwin)        OS=macos;   DERLEYICI_ONERI="xcode-select --install" ;;
+  Linux)
+    # Android (Termux) da Linux cekirdegidir ama paket yoneticisi pkg.
+    if [ -n "${PREFIX:-}" ] && [ -d "${PREFIX:-}/bin" ] &&
+       command -v pkg >/dev/null 2>&1; then
+      OS=android; DERLEYICI_ONERI="pkg install clang make"
+    else
+      OS=linux;   DERLEYICI_ONERI="sudo apt install build-essential"
+    fi ;;
+  FreeBSD)       OS=freebsd; DERLEYICI_ONERI="pkg install llvm gmake" ;;
+  OpenBSD)       OS=openbsd; DERLEYICI_ONERI="pkg_add llvm gmake" ;;
+  NetBSD)        OS=netbsd;  DERLEYICI_ONERI="pkgin install clang gmake" ;;
+  MSYS*|MINGW*)  OS=windows-msys
+                 DERLEYICI_ONERI="pacman -S mingw-w64-x86_64-gcc make" ;;
+  CYGWIN*)       OS=windows-cygwin
+                 DERLEYICI_ONERI="Cygwin kurulumundan gcc-core ve make" ;;
+  SunOS)         OS=solaris; DERLEYICI_ONERI="pkg install gcc" ;;
+  *)             OS=bilinmeyen
+                 DERLEYICI_ONERI="C derleyicisi (c11) ve make kurun" ;;
 esac
 yaz "isletim sistemi: $OS"
 
