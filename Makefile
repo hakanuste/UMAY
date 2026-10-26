@@ -30,10 +30,23 @@ KAYNAK = core/umay_str.c core/umay_ortak.c core/umay_bilgi.c \
          us/us1.c us/umay_us_ollama.c \
          ses/umay_ses.c ses/umay_piper.c \
          gui/umay_gui_konsol.c \
-         port/umay_port_host.c \
+         port/umay_port_host.c port/umay_host_uyum.c \
          kabuk/umay_cli.c
 
 SINA_KAYNAK = $(filter-out kabuk/umay_cli.c,$(KAYNAK)) sina/sina.c
+
+# Kaynak listeleri (arac/capraz.sh ve CMakeLists.txt ayni listeyi kullansin):
+liste-kaynak:
+	@echo $(KAYNAK)
+liste-sina:
+	@echo $(SINA_KAYNAK)
+liste-gomulu:
+	@echo $(GOMULU_KAYNAK)
+
+# GOMULU KITAPLIK (Android/iOS uygulamalari, masaustu uygulamalari):
+# komut satiri ve konsol on yuzu cikar, gomulu on yuz girer.
+GOMULU_KAYNAK = $(filter-out kabuk/umay_cli.c gui/umay_gui_konsol.c,$(KAYNAK)) \
+                gui/umay_gui_gomulu.c
 
 # BASLIK BAGIMLILIKLARI: basliklar degisince de yeniden derlenmeli.
 # Yoksa "make" sessizce eski ikiliyi birakir. Nitekim birakti: indeks
@@ -64,6 +77,20 @@ sina: kov/umay_sina
 kov/umay_sina: $(SINA_KAYNAK) $(BASLIK)
 	@mkdir -p kov
 	$(CC) $(CFLAGS) -DUMAY_SINAMA -o $@ $(SINA_KAYNAK) $(LDFLAGS)
+
+# Gomulu kitaplik ve sinamasi: kov/libumay.a, kov/gomulu_sina
+kutuphane: kov/libumay.a
+kov/libumay.a: $(GOMULU_KAYNAK) $(BASLIK)
+	@mkdir -p kov/gomulu
+	@for d in $(GOMULU_KAYNAK); do \
+	  $(CC) $(CFLAGS) -c $$d -o kov/gomulu/`echo $$d | tr / _`.o || exit 1; \
+	done
+	@rm -f $@ && ar rcs $@ kov/gomulu/*.o
+	@echo "kov/libumay.a hazir."
+
+gomulu-sina: kov/libumay.a sina/gomulu_sina.c
+	$(CC) $(CFLAGS) -o kov/gomulu_sina sina/gomulu_sina.c kov/libumay.a $(LDFLAGS)
+	./kov/gomulu_sina kut
 
 ONEK ?= $(HOME)/.local
 # Kurulumda veri yeri IKILIYE GOMULUR: ozel bir onekle kurulunca
@@ -99,7 +126,7 @@ kur: $(KAYNAK) $(BASLIK)
 # UMAY, ÖTÜKEN bittiginde buradan baglanir. Degisen TEK sey port
 # katmanidir: ana bilgisayar portu yerine ÖTÜKEN portu derlenir.
 # Cekirdekte (core/) tek bir kosullu derleme YOKTUR.
-OTUKEN_KAYNAK = $(filter-out port/umay_port_host.c ses/umay_piper.c \
+OTUKEN_KAYNAK = $(filter-out port/umay_port_host.c port/umay_host_uyum.c ses/umay_piper.c \
                              us/umay_us_ollama.c \
                              gui/umay_gui_konsol.c kabuk/umay_cli.c,$(KAYNAK)) \
                 port/umay_port_otuken.c gui/umay_ulgen.c

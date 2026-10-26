@@ -21,19 +21,12 @@
  * ===================================================================== */
 #ifndef UMAY_OTUKEN
 
-#define _POSIX_C_SOURCE 200809L
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
 
+#include "umay_host.h"
 #include "umay_us.h"
 #include "umay_str.h"
 #include "umay_ortak.h"
@@ -45,34 +38,21 @@ static char g_model[128];
 static char g_adres[128] = "127.0.0.1:11434";
 
 /* --- en küçük HTTP istemcisi --- */
-static int baglan(void)
+static intptr_t baglan(void)
 {
     char ev[128];
     int kapi = 11434;
     snprintf(ev, sizeof ev, "%s", g_adres);
     char *iki = strrchr(ev, ':');
     if (iki) { *iki = 0; kapi = atoi(iki + 1); }
-
-    int s = socket(AF_INET, SOCK_STREAM, 0);
-    if (s < 0) return -1;
-    struct sockaddr_in a;
-    memset(&a, 0, sizeof a);
-    a.sin_family = AF_INET;
-    a.sin_port = htons((uint16_t)kapi);
-    if (inet_pton(AF_INET, ev[0] ? ev : "127.0.0.1", &a.sin_addr) != 1) {
-        close(s); return -1;
-    }
-    if (connect(s, (struct sockaddr *)&a, sizeof a) != 0) { close(s); return -1; }
-    int bir = 1;
-    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &bir, sizeof bir);
-    return s;
+    return uh_tcp_baglan(ev, kapi);
 }
 
 /* İstek yollar, YANIT GÖVDESİNİ döndürür. 0 = oldu. */
 static int http(const char *yontem, const char *yol, const char *govde,
                 char *cikti, uint32_t n)
 {
-    int s = baglan();
+    intptr_t s = baglan();
     if (s < 0) return -1;
 
     char baslik[512];
@@ -87,19 +67,19 @@ static int http(const char *yontem, const char *yol, const char *govde,
         bl = snprintf(baslik, sizeof baslik,
                       "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
                       yontem, yol, g_adres);
-    if (bl <= 0 || write(s, baslik, (size_t)bl) != bl) { close(s); return -1; }
+    if (bl <= 0 || uh_tcp_yaz(s, baslik, (uint64_t)bl) != bl) { uh_tcp_kapat(s); return -1; }
     if (govde) {
         size_t gl = strlen(govde);
-        if (write(s, govde, gl) != (ssize_t)gl) { close(s); return -1; }
+        if (uh_tcp_yaz(s, govde, gl) != (int64_t)gl) { uh_tcp_kapat(s); return -1; }
     }
 
     static char tampon[YANIT_AZAMI];
     size_t o = 0;
-    ssize_t k;
+    int64_t k;
     while (o + 1 < sizeof tampon &&
-           (k = read(s, tampon + o, sizeof tampon - o - 1)) > 0)
+           (k = uh_tcp_oku(s, tampon + o, sizeof tampon - o - 1)) > 0)
         o += (size_t)k;
-    close(s);
+    uh_tcp_kapat(s);
     tampon[o] = 0;
     if (o == 0) return -1;
 

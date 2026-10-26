@@ -12,7 +12,9 @@ static int32_t carp(int32_t a, int32_t b)
 static int32_t bol(int32_t a, int32_t b)
 {
     if (b == 0) return 0;
-    return (int32_t)((((int64_t)a) << KESIR) / b);
+    /* Negatif sayiyi sola KAYDIRMAK C'de tanimsizdir (gcc "calistirir",
+     * clang/zig UBSan paniklenir). Carpmak ayni sonucu verir. */
+    return (int32_t)((((int64_t)a) * (int64_t)BIR) / b);
 }
 
 /* Tamsayı karekök (Newton). Girdi ve çıktı 16.16. */
@@ -67,7 +69,14 @@ static int32_t f32_sabit(uint32_t bit)
     if (ust == 0) return 0;
     int64_t taban = (int64_t)(kesir | 0x800000u);
     int kaydir = ust - 127 - 23 + KESIR;
-    int64_t v = (kaydir >= 0) ? (taban << kaydir) : (taban >> (-kaydir));
+    /* Kaydirma miktari sinirsiz birakilirsa (bozuk/sonsuz kayan nokta:
+     * ust=255 -> kaydir=121) 64 bitlik kaydirma TANIMSIZ olur. taban en az
+     * 2^23 oldugundan kaydir >= 8 zaten 2^31'i asar: doyur. */
+    int64_t v;
+    if (kaydir >= 8)       v = 0x7FFFFFFF;
+    else if (kaydir >= 0)  v = taban * (1LL << kaydir);
+    else if (-kaydir >= 63) v = 0;
+    else                   v = taban >> (-kaydir);
     if (v > 0x7FFFFFFF) v = 0x7FFFFFFF;
     return isaret ? (int32_t)(-v) : (int32_t)v;
 }
@@ -174,7 +183,7 @@ static void softmax(int32_t *x, uint32_t n)
     }
     if (top == 0) top = 1;
     for (uint32_t i = 0; i < n; i++)
-        x[i] = (int32_t)(((int64_t)x[i] << KESIR) / top);
+        x[i] = (int32_t)(((int64_t)x[i] * (int64_t)BIR) / top);
 }
 
 static int32_t silu(int32_t x)

@@ -40,19 +40,16 @@
  *   UMAY_SES_OYNAT    çalıcı komutu (varsayılan: bulunan ilki)
  * ===================================================================== */
 
-/* popen/pclose POSIX'tir; -std=c99 ile gizlenir. */
-#define _POSIX_C_SOURCE 200809L
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
+#include "umay_host.h"
 #include "umay_piper.h"
 
 #define YOL_AZAMI 512
+#define G_YERLESIK "@yerlesik"   /* platformun kendi WAV calicisi */
 
 typedef enum { YOL_YOK = 0, YOL_IKILI, YOL_ONNX } piper_yol_t;
 
@@ -77,31 +74,16 @@ static int dosya_var(const char *y)
     return y && *y && stat(y, &s) == 0 && S_ISREG(s.st_mode);
 }
 
-/* Çalıştırılabilir PATH içinde var mı? */
+/* Çalıştırılabilir PATH içinde var mı? (platforma göre ':' / ';' ve .exe
+ * ayrımı uh_yol_ara'dadır.) */
 static int komut_var(const char *ad)
 {
-    const char *yol = getenv("PATH");
-    if (!yol) return 0;
-    char tampon[YOL_AZAMI];
-    const char *p = yol;
-    while (*p) {
-        const char *iki = strchr(p, ':');
-        size_t n = iki ? (size_t)(iki - p) : strlen(p);
-        if (n > 0 && n + strlen(ad) + 2 < sizeof tampon) {
-            memcpy(tampon, p, n);
-            tampon[n] = '/';
-            strcpy(tampon + n + 1, ad);
-            if (access(tampon, X_OK) == 0) return 1;
-        }
-        if (!iki) break;
-        p = iki + 1;
-    }
-    return 0;
+    return uh_yol_ara(ad, 0, 0);
 }
 
 static void varsayilan_ses_yolu(char *c, size_t n)
 {
-    const char *ev = getenv("HOME");
+    const char *ev = uh_ev();
     if (!ev) ev = ".";
     snprintf(c, n, "%s/.local/share/umay/ses/tr_TR-fahrettin-medium.onnx", ev);
 }
@@ -111,7 +93,7 @@ static int soylet_bul(char *c, size_t n)
 {
     const char *v = getenv("UMAY_PIPER_PY");
     if (v && *v) { snprintf(c, n, "%s", v); return dosya_var(c); }
-    const char *ev = getenv("HOME");
+    const char *ev = uh_ev();
 #ifdef UMAY_KUT_ONEK
     snprintf(c, n, "%s/ses/soylet.py", UMAY_KUT_ONEK);
     if (dosya_var(c)) return 1;
@@ -157,14 +139,29 @@ static int ayar_bul(const char *model, char *c, size_t n)
     return 0;
 }
 
-/* python3 + onnxruntime GERCEKTEN var mi? Yalniz dosya varligina
+/* Python'un adi: Linux/macOS/Android'de python3; Windows'ta cogunlukla
+ * yalniz "python" vardir. Bulunan ilki kullanilir. */
+static char g_python[32];
+static const char *python_adi(void)
+{
+    if (!g_python[0]) {
+        if (komut_var("python3")) snprintf(g_python, sizeof g_python, "python3");
+        else if (komut_var("python")) snprintf(g_python, sizeof g_python, "python");
+    }
+    return g_python[0] ? g_python : 0;
+}
+
+/* python + onnxruntime GERCEKTEN var mi? Yalniz dosya varligina
  * bakmak yetmez: onnxruntime kurulu degilse betik her cagrida
  * patlar ve surucu "hazir" gorunur. Sahte basari yok. */
 static int onnx_kosulabilir(void)
 {
-    if (!komut_var("python3") || !komut_var("espeak-ng")) return 0;
-    int d = system("python3 -c 'import onnxruntime' >/dev/null 2>&1");
-    return d == 0;
+    const char *py = python_adi();
+    if (!py || !komut_var("espeak-ng")) return 0;
+    char kod[64], komut[256];
+    uh_tirnak("import onnxruntime", kod, sizeof kod);
+    snprintf(komut, sizeof komut, "%s -c %s %s", py, kod, uh_sessiz());
+    return uh_komut(komut) == 0;
 }
 
 static void ara(void)
@@ -234,15 +231,23 @@ static void ara(void)
         snprintf(g_oynat, sizeof g_oynat, "%s", o);
     } else {
         static const char *adaylar[] = { "paplay", "aplay", "afplay",
-                                         "play", "ffplay", 0 };
+                                         "play", "ffplay",
+                                         "termux-media-player", 0 };
         int i;
         for (i = 0; adaylar[i]; i++)
             if (komut_var(adaylar[i])) break;
-        if (!adaylar[i]) return;
-        if (strcmp(adaylar[i], "ffplay") == 0)
-            snprintf(g_oynat, sizeof g_oynat, "ffplay -autoexit -nodisp -loglevel quiet");
-        else
-            snprintf(g_oynat, sizeof g_oynat, "%s", adaylar[i]);
+        if (adaylar[i]) {
+            if (strcmp(adaylar[i], "ffplay") == 0)
+                snprintf(g_oynat, sizeof g_oynat, "ffplay -autoexit -nodisp -loglevel quiet");
+            else if (strcmp(adaylar[i], "termux-media-player") == 0)
+                snprintf(g_oynat, sizeof g_oynat, "termux-media-player play");
+            else
+                snprintf(g_oynat, sizeof g_oynat, "%s", adaylar[i]);
+        } else if (uh_yerlesik_oynatici()) {
+            snprintf(g_oynat, sizeof g_oynat, "%s", G_YERLESIK);   /* Windows */
+        } else {
+            return;
+        }
     }
 
     g_hazir = 1;
@@ -278,34 +283,53 @@ int piper_konus(const char *metin)
     ara();
     if (!g_hazir) return -1;
 
-    char wav[YOL_AZAMI];
-    snprintf(wav, sizeof wav, "/tmp/umay-dede-%d.wav", (int)getpid());
+    char ad[64], wav[YOL_AZAMI];
+    snprintf(ad, sizeof ad, "umay-dede-%d.wav", uh_pid());
+    uh_gecici(ad, wav, sizeof wav);
 
-    char komut[YOL_AZAMI * 6];
-    if (g_yol == YOL_ONNX)
-        snprintf(komut, sizeof komut,
-                 "python3 -I '%s' '%s' '%s' - '%s' %s %s%s%s >/dev/null 2>&1",
-                 g_py, g_ses, g_ayar, wav, g_uzun,
-                 g_renk[0] ? "'" : "", g_renk[0] ? g_renk : "",
-                 g_renk[0] ? "'" : "");
-    else
-        snprintf(komut, sizeof komut,
-                 "%s --model '%s' --output_file '%s' >/dev/null 2>&1",
-                 g_piper, g_ses, wav);
+    char t_wav[YOL_AZAMI * 2], t_ses[YOL_AZAMI * 2], t_ayar[YOL_AZAMI * 2];
+    char t_py[YOL_AZAMI * 2], t_renk[YOL_AZAMI * 2], t_piper[YOL_AZAMI * 2];
+    uh_tirnak(wav, t_wav, sizeof t_wav);
+    uh_tirnak(g_ses, t_ses, sizeof t_ses);
+
+    char komut[YOL_AZAMI * 16];
+    int w;
+    if (g_yol == YOL_ONNX) {
+        uh_tirnak(g_py, t_py, sizeof t_py);
+        uh_tirnak(g_ayar, t_ayar, sizeof t_ayar);
+        t_renk[0] = 0;
+        if (g_renk[0]) uh_tirnak(g_renk, t_renk, sizeof t_renk);
+        w = snprintf(komut, sizeof komut, "%s -I %s %s %s - %s %s %s %s",
+                     python_adi() ? python_adi() : "python3",
+                     t_py, t_ses, t_ayar, t_wav, g_uzun, t_renk, uh_sessiz());
+    } else {
+        uh_tirnak(g_piper, t_piper, sizeof t_piper);
+        w = snprintf(komut, sizeof komut, "%s --model %s --output_file %s %s",
+                     t_piper, t_ses, t_wav, uh_sessiz());
+    }
+    /* KIRPILMIS KOMUT CALISTIRILMAZ: sessizce kesilen bir komut baska
+     * bir dosyaya yazabilir ya da yarim kalir. */
+    if (w < 0 || (size_t)w >= sizeof komut) return -1;
 
     /* Metin BORUDAN gider, komut satırından değil: tırnak, kesme
      * işareti ve kabuk için anlamlı karakterler sorun çıkarmaz.
      * ONNX yolunda da öyle: soylet.py metni "-" ile stdin'den okur. */
-    FILE *f = popen(komut, "w");
+    FILE *f = uh_boru_ac(komut);
     if (!f) return -1;
     fputs(metin, f);
     fputc('\n', f);
-    int d = pclose(f);
-    if (d != 0 || !dosya_var(wav)) { unlink(wav); return -1; }
+    int d = uh_boru_kapat(f);
+    if (d != 0 || !dosya_var(wav)) { remove(wav); return -1; }
 
-    snprintf(komut, sizeof komut, "%s '%s' >/dev/null 2>&1", g_oynat, wav);
-    d = system(komut);
-    unlink(wav);
+    if (strcmp(g_oynat, G_YERLESIK) == 0) {
+        d = uh_yerlesik_oynat(wav);
+    } else {
+        char oynat[YOL_AZAMI * 4];
+        w = snprintf(oynat, sizeof oynat, "%s %s %s", g_oynat, t_wav, uh_sessiz());
+        if (w < 0 || (size_t)w >= sizeof oynat) { remove(wav); return -1; }
+        d = uh_komut(oynat);
+    }
+    remove(wav);
     return (d == 0) ? 0 : -1;
 }
 

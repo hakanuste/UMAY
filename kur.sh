@@ -91,11 +91,21 @@ if "$ONEK/bin/umay" --surum >/dev/null 2>&1; then
 else
   hata "kurulan program calismiyor"
 fi
-cik=$(cd /tmp && "$ONEK/bin/umay" "merhaba" </dev/null 2>&1 | grep -c "UMAY  ")
-if [ "$cik" -gt 0 ]; then
+# Tek soru kipinde stdout YALNIZ yanittir (banner basilmaz); eski sinama
+# banner'daki "UMAY  " yazisini ariyordu, hic bulamayip her kurulumda
+# YANLIS uyari veriyordu. Simdi: cikis kodu 0 ve yanit bos degil; ayrica
+# bir alan sorusunda dayanak (veri yeri) bulunuyor mu.
+yanit=$(cd /tmp && "$ONEK/bin/umay" "merhaba" </dev/null 2>/dev/null); kod=$?
+if [ "$kod" -eq 0 ] && [ -n "$yanit" ]; then
   yaz "  baska dizinden calisiyor ve yanit veriyor"
 else
-  yaz "  UYARI: baska dizinden yanit alinamadi (veri yeri?)"
+  yaz "  UYARI: baska dizinden yanit alinamadi (cikis kodu: $kod)"
+fi
+dayanak=$(cd /tmp && "$ONEK/bin/umay" "gunes paneli nedir" </dev/null 2>/dev/null | grep -c "Dayana")
+if [ "$dayanak" -gt 0 ]; then
+  yaz "  veri yeri bulundu (yanit dayanak gosteriyor)"
+else
+  yaz "  UYARI: yanit dayanak gostermedi (veri yeri bulunamamis olabilir)"
 fi
 
 echo

@@ -22,6 +22,13 @@ geçilmez.
 Linux ve macOS'ta kurulur. macOS'ta derleyici için `xcode-select
 --install`, Linux'ta `build-essential` yeterlidir.
 
+**Derleyici kurmadan:** Windows (x64, ARM64), macOS, Linux ve Android
+(Termux, ARM64) için hazır paketler üretilir: `arac/capraz.sh --paketle`.
+Paketi açıp `umay` ya da `umay.exe` çalıştırmak yeter; veri yanındadır.
+Telefon uygulamasına gömme için `include/umay_gomulu.h`.
+Hangi platformun neyle **kanıtlandığı** ve neyin yalnız derlendiği:
+[docs/PLATFORMLAR.md](docs/PLATFORMLAR.md).
+
 Kaldırmak:
 
     make kaldir

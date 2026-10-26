@@ -1,0 +1,24 @@
+# Tum hedefleri derler, calistirabildigini sinar (wine + qemu-user) ve paketler.
+# Yerelde kosulan komutun AYNISIDIR: arac/capraz.sh
+name: capraz
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  capraz:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Araclar
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine64 qemu-user-static
+          pip install ziglang
+      - name: Derle, sina, paketle
+        run: arac/capraz.sh --paketle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: umay-paketler
+          path: kov/paket/*

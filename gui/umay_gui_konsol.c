@@ -20,10 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <errno.h>
+
+#include "umay_host.h"
 
 static int  g_acik = 0;
 
@@ -89,16 +87,13 @@ int gui_ac(int en, int boy)
 
     /* Renk yalnız gerçek bir uçbirime yazarken: boruya ya da dosyaya
      * kaçış dizisi dökmek çıktıyı bozar. */
-    const char *term = getenv("TERM");
-    g_renk = isatty(STDOUT_FILENO) && term && !um_esit(term, "dumb");
+    uh_konsol_hazirla();
+    g_renk = uh_renkli_mi();
 
     /* stdin bloklamasın: UMAY'ın turu girdi beklerken durmamalı.
      * Girdi kapalıysa (tek soru kipi) stdin'e HİÇ dokunulmaz —
      * çağıranın borusunun kipini değiştirmek de bir yan etkidir. */
-    if (!g_girdi_kapali) {
-        int bayrak = fcntl(STDIN_FILENO, F_GETFL, 0);
-        if (bayrak != -1) fcntl(STDIN_FILENO, F_SETFL, bayrak | O_NONBLOCK);
-    }
+    if (!g_girdi_kapali) uh_stdin_hazirla();
 
     g_acik = 1;
     g_kapat_istendi = 0;
@@ -211,8 +206,8 @@ int gui_giris_yokla(umay_ileti_t *i)
      * O_NONBLOCK aciksa veri YOKKEN de read() -1/EAGAIN doner; o
      * EOF degildir, beklemek gerekir. Ikisi ayrilmali. */
     char c;
-    ssize_t r;
-    while ((r = read(STDIN_FILENO, &c, 1)) == 1) {
+    int r;
+    while ((r = uh_stdin_oku(&c)) == 1) {
         if (c == '\n' || c == '\r') {
             if (o == 0) continue;
             tampon[o] = 0;
@@ -233,7 +228,7 @@ int gui_giris_yokla(umay_ileti_t *i)
         }
         if (o + 1 < sizeof tampon) tampon[o++] = c;
     }
-    if (r == 0) {
+    if (r < 0) {
         /* EOF: once elde kalan yarim satiri teslim et, sonra kapan. */
         if (o > 0) {
             tampon[o] = 0;
@@ -249,10 +244,7 @@ int gui_giris_yokla(umay_ileti_t *i)
         return 0;
     }
 
-    /* EOF (Ctrl-D ya da boru kapandı): kapanma isteği sayılır.
-     * read 0 döndüğünde döngü biter; bunu burada ayırt ediyoruz. */
-    if (errno != EAGAIN && errno != EWOULDBLOCK && errno != 0) {
-        g_kapat_istendi = 1;
-    }
+    /* r == 0: su an veri yok (bekle). EOF ve okuma hatasi r < 0 olarak
+     * yukarida kapanma istegine cevrilir. */
     return 0;
 }

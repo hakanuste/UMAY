@@ -10,6 +10,7 @@
  * kullanmak: nanosleep. */
 #define _POSIX_C_SOURCE 200809L
 #include "umay_port.h"
+#include "umay_host.h"
 #include "umay_piper.h"
 #include "umay_us.h"
 #include "umay_str.h"
@@ -17,25 +18,45 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#  include <windows.h>
+#  include <io.h>
+#  include <direct.h>
+#else
+#  include <unistd.h>
+#endif
+
+/* Windows'ta open() varsayilan olarak METIN kipindedir (\n <-> \r\n,
+ * 0x1A dosya sonu): ikili veri (US1 modeli, WAV) sessizce bozulur. */
+#ifndef O_BINARY
+#  define O_BINARY 0
+#endif
 
 static uint64_t g_bas;
 uint64_t up_ms(void) {
+#ifdef _WIN32
+    uint64_t ms = (uint64_t)GetTickCount64();
+#else
     struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t);
     uint64_t ms = (uint64_t)t.tv_sec * 1000 + (uint64_t)t.tv_nsec / 1000000;
+#endif
     if (!g_bas) g_bas = ms;
     return ms - g_bas;
 }
 void up_uyu(uint32_t ms)
 {
+#ifdef _WIN32
+    Sleep(ms);
+#else
     struct timespec t;
     t.tv_sec  = (time_t)(ms / 1000u);
     t.tv_nsec = (long)(ms % 1000u) * 1000000L;
     /* Sinyal kesebilir: kalan süre tamamlanır. */
     while (nanosleep(&t, &t) == -1) { }
+#endif
 }
 void up_birak(void) { }
 /* GUNLUK STDERR'E GIDER, STDOUT'A DEGIL.
@@ -73,15 +94,21 @@ up_tut_t up_ac(const char *yol, uint32_t kip) {
     else bayrak = O_RDONLY;
     if (kip & UP_YARAT) bayrak |= O_CREAT | (kip & UP_EKLE ? 0 : O_TRUNC);
     if (kip & UP_EKLE) bayrak |= O_APPEND;
-    return (up_tut_t)open(yol, bayrak, 0644);
+    return (up_tut_t)open(yol, bayrak | O_BINARY, 0644);
 }
 int64_t up_oku(up_tut_t t, void *b, uint64_t n) { return read(t, b, n); }
 int64_t up_yaz(up_tut_t t, const void *b, uint64_t n) { return write(t, b, n); }
 int up_kapat(up_tut_t t) { return close(t); }
 int up_var_mi(const char *yol) { struct stat s; return stat(yol, &s) == 0; }
-int up_dizin_yarat(const char *yol) { return mkdir(yol, 0755) == 0 ? UM_OLDU : UM_YANLIS; }
+int up_dizin_yarat(const char *yol) {
+#ifdef _WIN32
+    return _mkdir(yol) == 0 ? UM_OLDU : UM_YANLIS;
+#else
+    return mkdir(yol, 0755) == 0 ? UM_OLDU : UM_YANLIS;
+#endif
+}
 int up_yaz_yola(const char *yol, const void *v, uint64_t n) {
-    int f = open(yol, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+    int f = open(yol, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
     if (f < 0) return -1;
     int64_t w = write(f, v, n); close(f); return (int)w;
 }
@@ -318,9 +345,17 @@ const char *up_kut_kok(void)
     snprintf(yol, sizeof yol, "%s", UMAY_KUT_ONEK);
     if (kut_mu(yol)) return yol;
 #endif
-    const char *ev = getenv("HOME");
+    const char *ev = uh_ev();
     if (ev) {
         snprintf(yol, sizeof yol, "%s/.local/share/umay/kut", ev);
+        if (kut_mu(yol)) return yol;
+    }
+    /* Tasinabilir kurulum (Windows/Android zip): veri, programin yanindadir. */
+    char ed[400];
+    if (uh_exe_dizini(ed, sizeof ed)) {
+        snprintf(yol, sizeof yol, "%s/kut", ed);
+        if (kut_mu(yol)) return yol;
+        snprintf(yol, sizeof yol, "%s/../share/umay/kut", ed);
         if (kut_mu(yol)) return yol;
     }
     snprintf(yol, sizeof yol, "/usr/local/share/umay/kut");
