@@ -1,6 +1,7 @@
 /* UMAY — giriş noktası ve ana döngü.
  * Tek Ring3 süreci. Bloklamayan olay döngüsü: kanalları yokla → görev ver →
  * OTAĞ'ı bir tur döndür → yanıtları kanallara ve ÜLGEN'e yaz. */
+#include "umay_ogren.h"
 #include "umay.h"
 #include "umay_port.h"
 #include "umay_str.h"
@@ -282,6 +283,8 @@ void umay_tur(void) {
 
     gui_ciz(&g_otag);
     onay_temizle();
+    /* Boştayken eksik kalan bir konuyu seyrek aralıkla web'den kapat. */
+    if (n == 0 && !otag_mesgul(&g_otag)) ogren_bosta();
 }
 
 int umay_kosuyor(void) { return g_kosuyor; }

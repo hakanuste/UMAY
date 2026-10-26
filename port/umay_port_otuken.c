@@ -317,6 +317,13 @@ int up_dizin_listele(const char *yol, up_girdi_t *g, int baslangic, int en_cok) 
 
 const char *up_kut_kok(void) { return "/"; }
 
+/* AĞ: ÖTÜKEN'de henüz web'e çıkış yolu yoktur. Sahte başarı yok:
+ * ağ yok diye bildirilir, ÖĞREN modülü sessizce UM_YOK döner. */
+int up_ag_var_mi(void) { return 0; }
+int64_t up_ag_getir(const char *url, char *cik, uint32_t n, uint32_t sn)
+{ (void)url; (void)cik; (void)n; (void)sn; return -1; }
+const char *up_ortam(const char *ad) { (void)ad; return 0; }
+
 void up_kut_dosya(const char *ad, char *cik, uint32_t n) {
     uint32_t i = 0, j = 0;
     if (n == 0) return;

@@ -5,6 +5,7 @@
 #include "umay_us.h"
 #include "umay_str.h"
 #include "umay_ortak.h"
+#include "umay_ogren.h"
 
 
 typedef struct {
@@ -34,6 +35,11 @@ static alp_durum_t adim(alp_t *a) {
         int adet = (int)ayar_sayi("baglam_adet", 3);
         if (adet > 4) adet = 4;
         ic->baglam_sayi = bilgi_baglam_bul(ic->gorev.istem, ic->baglam, adet);
+        /* Dayanak yoksa boşluğu kaydet ve (açıksa) web'den kapat. */
+        if (ic->baglam_sayi == 0 &&
+            (ic->gorev.tur == GT_SORU || ic->gorev.tur == GT_ARASTIR) &&
+            ogren_hemen("ortak", ic->gorev.istem) > 0)
+            ic->baglam_sayi = bilgi_baglam_bul(ic->gorev.istem, ic->baglam, adet);
         return ALP_KOSUYOR;
     }
 

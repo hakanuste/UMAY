@@ -16,6 +16,7 @@
 #include "umay_us.h"
 #include "umay_str.h"
 #include "umay_ortak.h"
+#include "umay_ogren.h"
 #include "umay_port.h"
 
 
@@ -130,20 +131,27 @@ static alp_durum_t uzman_adim(alp_t *a) {
          * terim ağırlıklı kapsama + odak teriminin kapsanması).
          * O katman birleştirilene kadar eski, ölçülmüş davranış
          * korunuyor: bir kademede sonuç varsa o kullanılır. */
-        const char *birincil[1] = { t->kategori[0] };
-        u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, birincil, 1, u->baglam, 3);
+        for (int deneme = 0; deneme < 2; deneme++) {
+            const char *birincil[1] = { t->kategori[0] };
+            u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, birincil, 1, u->baglam, 3);
 
-        if (u->baglam_sayi == 0) {
-            const char *ortak[2]; int on = 0;
-            for (int q = 1; q < 3 && t->kategori[q] && on < 2; q++) ortak[on++] = t->kategori[q];
-            if (on > 0) {
-                u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, ortak, on, u->baglam, 3);
-                if (u->baglam_sayi > 0) u->nereden = 1;
+            if (u->baglam_sayi == 0) {
+                const char *ortak[2]; int on = 0;
+                for (int q = 1; q < 3 && t->kategori[q] && on < 2; q++) ortak[on++] = t->kategori[q];
+                if (on > 0) {
+                    u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, ortak, on, u->baglam, 3);
+                    if (u->baglam_sayi > 0) u->nereden = 1;
+                }
             }
-        }
-        if (u->baglam_sayi == 0) {
-            u->baglam_sayi = bilgi_baglam_bul(u->gorev.istem, u->baglam, 2);
-            if (u->baglam_sayi > 0) u->nereden = 2;
+            if (u->baglam_sayi == 0) {
+                u->baglam_sayi = bilgi_baglam_bul(u->gorev.istem, u->baglam, 2);
+                if (u->baglam_sayi > 0) u->nereden = 2;
+            }
+
+            if (u->baglam_sayi > 0 || deneme) break;
+            /* DAYANAK YOK: boşluk kaydedilir ve (açıksa) web'den kapatılır.
+             * Öğrenilen parçalar dizine hemen girer, ikinci denemede görünür. */
+            if (ogren_hemen(bilgi_alan_kategorisi(t->alan), u->gorev.istem) <= 0) break;
         }
         /* çatışma: ayrı kaynaklar aynı konuda söz söylüyorsa sessizce
          * birleştirilmez, göreve iliştirilir ve OTAĞ'a bildirilir */

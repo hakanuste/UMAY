@@ -13,7 +13,7 @@ option(UMAY_JNI "Android JNI koprusunu da derle (jni.h gerekir)" OFF)
 
 set(UMAY_KAYNAK
   core/umay_str.c core/umay_ortak.c core/umay_bilgi.c core/umay_ozan.c
-  core/umay_bengi.c core/umay_onay.c core/umay_kanal.c core/umay_main.c
+  core/umay_bengi.c core/umay_onay.c core/umay_kanal.c core/umay_ogren.c core/umay_main.c
   alp/otag.c alp/alp_gozcu.c alp/alp_onarici.c alp/alp_bilge.c
   alp/alp_yazman.c alp/alp_uzman.c
   us/us_stub.c us/umay_us.c us/umay_us_ipc.c us/umay_us_yerel.c

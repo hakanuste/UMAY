@@ -373,3 +373,74 @@ void up_kut_dosya(const char *ad, char *cik, uint32_t n)
 
 int up_ses_var_mi(void) { return piper_var(); }
 int up_dede_konus(const char *metin) { return piper_konus(metin); }
+
+/* ---------------------------------------------------------------------
+ * AĞ (web araştırması)
+ *
+ * Neden curl: HTTPS (Vikipedi yalnız HTTPS verir) için TLS gerekir ve
+ * UMAY'ın C çekirdeğine TLS gömmek hem büyük hem de güvenlik riski.
+ * curl Linux, macOS, Windows 10+ (curl.exe) ve Termux'ta hazır gelir
+ * ya da tek komutla kurulur. Bulunamazsa ağ "yok" sayılır; sahte
+ * başarı yoktur.
+ * ------------------------------------------------------------------- */
+const char *up_ortam(const char *ad) {
+    const char *v = getenv(ad);
+    return (v && *v) ? v : 0;
+}
+
+int up_ag_var_mi(void) {
+    const char *k = up_ortam("UMAY_OGREN");
+    if (k && k[0] == '0') return 0;
+    char yol[320];
+    return uh_yol_ara("curl", yol, sizeof yol) ? 1 : 0;
+}
+
+int64_t up_ag_getir(const char *url, char *cik, uint32_t n, uint32_t sn) {
+    if (!url || !cik || n < 2) return -1;
+    cik[0] = 0;
+    /* Yalnız http(s). Kabuğa verileceği için denetim sıkıdır:
+     * yalnız güvenli karakterler; tırnak, boşluk, kabuk meta karakteri
+     * (ve %'nin Windows'ta değişken açılımı) yoktur. Çağıran yüzde-kodlar. */
+    if (!(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0)) return -1;
+    for (const char *p = url; *p; p++) {
+        unsigned char c = (unsigned char)*p;
+        int ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                 strchr("-._~:/?=&+,", c) != 0;
+        if (c == '%') ok = 1;   /* yüzde-kodlama; adlandırılmış %DEĞİŞKEN% Windows'ta pratikte oluşmaz */
+        if (!ok) return -1;
+    }
+    char curl[320];
+    if (!uh_yol_ara("curl", curl, sizeof curl)) return -1;
+
+    char gecici[320];
+    char ad[64];
+    snprintf(ad, sizeof ad, "umay-ag-%d.tmp", uh_pid());
+    uh_gecici(ad, gecici, sizeof gecici);
+
+    char ctirnak[360], gtirnak[360], utirnak[760];
+    uh_tirnak(curl, ctirnak, sizeof ctirnak);
+    uh_tirnak(gecici, gtirnak, sizeof gtirnak);
+    uh_tirnak(url, utirnak, sizeof utirnak);
+
+    char komut[2048];
+    int w = snprintf(komut, sizeof komut,
+        "%s -sSL --fail --max-time %u --connect-timeout 6 --max-filesize %u --max-redirs 3 "
+        "--proto =http,https --proto-redir =https -A \"UMAY/%s (+https://github.com/hakanuste/UMAY)\" "
+        "-o %s %s %s",
+        ctirnak, (unsigned)(sn ? sn : 10), (unsigned)(n - 1), UMAY_SURUM,
+        gtirnak, utirnak, uh_sessiz());
+    if (w < 0 || (size_t)w >= sizeof komut) return -1;
+    int r = uh_komut(komut);
+    int64_t okundu = -1;
+    if (r == 0) {
+        FILE *f = fopen(gecici, "rb");
+        if (f) {
+            size_t k = fread(cik, 1, n - 1, f);
+            fclose(f);
+            cik[k] = 0;
+            okundu = (int64_t)k;
+        }
+    }
+    remove(gecici);
+    return okundu;
+}

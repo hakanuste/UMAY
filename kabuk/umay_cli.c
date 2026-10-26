@@ -18,6 +18,8 @@
 #include "umay_str.h"
 #include "umay_gui.h"
 #include "umay_port.h"
+#include "umay_ogren.h"
+#include "umay_bilgi.h"
 
 static void kullanim(const char *ad)
 {
@@ -25,10 +27,13 @@ static void kullanim(const char *ad)
     printf("Kullanım:\n");
     printf("  %s                konuşma kipi (uçbirim)\n", ad);
     printf("  %s \"soru\"         tek soru sorar, yanıtlar, çıkar\n", ad);
+    printf("  %s --ogren        bekleyen boşlukları web'den öğrenir\n", ad);
+    printf("  %s --ogren \"konu\" bir konuyu web'den araştırıp kütüphaneye ekler\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
     printf("  %s --yardim       bu yazı\n\n", ad);
     printf("Ortam değişkenleri:\n");
     printf("  UMAY_KUT          kütüphane kökü\n");
+    printf("  UMAY_OGREN=0      web araştırmasını ve boşluk öğrenmeyi kapatır\n");
     printf("  UMAY_PIPER        piper çalıştırılabiliri\n");
     printf("  UMAY_PIPER_SES    .onnx ses modeli\n");
     printf("  UMAY_SES_OYNAT    ses çalıcı komutu\n\n");
@@ -50,6 +55,35 @@ int main(int argc, char **argv)
             um_esit(argv[1], "--version") || um_esit(argv[1], "-V")) {
             printf("UMAY %s\n", UMAY_SURUM);
             return 0;
+        }
+        if (um_esit(argv[1], "--ogren") || um_esit(argv[1], "--öğren")) {
+            gui_sade_kip();
+            if (umay_kur() != 0) { fprintf(stderr, "UMAY: baslatilamadi\n"); return 1; }
+            gui_girdi_kapat();
+            gui_sade_coz();
+            if (!ogren_acik()) {
+                printf("Öğrenme kapalı ya da web'e çıkış yolu yok (curl bulunamadı ya da UMAY_OGREN=0).\n");
+                umay_kapan();
+                return 3;
+            }
+            int toplam;
+            if (argc > 2) {
+                char konu[UMAY_ILETI_MAX]; konu[0] = 0;
+                for (int i = 2; i < argc; i++) { if (i > 2) um_ekle(konu, sizeof konu, " "); um_ekle(konu, sizeof konu, argv[i]); }
+                toplam = ogren_arastir("ortak", konu);
+                if (toplam > 0) printf("'%s' için %d parça öğrenildi (kütüphaneye yazıldı, doğrulanmamış web kaynağı).\n", konu, toplam);
+                else if (toplam == 0) printf("'%s' için yeni bir şey bulunamadı (ya da zaten öğrenilmişti).\n", konu);
+                else printf("Ağa ulaşılamadı; konu sonra denenmek üzere bekletildi.\n");
+            } else {
+                int bekleyen = ogren_bekleyen();
+                if (bekleyen == 0) { printf("Bekleyen boşluk yok.\n"); umay_kapan(); return 0; }
+                toplam = ogren_gecis(bekleyen > 25 ? 25 : bekleyen);
+                if (toplam > 0) printf("%d bekleyen boşluktan toplam %d parça öğrenildi; %d boşluk kaldı.\n", bekleyen, toplam, ogren_bekleyen());
+                else if (toplam == 0) printf("Öğrenilecek yeni bir şey yok (bekleyen boşluk: %d).\n", ogren_bekleyen());
+                else printf("Ağa ulaşılamadı; %d boşluk bekliyor.\n", bekleyen);
+            }
+            umay_kapan();
+            return toplam >= 0 ? 0 : 3;
         }
         if (argv[1][0] == '-') {
             fprintf(stderr, "UMAY: bilinmeyen seçenek: %s\n", argv[1]);

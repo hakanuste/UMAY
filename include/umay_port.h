@@ -138,4 +138,14 @@ int      up_dede_konus(const char *metin);
  * sürücü bunu bilmezse sesi günlüğe basıp konuşuyormuş gibi görünür. */
 int      up_ses_var_mi(void);
 
+/* --- AĞ (web araştırması) ---
+ * up_ag_var_mi: platformda web'e çıkış yolu var mı (ana bilgisayarda
+ * curl bulunmalı). ÖTÜKEN portunda 0'dır; modül orada hiçbir şey yapmaz.
+ * up_ag_getir: adresi getirir, gövdeyi cik'a yazar, bayt sayısını döner
+ * (<0 hata). Yalnız http/https; en çok "sn" saniye bekler.
+ * up_ortam: ortam değişkeni (yoksa 0). ÖTÜKEN'de ortam yoktur. */
+int         up_ag_var_mi(void);
+int64_t     up_ag_getir(const char *url, char *cik, uint32_t n, uint32_t sn);
+const char *up_ortam(const char *ad);
+
 #endif

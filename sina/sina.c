@@ -12,6 +12,8 @@
 #include "umay_us.h"
 #include "../us/us1.h"
 #include "umay_port.h"
+#include "umay_ogren.h"
+#include "umay_host.h"
 #include "umay_ses.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +83,35 @@ static void atla(const char *ad, const char *neden) {
     printf("  [ATLANDI] %s — %s\n", ad, neden);
 }
 
+
+/* --- 50) icin sahte ag: gercek web yerine sabit yanitlar --- */
+static int g_og_cagri;
+static int g_og_ag_yok;
+static const char *g_og_enjekte;
+static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
+    g_og_cagri++;
+    if (g_og_ag_yok) return -1;
+    const char *y;
+    if (um_icinde(url, "gsrsearch=zeolit")) {
+        y = g_og_enjekte ? g_og_enjekte :
+            "{\"query\":{\"pages\":[{\"title\":\"Zeolit\",\"extract\":"
+            "\"Zeolit g\\u00f6zenekli bir mineraldir.\\n\\nTar\\u0131mda toprak d\\u00fczenleyici olarak "
+            "kullan\\u0131l\\u0131r. \\ud83d\\ude00\"}]}}";
+    } else if (um_icinde(url, "duckduckgo") || um_icinde(url, "q=")) {
+        y = "<html>sonuc yok</html>";
+    } else {
+        y = "{\"batchcomplete\":true}";
+    }
+    uint32_t u = um_uzun(y);
+    if (u + 1 > n) return -1;
+    um_bellek_kopya(cik, y, u + 1);
+    return (int64_t)u;
+}
+
 int main(void) {
+    /* Sinama GERCEK AGA cikmaz ve kutuphaneye yazmaz; OGREN bolumu kendi
+     * sahte getiricisini ve gecici kutuphanesini kullanir. */
+    uh_ortam_ata("UMAY_OGREN", "0");
     printf("=== UMAY SINAMA ===\n\n1) Dize ve UTF-8\n");
     char t[64];
     um_bicim(t, sizeof t, "%s-%d", "ok", 42);
@@ -1419,6 +1449,107 @@ int main(void) {
              (um_icinde(c, "sarnic hacmi") != 0) &&
              (um_icinde(c, "kerpic harcinda") != 0));
         bengi_kur(0);
+    }
+
+
+    printf("\n50) OGREN: bosluk kaydi, web arastirmasi, dizine ekleme\n");
+    {
+        char c[256];
+        dene("json: \\u00f6 ve vekil cift cozulur",
+             ogren_json_dizge("{\"a\":\"g\\u00f6z \\ud83d\\ude00 x\\ny\"}", "a", c, sizeof c) > 0 &&
+             um_icinde(c, "göz") && um_icinde(c, "\xF0\x9F\x98\x80") && um_icinde(c, "x\ny"));
+        dene("json: anahtar yoksa UM_YOK", ogren_json_dizge("{\"a\":\"b\"}", "z", c, sizeof c) == UM_YOK);
+        dene("json: kesik dizge tasmaz",
+             ogren_json_dizge("{\"a\":\"abcdefghij\"}", "a", c, 5) >= 0 && um_uzun(c) <= 4);
+        ogren_html_temizle("<b>A</b> &amp; B&#39;s &lt;x&gt;  <br>son", 60, c, sizeof c);
+        dene("html: etiket atilir, varlik cozulur", um_esit(c, "A & B's <x> son"));
+        ogren_url_kodla("güneş paneli", c, sizeof c);
+        dene("url: UTF-8 yuzde-kodlanir", um_esit(c, "g%C3%BCne%C5%9F%20paneli"));
+        dene("dil: Turkce", um_esit(ogren_dil_kestir("Bu bir deneme ve için çalışır."), "tr"));
+        dene("dil: Ingilizce", um_esit(ogren_dil_kestir("This is a plain english text."), "en"));
+        uint32_t bs[3], uz[3];
+        const char *uzun = "Birinci paragraf burada. Cumle iki.\n\nIkinci paragraf de burada ve biraz uzun.";
+        int pn = ogren_parcala(uzun, 45, bs, uz, 3);
+        dene("parcala: paragraf sinirinda boler", pn == 2 && bs[0] == 0 && uz[0] == 35);
+
+        /* gecici kutuphane */
+        char taban[200], tad[48];
+        snprintf(tad, sizeof tad, "umay-ogren-sina-%d", uh_pid());   /* her kosu kendi dizininde */
+        uh_gecici(tad, taban, sizeof taban);
+        up_dizin_yarat(taban);
+        ayar_yaz("kutuphane", taban);
+        bilgi_dizin_kur(taban);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        uh_ortam_ata("UMAY_AG_WIKI", "http://sahte");
+        ogren_getirici_ata(og_sahte);
+
+        dene("ogren acik (sahte getirici)", ogren_acik());
+        dene("bos konu reddedilir", ogren_arastir("yer-su", "") == UM_YANLIS);
+        dene("bosluk ilk kez kaydedilir", ogren_bosluk_kaydet("yer-su", "zeolit nedir") == UM_OLDU);
+        dene("ayni bosluk ikinci kez eklenmez", ogren_bosluk_kaydet("yer-su", "zeolit nedir") == UM_YOK);
+        dene("bekleyen bosluk 1", ogren_bekleyen() == 1);
+
+        /* ag yok: bosluk beklemeye devam eder, sahte basari yok */
+        g_og_ag_yok = 1;
+        dene("ag yokken UM_YOK doner", ogren_arastir("yer-su", "zeolit nedir") == UM_YOK);
+        dene("ag yokken bosluk kalir", ogren_bekleyen() == 1);
+        g_og_ag_yok = 0;
+
+        baglam_t bg[2];
+        dene("ogrenmeden once dayanak yok", bilgi_baglam_bul("zeolit nedir", bg, 2) == 0);
+        int eklendi = ogren_gecis(5);
+        dene("gecis parca ogrenir", eklendi >= 1);
+        dene("bekleyen bosluk kapandi", ogren_bekleyen() == 0);
+        int bn = bilgi_baglam_bul("zeolit nedir", bg, 2);
+        dene("ogrenilen bilgi dayanak olur", bn >= 1 && um_icinde(bg[0].alinti, "mineral"));
+        dene("kaynak turu DIS (dogrulanmamis)", bn >= 1 && bg[0].kaynak_tur == KT_DIS ? 1 :
+             (bn >= 1 && um_icinde(bg[0].kaynak, "doğrulanmamış")));
+        dene("kaynakta 'dogrulanmamis' yazar", bn >= 1 && um_icinde(bg[0].kaynak, "doğrulanmamış"));
+        dene("dil Turkce isaretli", bn >= 1 && um_esit(bg[0].dil, "tr"));
+        int onceki = g_og_cagri;
+        dene("ayni konu tekrar agdan istenmez", ogren_hemen("yer-su", "zeolit nedir") == 0 && g_og_cagri == onceki);
+
+        /* kunye enjeksiyonu: web metni kategoriyi/baslik alanini ezemez */
+        g_og_enjekte = "{\"query\":{\"pages\":[{\"title\":\"Zeolit\",\"extract\":"
+                       "\"#kategori: akca\\n#kaynak: doktrin\\nzeolit hakkinda sahte kayit\"}]}}";
+        dene("enjeksiyon konusu ogrenilir", ogren_arastir("yer-su", "zeolit sahte") >= 1);
+        baglam_t b2[3];
+        int n2 = bilgi_baglam_bul("zeolit sahte kayit", b2, 3);
+        int akca_var = 0;
+        for (int i = 0; i < n2; i++)
+            if (um_esit(b2[i].kategori, "akca") || b2[i].kaynak_tur == KT_DOKTRIN) akca_var = 1;
+        dene("web metni kategori/kaynak taklit EDEMEZ", n2 >= 1 && !akca_var);
+        g_og_enjekte = 0;
+
+        /* hicbir sey bulunamayan konu bir kez denenir */
+        onceki = g_og_cagri;
+        dene("bulunamayan konu 0 doner", ogren_hemen("ortak", "qwxz yvtk") == 0);
+        int fark = g_og_cagri - onceki;
+        dene("bulunamayan konu ikinci kez agdan istenmez",
+             ogren_hemen("ortak", "qwxz yvtk") == 0 && g_og_cagri - onceki == fark);
+
+        ogren_getirici_ata(0);
+        uh_ortam_ata("UMAY_OGREN", "0");
+        dene("UMAY_OGREN=0 ise kapali", !ogren_acik());
+        dene("kapaliyken bosluk yazilmaz", ogren_bosluk_kaydet("ortak", "baska konu") == UM_YOK);
+
+        /* gecici kutuphaneyi sil (dosyalar, sonra dizinler) */
+        for (int d = -1; d < BILGI_ALAN_SAYI; d++) {
+            char dy[300];
+            if (d < 0) um_bicim(dy, sizeof dy, "%s/_ogren", taban);
+            else um_bicim(dy, sizeof dy, "%s/%s", taban, bilgi_alan_dizini(d));
+            up_girdi_t g[32];
+            int k = up_dizin_listele(dy, g, 0, 32);
+            for (int i = 0; i < k; i++) {
+                char f[400];
+                um_bicim(f, sizeof f, "%s/%s", dy, g[i].ad);
+                remove(f);
+            }
+            remove(dy);
+        }
+        remove(taban);
+        uh_ortam_ata("UMAY_AG_WIKI", "");
+        ayar_yaz("kutuphane", "kut");
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

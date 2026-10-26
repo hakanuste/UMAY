@@ -20,6 +20,23 @@ int         umay_gomulu_baslat(const char *veri_dizini);   /* 0 = oldu */
  * kirpilmis uzunluktur. */
 int         umay_gomulu_sor(const char *soru, char *cevap, uint32_t n);
 
+/* ---- WEB ARASTIRMASI / KENDI KENDINE OGRENME ----
+ * Telefonda "curl" yoktur; ag cagrisini UYGULAMA yapar (Android
+ * HttpURLConnection, iOS URLSession) ve sonucu UMAY'a verir. Uygulama bir
+ * getirici takmazsa web arastirmasi KAPALI kalir, sahte basari yoktur.
+ *
+ * getirici: `url`yi getirir, govdeyi cevap'a (NUL'lu, en cok n-1 bayt)
+ * yazar, bayt sayisini dondurur; hata/ag yoksa negatif. Soru/arastirma
+ * ayni iplikten cagrilir, getirici de o iplikten cagrilir. */
+typedef int64_t (*umay_ag_getirici_t)(const char *url, char *cevap, uint32_t n);
+void        umay_gomulu_ag_ata(umay_ag_getirici_t getirici);
+
+/* konu != 0: konuyu arastirip kutuphaneye ekler. konu == 0: bekleyen
+ * (yanitlanamamis) sorulari en cok 5 tane isler. Dondurulen: eklenen
+ * parca sayisi; negatif = ag yok/kapali. Bloke eder: arka planda cagirin
+ * (ayni iplik kurali: sor ile ESZAMANLI cagirmayin). */
+int         umay_gomulu_ogren(const char *konu);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

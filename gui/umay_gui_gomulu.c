@@ -7,6 +7,7 @@
 #include "umay.h"
 #include "umay_gui.h"
 #include "umay_gomulu.h"
+#include "umay_ogren.h"
 #include "umay_host.h"
 #include "umay_port.h"
 #include "umay_str.h"
@@ -84,3 +85,23 @@ void umay_gomulu_kapat(void)
 }
 
 const char *umay_gomulu_surum(void) { return UMAY_SURUM; }
+
+/* ---- web arastirmasi ---- */
+static umay_ag_getirici_t g_uyg_getirici;
+static int64_t uyg_getir(const char *url, char *cik, uint32_t n)
+{
+    return g_uyg_getirici ? g_uyg_getirici(url, cik, n) : -1;
+}
+
+void umay_gomulu_ag_ata(umay_ag_getirici_t getirici)
+{
+    g_uyg_getirici = getirici;
+    ogren_getirici_ata(getirici ? uyg_getir : 0);
+}
+
+int umay_gomulu_ogren(const char *konu)
+{
+    if (!g_hazir) return -1;
+    if (konu && *konu) return ogren_arastir("ortak", konu);
+    return ogren_gecis(5);
+}

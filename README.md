@@ -203,6 +203,13 @@ yanına yazılır ve künyesinde `#ozgun_dil` ile `#ozgun` durur.
 görünüyorsa** parça atlanır ve sayılır. Çevrilmemiş parçayı "çevrildi"
 diye yazmak, yanlış dilde kaynak vermekten kötüdür.
 
+## Kendi kendine öğrenme
+
+Dayanak bulamadığı soruyu kaydeder, web'den (Vikipedi, DuckDuckGo) araştırır,
+bulduğunu "doğrulanmamış" işaretiyle kütüphaneye yazar. `umay --ogren`,
+`umay --ogren "konu"`; kapatmak için `UMAY_OGREN=0`. Dil modelinin ağırlıkları
+cihazda güncellenmez — tanım, gizlilik ve sınırlar: [docs/OGREN.md](docs/OGREN.md).
+
 ## ÖTÜKEN'e bağlamak
 
 Bağlanma noktası tek bir katmandır: `port/`. Çekirdekte (`core/`,
@@ -231,7 +238,7 @@ giriş noktası `um_bellek_kopya`ya düşüyordu. ELF'in bağlanması
 
     make sina
 
-**268 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
+**297 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
 süre ayrı bir ikilideydi; iki ayrı sonuç satırı veriyordu ve `kur.sh`
 yalnız sonuncusunu okuyup "10 geçti" yazıyordu. Hepsi `sina/sina.c`de.
 

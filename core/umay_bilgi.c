@@ -307,7 +307,12 @@ static int belge_yukle(const char *yol) {
     if (s && kaynak[0]) um_bicim(kaynak_tam, sizeof kaynak_tam, "%s (%s)", yol, kaynak);
     else um_kopya(kaynak_tam, sizeof kaynak_tam, yol);
 
-    return kayit_ekle_dil(kategori, baslik, kaynak_tam, KT_BELGE, etiket,
+    /* "web-" ile başlayan dosyayı ÖĞREN modülü yazar: doğrulanmamış
+     * dış kayıttır, elle konmuş belge gibi güvenilmez. */
+    kaynak_tur_t tur = KT_BELGE;
+    { const char *ad = yol; for (const char *q = yol; *q; q++) if (*q == '/' || *q == '\\') ad = q + 1;
+      if (um_bas_mi(ad, "web-")) tur = KT_DIS; }
+    return kayit_ekle_dil(kategori, baslik, kaynak_tam, tur, etiket,
                           govde_bul(tampon), dil, ozgun);
 }
 
