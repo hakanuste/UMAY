@@ -17,6 +17,7 @@
 #include "umay_arastir.h"
 #include "umay_egit.h"
 #include "umay_kabul.h"
+#include "umay_pdf.h"
 #include "umay_bekci.h"
 #include "umay_arastir.h"
 #include "umay_egit.h"
@@ -1779,6 +1780,46 @@ int main(void) {
         kabul_sonuc_t k3; static char kr3[1024];
         kabul_calistir(taban, &k3, kr3, sizeof kr3);
         dene("kunyeli belge kendi alanina gider", um_icinde(kr3, "kopuz") && um_icinde(kr3, "künyesine göre"));
+    }
+
+    printf("\n55) PDF: METIN CIKARMA (kendi inflate'imiz, nesne yapisi, kodlama)\n");
+    {
+        static const uint8_t Z[] = {120,156,203,77,45,202,72,76,74,84,72,41,205,171,76,84,200,197,205,195,35,69,166,66,0,58,255,46,90};
+        static uint8_t zo[512];
+        int zn = pdf_inflate(Z, (uint32_t)sizeof Z, zo, sizeof zo);
+        dene("inflate: zlib akisi dogru acilir", zn == 123 && zo[0] == 'm' && zo[122] == 'a');
+        dene("inflate: bozuk akis reddedilir", pdf_inflate((const uint8_t *)"\x78\x9c\xff\xff\xff", 5, zo, sizeof zo) < 0);
+        const char *pd =
+            "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+            "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            "3 0 obj<</Type/Page/Parent 2 0 R/Resources<</Font<</F1 5 0 R>>>>/Contents 4 0 R>>endobj\n"
+            "4 0 obj<</Length 120>>stream\nBT /F1 12 Tf 72 700 Td (Kerpi\\347 duvar, killi toprak ve saman.) Tj 0 -16 Td [(Kompost) -300 (solucan) 20 (humus.)] TJ ET\nendstream endobj\n"
+            "5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
+        static char po[1024]; int pg = 0;
+        int pr = pdf_metin((const uint8_t *)pd, um_uzun(pd), po, sizeof po, &pg);
+        dene("pdf: metin cikarildi, 1 sayfa", pr > 0 && pg == 1);
+        dene("pdf: sekizlik kacis (\\347 = ç) cozulur", um_icinde(po, "Kerpiç duvar") != 0);
+        dene("pdf: TJ aralik sayisi bosluk olur", um_icinde(po, "Kompost solucan") != 0);
+        dene("pdf: sifreli PDF acikca bildirilir", pdf_metin((const uint8_t *)"%PDF-1.4 /Encrypt 3 0 R", 24, po, sizeof po, 0) == PDF_SIFRELI);
+        dene("pdf: bozuk dosya PDF_BOZUK", pdf_metin((const uint8_t *)"%PDF-1.4 hello", 15, po, sizeof po, 0) == PDF_BOZUK);
+        dene("pdf: PDF olmayan reddedilir", pdf_mi((const uint8_t *)"merhaba dunya", 13) == 0);
+        /* kabul hattindan gec */
+        char taban[200], tad[48], gd[260], yol[300];
+        snprintf(tad, sizeof tad, "umay-pdf-sina-%d", uh_pid());
+        uh_gecici(tad, taban, sizeof taban);
+        up_dizin_yarat(taban);
+        ayar_yaz("kutuphane", taban);
+        bilgi_dizin_kur(taban);
+        snprintf(gd, sizeof gd, "%s/gelen", taban);
+        up_dizin_yarat(gd);
+        snprintf(yol, sizeof yol, "%s/rehber.pdf", gd);
+        up_yaz_yola(yol, pd, um_uzun(pd));
+        snprintf(yol, sizeof yol, "%s/sifreli.pdf", gd);
+        up_yaz_yola(yol, "%PDF-1.4 /Encrypt 3 0 R", 24);
+        kabul_sonuc_t pk; static char prp[2048];
+        kabul_calistir(taban, &pk, prp, sizeof prp);
+        dene("kabul: PDF okundu ve yerlestirildi", pk.parca >= 1 && um_icinde(prp, "PDF: 1 sayfa") != 0);
+        dene("kabul: sifreli PDF nedeniyle bildirildi", um_icinde(prp, "şifreli PDF") != 0);
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

@@ -3,12 +3,14 @@
 #include "umay_ozan.h"
 #include "umay_ogren.h"
 #include "umay_ortak.h"
+#include "umay_pdf.h"
 #include "umay_port.h"
 #include "umay_str.h"
 
 #define PARCA_BAYT   2400
 #define PARCA_MAX    512
-#define DOSYA_MAX    (2 * 1024 * 1024)
+#define DOSYA_MAX    (64 * 1024 * 1024)
+#define METIN_MAX    (4 * 1024 * 1024)
 
 static uint32_t fnv(const char *s, uint32_t n) {
     uint32_t h = 2166136261u;
@@ -41,9 +43,13 @@ static char *oku_tum(const char *yol, uint32_t *uz) {
     return b;
 }
 
+static int pdf_adi(const char *ad) {
+    uint32_t u = um_uzun(ad);
+    return u > 4 && um_esit(ad + u - 4, ".pdf");
+}
 static int metin_dosyasi(const char *ad) {
     uint32_t u = um_uzun(ad);
-    return (u > 4 && um_esit(ad + u - 4, ".txt")) || (u > 3 && um_esit(ad + u - 3, ".md"));
+    return (u > 4 && um_esit(ad + u - 4, ".txt")) || (u > 3 && um_esit(ad + u - 3, ".md")) || pdf_adi(ad);
 }
 
 static int islendi_mi(const char *liste, uint32_t h) {
@@ -172,6 +178,24 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         uint32_t hd = fnv(m, boy);
         if (islendi_mi(liste, hd)) { s->tekrar++; up_biraktir(m); continue; }
         s->dosya++;
+        if (pdf_adi(g[i].ad) || pdf_mi((const uint8_t *)m, boy)) {
+            char *metin = (char *)up_ayir(METIN_MAX);
+            int sayfa = 0, pr = metin ? pdf_metin((const uint8_t *)m, boy, metin, METIN_MAX, &sayfa) : PDF_BOZUK;
+            up_biraktir(m);
+            if (pr <= 0) {
+                const char *ned = pr == PDF_SIFRELI ? "şifreli PDF (şifresiz kopyasını at)"
+                                : pr == PDF_METINSIZ ? "metin katmanı yok: taranmış görüntü olabilir, OCR gerekir"
+                                : "PDF okunamadı (bozuk ya da desteklenmeyen yapı)";
+                um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " — "); um_ekle(rapor, n, ned); um_ekle(rapor, n, "\n");
+                s->desteklenmeyen++;
+                islendi_ekle(kok, &liste, hd, g[i].ad, 0);
+                if (metin) up_biraktir(metin);
+                continue;
+            }
+            boy = (uint32_t)pr;
+            m = metin;
+            { char t[48]; um_bicim(t, sizeof t, "  (PDF: %d sayfa, %d bayt metin)\n", sayfa, pr); um_ekle(rapor, n, t); }
+        }
 
         char baslik0[72]; ilk_satir(m, baslik0, sizeof baslik0);
         if (!baslik0[0]) um_kopya(baslik0, sizeof baslik0, g[i].ad);

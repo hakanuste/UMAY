@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (355 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (365 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
@@ -151,3 +151,10 @@ kendiliğinden, 30 sn'de bir yoklayarak) YAZIT ajanı:
    parça ona da konur.
 5. Hiçbir uzmana varamayan parça `ortak`a konur ve raporda **belirsiz** diye bildirilir; uydurma sınıflama yapılmaz.
 6. Metin olmayan dosya (pdf, resim ...) atlanır ve bildirilir; metne çevirip yeniden at.
+
+## PDF
+
+`gelen/` içindeki `.pdf` dosyaları dış kütüphanesiz okunur (`core/umay_pdf.c`): kendi inflate'i, Flate/ASCII85/ASCIIHex
+süzgeçleri, nesne akışları (PDF 1.5+), sayfa sırası, ToUnicode ile Türkçe harfler. Desteklenmeyenler açıkça bildirilir:
+şifreli PDF, metin katmanı olmayan (taranmış) PDF — OCR gerekir —, bozuk dosya. Bilinen sınır: bazı TeX PDF'lerinde
+harf aralığı yüzünden sözcük içinde fazladan boşluk çıkabilir.
