@@ -172,6 +172,7 @@ const char *gorev_durum_adi(gorev_durum_t d);
 alp_t *alp_gozcu(void);
 alp_t *alp_onarici(void);
 alp_t *alp_bilge(void);
+alp_t *alp_arastirmaci(void);
 alp_t *alp_yazman(void);
 
 /* --- uzman kadrosu (12) --- */

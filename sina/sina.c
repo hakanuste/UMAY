@@ -13,6 +13,12 @@
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
+#include "umay_bekci.h"
+#include "umay_arastir.h"
+#include "umay_egit.h"
+#include "umay_bekci.h"
+#include "umay_arastir.h"
+#include "umay_egit.h"
 #include "umay_host.h"
 #include "umay_ses.h"
 #include <stdio.h>
@@ -97,6 +103,21 @@ static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
             "{\"query\":{\"pages\":[{\"title\":\"Zeolit\",\"extract\":"
             "\"Zeolit g\\u00f6zenekli bir mineraldir.\\n\\nTar\\u0131mda toprak d\\u00fczenleyici olarak "
             "kullan\\u0131l\\u0131r. \\ud83d\\ude00\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=bazalt")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Bazalt\",\"extract\":"
+            "\"Bazalt volkanik bir kay\\u00e7t\\u0131r. De\\u011firmen ta\\u015f\\u0131 olarak kullan\\u0131l\\u0131r.\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=kuvars")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Kuvars\",\"extract\":"
+            "\"Kuvars silisyum dioksit mineralidir. Saat ve elektronik cihazlarda kullan\\u0131l\\u0131r.\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=obsidyen")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Obsidyen\",\"extract\":"
+            "\"Obsidyen volkanik cam\\u0131d\\u0131r. Keskin kesici aletlerde kullan\\u0131l\\u0131r.\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=bazalt")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Bazalt\",\"extract\":"
+            "\"Bazalt volkanik bir kay\\u00e7t\\u0131r. De\\u011firmen ta\\u015f\\u0131 olarak kullan\\u0131l\\u0131r.\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=obsidyen")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Obsidyen\",\"extract\":"
+            "\"Obsidyen volkanik cam\\u0131d\\u0131r. Keskin kesici aletlerde kullan\\u0131l\\u0131r.\"}]}}";
     } else if (um_icinde(url, "duckduckgo") || um_icinde(url, "q=")) {
         y = "<html>sonuc yok</html>";
     } else {
@@ -1545,6 +1566,129 @@ int main(void) {
                 um_bicim(f, sizeof f, "%s/%s", dy, g[i].ad);
                 remove(f);
             }
+            remove(dy);
+        }
+        remove(taban);
+        uh_ortam_ata("UMAY_AG_WIKI", "");
+        ayar_yaz("kutuphane", "kut");
+    }
+
+
+    printf("\n51) BEKCI, ARASTIRMACI, KARNE ve KAPILI EGITIM\n");
+    {
+        /* --- bekci --- */
+        bekci_t bk;
+        bekci_kur(&bk);
+        bekci_karar_t k1 = bekci_sor(&bk, "ara", "x"), k2 = bekci_sor(&bk, "ara", "x"), k3 = bekci_sor(&bk, "ara", "x");
+        dene("bekci: ilk uc ayni cagriya izin", !k1.engel && !k2.engel && !k3.engel && !k3.uyari);
+        bekci_karar_t k4 = bekci_sor(&bk, "ara", "x"), k5 = bekci_sor(&bk, "ara", "x");
+        dene("bekci: ayni cagri 4. kez UYARI, 5. kez ENGEL", k4.uyari && !k4.engel && k5.engel);
+        bekci_kur(&bk);
+        bekci_karar_t b6 = {0};
+        for (int i = 0; i < 6; i++) { char a[8]; um_bicim(a, sizeof a, "q%d", i); b6 = bekci_sor(&bk, "web", a); }
+        bekci_karar_t b7 = bekci_sor(&bk, "web", "q9");
+        dene("bekci: arac butcesi asilinca uyar sonra engelle", b6.uyari && b7.engel);
+        bekci_kur(&bk);
+        bk.arac_butce = 99;
+        bekci_karar_t pp = {0};
+        const char *ik[2] = { "bilgi", "web" };
+        for (int i = 0; i < 6; i++) { char a[8]; um_bicim(a, sizeof a, "a%d", i); pp = bekci_sor(&bk, ik[i % 2], a); }
+        dene("bekci: A-B-A-B-A-B gidip gelme yakalanir", pp.uyari && um_icinde(pp.neden, "gidip gelme"));
+        bekci_kur(&bk);
+        bk.arac_butce = 99;
+        int hata = 0;
+        for (int i = 0; i < 8; i++) { char a[8]; um_bicim(a, sizeof a, "b%d", i); if (bekci_sor(&bk, "bilgi", a).engel) hata = 1; }
+        dene("bekci: tek aracin farkli cagrilari gidip gelme sayilmaz", !hata);
+
+        /* --- gecici kutuphane --- */
+        char taban[200], tad[48];
+        um_bicim(tad, sizeof tad, "umay-egit-sina-%d", uh_pid());
+        uh_gecici(tad, taban, sizeof taban);
+        up_dizin_yarat(taban);
+        ayar_yaz("kutuphane", taban);
+        bilgi_dizin_kur(taban);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        uh_ortam_ata("UMAY_AG_WIKI", "http://sahte");
+        g_og_ag_yok = 0; g_og_enjekte = 0;
+        ogren_getirici_ata(og_sahte);
+
+        /* --- arastirma --- */
+        arastirma_t *r = (arastirma_t *)up_ayir(sizeof *r);
+        arastir_yurut("araştır kuvars mineral", "ortak", 1, r);
+        dene("arastir: komut sozcugu terim sayilmaz", r->terim_sayi == 2);
+        dene("arastir: web'den ogrenip dayanak buldu", r->web_parca >= 1 && r->kaynak_sayi >= 1);
+        int web_var = 0;
+        for (int i = 0; i < r->kaynak_sayi; i++)
+            if (r->kaynak[i].kaynak_tur == KT_DIS && um_icinde(r->kaynak[i].kaynak, "doğrulanmamış")) web_var = 1;
+        dene("arastir: web kaynagi KT_DIS ve 'dogrulanmamis'", web_var);
+        dene("arastir: kapsam %100", r->kapsam == 100);
+        char rap[GOREV_SONUC_MAX];
+        arastir_rapor(r, rap, sizeof rap);
+        dene("rapor: numarali bulgu ve kaynak listesi", um_icinde(rap, " [1] ") && um_icinde(rap, "Kaynaklar:"));
+        dene("rapor: guven ve nedeni yazili", um_icinde(rap, "Güven:") != 0);
+        int tum_web = r->kaynak_sayi > 0;
+        for (int i = 0; i < r->kaynak_sayi; i++) if (r->kaynak[i].kaynak_tur != KT_DIS) tum_web = 0;
+        dene("rapor: yalniz web kaynagi varsa guven en cok ORTA", !tum_web || r->guven <= GUVEN_ORTA);
+        arastir_yurut("qwxz yvtk", "ortak", 1, r);
+        arastir_rapor(r, rap, sizeof rap);
+        dene("arastir: bulunamayan konuda UYDURMAZ", r->kaynak_sayi == 0 && r->guven == GUVEN_YOK && um_icinde(rap, "uydurmam"));
+        up_biraktir(r);
+
+        /* --- karne --- */
+        karne_yaz("BİLGE", "zeolit nedir", 0, 0);
+        karne_yaz("ARAŞTIRMACI", "zeolit toprak", 2, 3);
+        char oz[600];
+        karne_ozet(oz, sizeof oz);
+        dene("karne: ajan basina ozet", um_icinde(oz, "BİLGE") && um_icinde(oz, "ARAŞTIRMACI") && um_icinde(oz, "dayanaksız 1"));
+
+        /* --- kapili egitim: GERI ALMA (kazanc kucuk, 40 soruda seyreliyor) --- */
+        char yol[400];
+        um_bicim(yol, sizeof yol, "%s/_ogren/karne.txt", taban);
+        remove(yol);
+        for (int i = 0; i < 39; i++) { char q[40]; um_bicim(q, sizeof q, "qwxz%d yvtk%d", i, i); karne_yaz("BİLGE", q, 0, 0); }
+        karne_yaz("BİLGE", "bazalt kayaç renk", 0, 0);
+        int sayi0 = bilgi_sayi();
+        int bazalt0 = arastir_kapsam("bazalt kayaç renk");
+        egit_sonuc_t es;
+        int er = egit_calistir(5, &es);
+        dene("egit: tur calisti", er == UM_OLDU && es.soru_sayi == 40);
+        dene("egit: bilgi eklendi ama kazanc kapiyi gecemedi -> GERI ALINDI", es.eklenen >= 1 && es.geri_alindi && !es.kabul);
+        dene("egit: geri almada dizin eski boyuta doner", bilgi_sayi() == sayi0);
+        int dosya_kaldi = 0;
+        for (int i = 0; ogren_yazilan(i, yol, sizeof yol) == UM_OLDU; i++) if (up_var_mi(yol)) dosya_kaldi = 1;
+        dene("egit: geri almada yazilan web dosyalari silinir", !dosya_kaldi);
+        dene("egit: geri alinan bilgi artik dayanak degil", arastir_kapsam("bazalt kayaç renk") == bazalt0);
+
+        /* --- kapili egitim: KABUL --- */
+        um_bicim(yol, sizeof yol, "%s/_ogren/karne.txt", taban);
+        remove(yol);
+        um_bicim(yol, sizeof yol, "%s/_ogren/bosluk.txt", taban);
+        remove(yol);
+        karne_yaz("BİLGE", "obsidyen volkanik cam", 0, 0);
+        sayi0 = bilgi_sayi();
+        er = egit_calistir(5, &es);
+        dene("egit: kazanc yeterli -> KABUL", er == UM_OLDU && es.kabul && !es.geri_alindi && es.sonra - es.once >= 20);
+        dene("egit: kabulde dizin buyur", bilgi_sayi() > sayi0);
+        dene("egit: ogrenilen artik soruyu karsilar", arastir_kapsam("obsidyen volkanik cam") >= 50);
+        egit_rapor(&es, rap, sizeof rap);
+        dene("egit: rapor sonucu soyler", um_icinde(rap, "KABUL") != 0);
+
+        /* ag yok: tur yapilamaz, sahte basari yok */
+        g_og_ag_yok = 1;
+        karne_yaz("BİLGE", "yeni konu baska", 0, 0);
+        er = egit_calistir(5, &es);
+        dene("egit: ag yokken UM_YOK", er == UM_YOK || es.eklenen == 0);
+        g_og_ag_yok = 0;
+
+        ogren_getirici_ata(0);
+        uh_ortam_ata("UMAY_OGREN", "0");
+        for (int d = -1; d < BILGI_ALAN_SAYI; d++) {
+            char dy[300];
+            if (d < 0) um_bicim(dy, sizeof dy, "%s/_ogren", taban);
+            else um_bicim(dy, sizeof dy, "%s/%s", taban, bilgi_alan_dizini(d));
+            up_girdi_t g[32];
+            int k = up_dizin_listele(dy, g, 0, 32);
+            for (int i = 0; i < k; i++) { char f[400]; um_bicim(f, sizeof f, "%s/%s", dy, g[i].ad); remove(f); }
             remove(dy);
         }
         remove(taban);

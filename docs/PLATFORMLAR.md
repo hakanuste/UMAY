@@ -8,9 +8,9 @@ platforma göre koşullu derleme yoktur.
 
 | Platform | Nasıl kurulur | Kanıt |
 |---|---|---|
-| Linux x64 | `./kur.sh` ya da `umay-*-linux-x64.tar.gz` | 297 sınama + gömülü 11, yerel koşuldu; ASan/UBSan temiz |
-| Linux ARM64, **Android (Termux)** | `umay-*-linux-arm64.tar.gz` | 297 + 11, `qemu-aarch64` altında koşuldu |
-| Windows x64 | `umay-*-windows-x64.zip`, aç, `umay.exe` | 297 + 11, **Wine** altında koşuldu; Ollama TCP yolu sahte sunucuyla sınandı |
+| Linux x64 | `./kur.sh` ya da `umay-*-linux-x64.tar.gz` | 321 sınama + gömülü 11, yerel koşuldu; ASan/UBSan temiz |
+| Linux ARM64, **Android (Termux)** | `umay-*-linux-arm64.tar.gz` | 321 + 11, `qemu-aarch64` altında koşuldu |
+| Windows x64 | `umay-*-windows-x64.zip`, aç, `umay.exe` | 321 + 11, **Wine** altında koşuldu; Ollama TCP yolu sahte sunucuyla sınandı |
 | Windows ARM64 | `umay-*-windows-arm64.zip` | yalnız **derlendi** (çalıştırılamadı) |
 | macOS (Intel, Apple Silicon) | `./kur.sh` ya da `umay-*-macos-*.tar.gz` | yalnız **derlendi** (bu ortamda Mac yok) |
 | Android uygulaması (JNI) | `CMakeLists.txt` `-DUMAY_JNI=ON` | JNI köprüsü JVM'de uçtan uca sınandı; **Android'de denenmedi** |

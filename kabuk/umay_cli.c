@@ -19,6 +19,8 @@
 #include "umay_gui.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
+#include "umay_arastir.h"
+#include "umay_egit.h"
 #include "umay_bilgi.h"
 
 static void kullanim(const char *ad)
@@ -29,6 +31,9 @@ static void kullanim(const char *ad)
     printf("  %s \"soru\"         tek soru sorar, yanıtlar, çıkar\n", ad);
     printf("  %s --ogren        bekleyen boşlukları web'den öğrenir\n", ad);
     printf("  %s --ogren \"konu\" bir konuyu web'den araştırıp kütüphaneye ekler\n", ad);
+    printf("  %s --arastir \"soru\" planlı, kaynaklı araştırma raporu\n", ad);
+    printf("  %s --egit         bir eğitim turu (ölç, öğren, kapıdan geçir)\n", ad);
+    printf("  %s --karne        ajanların başarı karnesi\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
     printf("  %s --yardim       bu yazı\n\n", ad);
     printf("Ortam değişkenleri:\n");
@@ -54,6 +59,32 @@ int main(int argc, char **argv)
         if (um_esit(argv[1], "--surum")   || um_esit(argv[1], "-s") ||
             um_esit(argv[1], "--version") || um_esit(argv[1], "-V")) {
             printf("UMAY %s\n", UMAY_SURUM);
+            return 0;
+        }
+        if (um_esit(argv[1], "--arastir") || um_esit(argv[1], "--egit") || um_esit(argv[1], "--karne")) {
+            int arastir = um_esit(argv[1], "--arastir"), egit = um_esit(argv[1], "--egit");
+            if (arastir && argc < 3) { fprintf(stderr, "Kullanım: %s --arastir \"soru\"\n", ad); return 2; }
+            gui_sade_kip();
+            if (umay_kur() != 0) { fprintf(stderr, "UMAY: baslatilamadi\n"); return 1; }
+            gui_girdi_kapat();
+            gui_sade_coz();
+            static char cikti[4096];
+            if (arastir) {
+                char soru[UMAY_ILETI_MAX]; soru[0] = 0;
+                for (int i = 2; i < argc; i++) { if (i > 2) um_ekle(soru, sizeof soru, " "); um_ekle(soru, sizeof soru, argv[i]); }
+                static arastirma_t r;
+                arastir_yurut(soru, "ortak", 1, &r);
+                arastir_rapor(&r, cikti, sizeof cikti);
+                karne_yaz("ARAŞTIRMACI", soru, (int)r.guven, r.kaynak_sayi);
+            } else if (egit) {
+                egit_sonuc_t sn;
+                if (egit_calistir(5, &sn) == UM_OLDU) egit_rapor(&sn, cikti, sizeof cikti);
+                else um_bicim(cikti, sizeof cikti, "Eğitim turu yapılamadı: %s\n", sn.neden);
+            } else {
+                karne_ozet(cikti, sizeof cikti);
+            }
+            fputs(cikti, stdout);
+            umay_kapan();
             return 0;
         }
         if (um_esit(argv[1], "--ogren") || um_esit(argv[1], "--öğren")) {

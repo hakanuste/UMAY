@@ -107,6 +107,7 @@ int up_dizin_yarat(const char *yol) {
     return mkdir(yol, 0755) == 0 ? UM_OLDU : UM_YANLIS;
 #endif
 }
+int up_sil(const char *yol) { return remove(yol); }
 int up_yaz_yola(const char *yol, const void *v, uint64_t n) {
     int f = open(yol, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
     if (f < 0) return -1;

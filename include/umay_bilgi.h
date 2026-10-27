@@ -97,6 +97,7 @@ int  bilgi_dizin_kur(const char *kok);         /* 13 alt dizini açar */
 int  bilgi_doktrin_yukle(void);
 int  bilgi_tara(const char *kok);              /* üstveriye göre indeksler */
 int  bilgi_sayi(void);
+void bilgi_kirp(int n);                        /* son eklenenleri geri al */
 int  bilgi_kategori_sayisi(const char *kategori);
 
 int  bilgi_kayit_kat(const char *kategori, const char *baslik, const char *kaynak,

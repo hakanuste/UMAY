@@ -319,6 +319,7 @@ const char *up_kut_kok(void) { return "/"; }
 
 /* AĞ: ÖTÜKEN'de henüz web'e çıkış yolu yoktur. Sahte başarı yok:
  * ağ yok diye bildirilir, ÖĞREN modülü sessizce UM_YOK döner. */
+int up_sil(const char *yol) { (void)yol; return -1; }
 int up_ag_var_mi(void) { return 0; }
 int64_t up_ag_getir(const char *url, char *cik, uint32_t n, uint32_t sn)
 { (void)url; (void)cik; (void)n; (void)sn; return -1; }

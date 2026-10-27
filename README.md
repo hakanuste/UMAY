@@ -210,6 +210,9 @@ bulduğunu "doğrulanmamış" işaretiyle kütüphaneye yazar. `umay --ogren`,
 `umay --ogren "konu"`; kapatmak için `UMAY_OGREN=0`. Dil modelinin ağırlıkları
 cihazda güncellenmez — tanım, gizlilik ve sınırlar: [docs/OGREN.md](docs/OGREN.md).
 
+Planlı araştırma (`umay --arastir "soru"`), döngü bekçisi, ajan karnesi (`--karne`) ve
+kapılı eğitim turu (`--egit`) aynı belgede.
+
 ## ÖTÜKEN'e bağlamak
 
 Bağlanma noktası tek bir katmandır: `port/`. Çekirdekte (`core/`,
@@ -238,7 +241,7 @@ giriş noktası `um_bellek_kopya`ya düşüyordu. ELF'in bağlanması
 
     make sina
 
-**297 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
+**321 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
 süre ayrı bir ikilideydi; iki ayrı sonuç satırı veriyordu ve `kur.sh`
 yalnız sonuncusunu okuyup "10 geçti" yazıyordu. Hepsi `sina/sina.c`de.
 

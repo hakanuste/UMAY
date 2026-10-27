@@ -30,6 +30,7 @@ int64_t  up_yaz(up_tut_t t, const void *tampon, uint64_t n);
 int      up_kapat(up_tut_t t);
 int      up_var_mi(const char *yol);
 int      up_dizin_yarat(const char *yol);
+int      up_sil(const char *yol);        /* dosya siler; 0 = silindi (ÖTÜKEN: -1) */
 
 /* Dizin girdisi. Duzen ÖTÜKEN'in sys_dirent_t ABI'siyle UYUMLUDUR
  * (include/syscall.h): ad[32], boy, dizin_mi. */

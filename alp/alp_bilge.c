@@ -6,6 +6,7 @@
 #include "umay_str.h"
 #include "umay_ortak.h"
 #include "umay_ogren.h"
+#include "umay_egit.h"
 
 
 typedef struct {
@@ -60,6 +61,7 @@ static alp_durum_t adim(alp_t *a) {
     istem.en_cok_im    = 256;
 
     us_cevap_uret(&istem, &ic->cikti);
+    karne_yaz("BİLGE", ic->gorev.istem, (int)ic->cikti.guven, ic->cikti.dayanak_sayi);
 
     if (ic->gorev.niyet == NIYET_OGUT) {
         char ham[US_METIN_MAX];

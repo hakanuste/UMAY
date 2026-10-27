@@ -52,6 +52,14 @@ int  ogren_gecis(int en_cok);
 /* Boştayken çağrılır; seyrek aralıkla bir boşluk işler. */
 void ogren_bosta(void);
 
+/* Son sıfırlamadan beri yazılan web belgeleri (eğitim kapısı geri alsın diye).
+ * ogren_yazilan(i, yol, n): i. belgenin yolu; yoksa UM_YOK. */
+void ogren_yazilan_sifirla(void);
+int  ogren_yazilan(int i, char *yol, uint32_t n);
+
+/* "araştır", "derle" gibi komut sözcüğü mü (konu sayılmaz). */
+int  ogren_komut_sozcugu(const char *k);
+
 /* Durum: bekleyen boşluk sayısı, öğrenilmiş parça sayısı (oturum). */
 int  ogren_bekleyen(void);
 int  ogren_oturum_parca(void);

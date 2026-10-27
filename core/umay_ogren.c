@@ -30,6 +30,20 @@ static int      g_oturum_parca;
 static uint64_t g_bosta_ms;
 static int      g_bosta_basladi;
 
+/* yazılan web belgeleri: (alan, özet, parça no) */
+#define OG_YAZILAN_MAX 32
+static struct { char alan[16]; char h[9]; uint8_t no; } g_yazilan[OG_YAZILAN_MAX];
+static int g_yazilan_n;
+void ogren_yazilan_sifirla(void) { g_yazilan_n = 0; }
+int ogren_yazilan(int i, char *yol, uint32_t n) {
+    if (i < 0 || i >= g_yazilan_n) return UM_YOK;
+    char ad[48];
+    um_bicim(ad, sizeof ad, "web-%s-%d.txt", g_yazilan[i].h, (int)g_yazilan[i].no);
+    const char *kok = ayar_metin("kutuphane", "kut");
+    um_bicim(yol, n, "%s/%s/%s", kok, g_yazilan[i].alan, ad);
+    return UM_OLDU;
+}
+
 void ogren_getirici_ata(ogren_getirici_t f) { g_getir = f; g_ag_var = -1; }
 
 int ogren_acik(void) {
@@ -71,14 +85,24 @@ static const char *dizin_adi(const char *kat) {
     return "ortak";
 }
 
+/* "araştır", "derle" gibi KOMUT sözcükleri konu değildir; aramaya girmez. */
+int ogren_komut_sozcugu(const char *k) {
+    static const char *KOMUT[] = { "araştır", "arastir", "araştırma", "derle", "tara", "incele",
+                                   "kaynak", "bul", "ara", "rapor", 0 };
+    for (int i = 0; KOMUT[i]; i++) if (um_esit(k, KOMUT[i])) return 1;
+    return 0;
+}
+
 /* soruyu anahtar sözcüklere indirger: "gunes paneli verimi" */
 static int anahtar_kur(const char *soru, char *cik, uint32_t n) {
-    char kel[OG_ANAHTAR_MAX][24];
+    char ham[OG_ANAHTAR_MAX + 4][24];
     cik[0] = 0;
-    int k = soru ? bilgi_kelime_ayikla(soru, kel, OG_ANAHTAR_MAX) : 0;
-    for (int i = 0; i < k; i++) {
-        if (i) um_ekle(cik, n, " ");
-        um_ekle(cik, n, kel[i]);
+    int h = soru ? bilgi_kelime_ayikla(soru, ham, OG_ANAHTAR_MAX + 4) : 0, k = 0;
+    for (int i = 0; i < h && k < OG_ANAHTAR_MAX; i++) {
+        if (ogren_komut_sozcugu(ham[i])) continue;
+        if (k) um_ekle(cik, n, " ");
+        um_ekle(cik, n, ham[i]);
+        k++;
     }
     return k;
 }
@@ -578,6 +602,12 @@ int ogren_arastir(const char *kategori, const char *konu) {
             kok_yolu(yol, sizeof yol, alan, ad);
             if (up_yaz_yola(yol, dosya, um_uzun(dosya)) < 0)
                 gun_yaz("ÖĞREN: yazılamadı (yalnız bellekte): %s", yol);
+            else if (g_yazilan_n < OG_YAZILAN_MAX) {
+                um_kopya(g_yazilan[g_yazilan_n].alan, sizeof g_yazilan[0].alan, alan);
+                um_kopya(g_yazilan[g_yazilan_n].h, sizeof g_yazilan[0].h, h);
+                g_yazilan[g_yazilan_n].no = (uint8_t)(i + 1);
+                g_yazilan_n++;
+            }
             if (bilgi_kayit_dil(alan, bas_ad, kaynak, KT_DIS, et, parca, dil, "") == UM_OLDU) eklenen++;
         }
         gun_yaz("ÖĞREN: '%s' için %d parça öğrenildi (%s).", anahtar, eklenen, kaynak);

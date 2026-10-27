@@ -17,6 +17,7 @@
 #include "umay_str.h"
 #include "umay_ortak.h"
 #include "umay_ogren.h"
+#include "umay_egit.h"
 #include "umay_port.h"
 
 
@@ -196,6 +197,7 @@ static alp_durum_t uzman_adim(alp_t *a) {
     }
 
     us_cevap_uret(&istem, &u->cikti);
+    karne_yaz(t->ad, u->gorev.istem, (int)u->cikti.guven, u->cikti.dayanak_sayi);
     us_cikti_yaz(&u->cikti, u->rapor, sizeof u->rapor);
     return ALP_BITTI;
 }

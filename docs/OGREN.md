@@ -71,7 +71,57 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (297 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (321 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
+
+---
+
+# Planlı araştırma, bekçi, karne ve kapılı eğitim
+
+OpenJarvis'in *fikirlerinden* (sınırlı bütçeli araştırma döngüsü, döngü bekçisi,
+izleme → öğrenme → ölçüm kapısı) esinlenilerek UMAY'ın kendi mimarisinde, sıfırdan
+C ile yazıldı. OpenJarvis'ten kod alınmadı.
+
+## ARAŞTIRMACI ajanı (`alp/alp_arastirmaci.c`, `core/umay_arastir.c`)
+
+"araştır …" ile açılan görevler bu ajana gider. Model çağırmaz; belirlenimlidir.
+
+1. **Plan:** komut sözcükleri ("araştır", "derle"…) atılır; soru açılara bölünür
+   (hepsi birlikte + en ayırt edici tek sözcükler).
+2. **Arama:** her açı kütüphanede aranır. **Bütçe 5.** Her çağrıdan önce bekçiye sorulur.
+3. **Genişletme:** kapsam %100 değilse ve web açıksa konu web'den öğrenilir, tam açı yeniden aranır.
+4. **Çapraz denetim:** her anahtar sözcüğün kaç *ayrı* kaynakta geçtiği sayılır;
+   güvenilen kaynaklar çelişiyorsa işaretlenir.
+5. **Rapor:** numaralı bulgular `[1] [2]…`, kapsam, eksik terimler, güven ve nedeni,
+   kaynak listesi. Rapordaki her cümle bir kaynaktan **aynen** alınır; kaynak
+   yoksa "uydurmam" der. Yalnız doğrulanmamış web varsa güven en çok **orta**.
+
+Komut satırı: `umay --arastir "soru"`.
+
+## BEKÇİ (`core/umay_bekci.c`)
+
+Araç çağrısı döngülerini engeller: aynı çağrı en çok 3 kez, araç başına bütçe,
+A-B-A-B-A-B gidip gelme. **Önce uyarır, yinelenirse engeller.**
+
+## KARNE ve KAPILI EĞİTİM (`core/umay_egit.c`)
+
+Her yanıt (ajan, soru, güven, dayanak sayısı) yerel `_ogren/karne.txt` dosyasına yazılır
+(`umay --karne` ajan başına özet verir). **Eğitim turu** (`umay --egit`; konuşma
+kipinde boştayken 5 dakikada bir kendiliğinden):
+
+1. **Ölç:** karnedeki son ≤40 soru kütüphanede ne kadar karşılanıyor (web'siz, binde).
+2. **Öğren:** zayıf sorulardan çıkan boşluklar web'den kapatılır.
+3. **Yeniden ölç.**
+4. **Kapı:** ortalama kapsam en az **+%2** artmalı **ve** önceden karşılanan soruların
+   en az **%85**'i hâlâ karşılanmalı. Aksi hâlde tur **geri alınır**: eklenen kayıtlar
+   dizinden atılır, yazılan web dosyaları silinir.
+
+Dil modelinin ağırlıkları değişmez; "eğitilen" şey kütüphanedir.
+
+## Sınırlar
+
+- Ajan *seçimi* karneden öğrenmez; karne şimdilik ölçer ve eğitim turunu yönlendirir.
+- Kapı ölçüsü kütüphane kapsamıdır, yanıt kalitesi değil (yanıtı bir model üretiyorsa
+  ayrıca ölçülmelidir).

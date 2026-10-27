@@ -2,6 +2,7 @@
  * Tek Ring3 süreci. Bloklamayan olay döngüsü: kanalları yokla → görev ver →
  * OTAĞ'ı bir tur döndür → yanıtları kanallara ve ÜLGEN'e yaz. */
 #include "umay_ogren.h"
+#include "umay_egit.h"
 #include "umay.h"
 #include "umay_port.h"
 #include "umay_str.h"
@@ -110,6 +111,10 @@ static void ileti_isle(const umay_ileti_t *i) {
      * var" kapisini aciyordu (olculdu; core/umay_bengi.c'de yazili). */
     bengi_baglam_soru(g.baglam, sizeof g.baglam, i->govde);
 
+    /* Açıkça ARAŞTIR denen iş planlı araştırmacıya gider (BİLGE sade soruya bakar). */
+    if (g.tur == GT_ARASTIR && !g.hedef_ajan[0])
+        um_kopya(g.hedef_ajan, sizeof g.hedef_ajan, "ARAŞTIRMACI");
+
     /* araştırma, çözümleme ve tasarım çıktıları bengi taşa geçer */
     g.bengiye_yaz = (g.tur == GT_ARASTIR || g.tur == GT_ANALIZ ||
                      g.tur == GT_TASARLA || g.tur == GT_KONTROL);
@@ -208,6 +213,7 @@ int umay_kur(void) {
 
     otag_kur(&g_otag);
     /* çekirdek görevliler */
+    otag_alp_kat(&g_otag, alp_arastirmaci());
     otag_alp_kat(&g_otag, alp_bilge());
     otag_alp_kat(&g_otag, alp_gozcu());
     otag_alp_kat(&g_otag, alp_onarici());
@@ -284,7 +290,7 @@ void umay_tur(void) {
     gui_ciz(&g_otag);
     onay_temizle();
     /* Boştayken eksik kalan bir konuyu seyrek aralıkla web'den kapat. */
-    if (n == 0 && !otag_mesgul(&g_otag)) ogren_bosta();
+    if (n == 0 && !otag_mesgul(&g_otag)) egit_bosta();
 }
 
 int umay_kosuyor(void) { return g_kosuyor; }

@@ -174,6 +174,12 @@ int bilgi_dizin_kur(const char *kok) {
 
 int bilgi_sayi(void) { return g_sayi; }
 
+/* Dizini ilk n kayda kırpar: sonradan eklenenleri GERİ ALIR (eğitim kapısı). */
+void bilgi_kirp(int n) {
+    if (n < 0) n = 0;
+    while (g_sayi > n) { g_indeks[--g_sayi].dolu = 0; }
+}
+
 /* ---- Gömülü doktrin: V15 proje veri tabanı özü ----
  * Kütüphane diskte bulunmasa bile UMAY temel bilgisini taşır. */
 static const struct { const char *kat; const char *bas; const char *etiket; const char *ic; } DOKTRIN[] = {
