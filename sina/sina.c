@@ -25,6 +25,7 @@
 #include "umay_host.h"
 #include "umay_ses.h"
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 
 extern void host_yetki_ayarla(uint32_t y);   /* port/umay_port_host.c */
@@ -1519,7 +1520,7 @@ int main(void) {
 
         /* gecici kutuphane */
         char taban[200], tad[48];
-        snprintf(tad, sizeof tad, "umay-ogren-sina-%d", uh_pid());   /* her kosu kendi dizininde */
+        snprintf(tad, sizeof tad, "umay-ogren-sina-%d-%ld", uh_pid(), (long)time(0));   /* her kosu kendi dizininde */
         uh_gecici(tad, taban, sizeof taban);
         up_dizin_yarat(taban);
         ayar_yaz("kutuphane", taban);
@@ -1626,7 +1627,7 @@ int main(void) {
 
         /* --- gecici kutuphane --- */
         char taban[200], tad[48];
-        um_bicim(tad, sizeof tad, "umay-egit-sina-%d", uh_pid());
+        snprintf(tad, sizeof tad, "umay-egit-sina-%d-%ld", uh_pid(), (long)time(0));
         uh_gecici(tad, taban, sizeof taban);
         up_dizin_yarat(taban);
         ayar_yaz("kutuphane", taban);
@@ -1760,7 +1761,7 @@ int main(void) {
     printf("\n54) KABUL: GETIRILEN KAYNAKLARI AJANLAR INCELEYIP YERINE KOYAR\n");
     {
         char taban[200], tad[48];
-        snprintf(tad, sizeof tad, "umay-kabul-sina-%d", uh_pid());
+        snprintf(tad, sizeof tad, "umay-kabul-sina-%d-%ld", uh_pid(), (long)time(0));
         uh_gecici(tad, taban, sizeof taban);
         up_dizin_yarat(taban);
         ayar_yaz("kutuphane", taban);
@@ -1827,7 +1828,7 @@ int main(void) {
         dene("pdf: PDF olmayan reddedilir", pdf_mi((const uint8_t *)"merhaba dunya", 13) == 0);
         /* kabul hattindan gec */
         char taban[200], tad[48], gd[260], yol[300];
-        snprintf(tad, sizeof tad, "umay-pdf-sina-%d", uh_pid());
+        snprintf(tad, sizeof tad, "umay-pdf-sina-%d-%ld", uh_pid(), (long)time(0));
         uh_gecici(tad, taban, sizeof taban);
         up_dizin_yarat(taban);
         ayar_yaz("kutuphane", taban);
@@ -1857,7 +1858,7 @@ int main(void) {
         dene("ozan: 'ingilizceye cevir' -> GT_CEVIR", ozan_coz("ingilizceye çevir: merhaba").tur == GT_CEVIR);
 
         char taban[200], tad[48];
-        snprintf(tad, sizeof tad, "umay-ceviri-sina-%d", uh_pid());
+        snprintf(tad, sizeof tad, "umay-ceviri-sina-%d-%ld", uh_pid(), (long)time(0));
         uh_gecici(tad, taban, sizeof taban);
         up_dizin_yarat(taban);
         ayar_yaz("kutuphane", taban);
