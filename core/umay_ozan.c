@@ -5,6 +5,7 @@
 #include "umay_port.h"
 #include "umay_alp.h"
 #include "umay_bilgi.h"
+#include "umay_ogren.h"
 
 static char g_kullanici[UMAY_AD_MAX] = "yiğidim";
 static uint32_t g_tur;      /* kalıp döngüsü — tekdüzeliği kırar */
@@ -123,6 +124,23 @@ const char *ozan_uzman_kimligi(alan_t a) {
 }
 
 /* Niyet çözümü — anahtar sözcük tabanlı, US motoru olmadan da çalışır. */
+/* İngilizce metin için iz sözcükleri (yalnız belge sınıflaması; soru çözümlemesinde kullanılmaz). */
+static const alan_soz_t EN_SOZLUK[] = {
+    { ALAN_AKCA,   { "stock market", "bank", "crypto", "bitcoin", "inflation", "interest rate", "currency", "finance", "economy", "invest", 0 } },
+    { ALAN_YERSU,  { "permaculture", "soil", "compost", "garden", "seed", "irrigation", "harvest", "crop", "earthworm", "mulch", "orchard", "greenhouse", "farm", 0 } },
+    { ALAN_KUN,    { "solar", "photovoltaic", "inverter", "battery bank", "kilowatt", "charge controller", "wind turbine", "lithium", "off-grid", 0 } },
+    { ALAN_DEMIR,  { "circuit", "electronic", "antenna", "radio", "frequency", "transistor", "resistor", "microcontroller", "arduino", "firmware", "voltage", 0 } },
+    { ALAN_TULGA,  { "engine", "gearbox", "transmission", "diesel", "suspension", "axle", "transfer case", "off-road", "chassis", "drivetrain", 0 } },
+    { ALAN_OTACI,  { "herbal", "medicinal", "first aid", "wound", "tincture", "ointment", "antiseptic", "bandage", "fracture", "infection", 0 } },
+    { ALAN_YARGU,  { "lawsuit", "court", "contract", "regulation", "title deed", "permit", "statute", "zoning", "legal", 0 } },
+    { ALAN_BALBAL, { "adobe", "mud brick", "masonry", "plaster", "lime mortar", "cob", "foundation", "vault", "cistern", "timber", "rammed earth", "straw bale", "clay", 0 } },
+    { ALAN_ALPAGU, { "security", "surveillance", "intrusion", "firewall", "encryption", "perimeter", "camera", "radar", 0 } },
+    { ALAN_KOPUZ,  { "melody", "instrument", "folk song", "lute", "kopuz", "rhythm", "bard", "music", 0 } },
+    { ALAN_OYUN,   { "dance", "choreograph", "folk dance", "ritual", "performance", 0 } },
+    { ALAN_YAZIT,  { "inscription", "runic", "orkhon", "manuscript", "archive", "archaeolog", "epigraph", 0 } },
+    { ALAN_YOK, { 0 } }
+};
+
 /* Küçük harfli metni 12 alana göre puanlar (sözlük + bağlam kuralı). */
 static void alan_skorla_k(const char *k, int skor[ALAN_SAYI]) {
     for (int i = 0; i < ALAN_SAYI; i++) skor[i] = 0;
@@ -149,6 +167,11 @@ int ozan_alan_skorla(const char *metin, int skor[ALAN_SAYI]) {
     if (!k) return 0;
     um_kucult(k, n + 1, metin);
     alan_skorla_k(k, skor);
+    if (um_esit(ogren_dil_kestir(metin), "en")) {
+        for (int i = 0; EN_SOZLUK[i].alan != ALAN_YOK; i++)
+            for (int j = 0; EN_SOZLUK[i].izler[j]; j++)
+                if (um_icinde(k, EN_SOZLUK[i].izler[j])) skor[EN_SOZLUK[i].alan]++;
+    }
     up_biraktir(k);
     return 1;
 }
@@ -217,6 +240,9 @@ coz_t ozan_coz(const char *soz) {
         { "tasarla", GT_TASARLA }, { "planla",  GT_TASARLA }, { "kurgula", GT_TASARLA },
         { "çiz",     GT_TASARLA }, { "ölçülendir", GT_TASARLA },
         { "izle",    GT_IZLE    }, { "gözet",   GT_IZLE },
+        { "çevir",   GT_CEVIR   }, { "cevir",   GT_CEVIR   }, { "tercüme", GT_CEVIR },
+        { "türkçeye", GT_CEVIR  }, { "ingilizceye", GT_CEVIR }, { "almancaya", GT_CEVIR },
+        { "ingilizcesi", GT_CEVIR }, { "türkçesi", GT_CEVIR },
         { 0, 0 }
     };
     c.tur = GT_SORU;

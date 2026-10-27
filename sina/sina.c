@@ -18,6 +18,7 @@
 #include "umay_egit.h"
 #include "umay_kabul.h"
 #include "umay_pdf.h"
+#include "umay_ceviri.h"
 #include "umay_bekci.h"
 #include "umay_arastir.h"
 #include "umay_egit.h"
@@ -129,6 +130,27 @@ static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
     if (u + 1 > n) return -1;
     um_bellek_kopya(cik, y, u + 1);
     return (int64_t)u;
+}
+
+
+static int g_cv_ag_yok;
+static int64_t cv_sahte(const char *url, char *cik, uint32_t n) {
+    if (g_cv_ag_yok) return -1;
+    const char *y = "{\"responseData\":{\"translatedText\":\"?\"},\"responseStatus\":200}";
+    if (um_icinde(url, "langpair=en%7Ctr"))
+        y = "{\"responseData\":{\"translatedText\":\"Kerpi\\u00e7 duvarlar kil toprak ve samanla yap\\u0131l\u0131r.\"},\"responseStatus\":200}";
+    else if (um_icinde(url, "langpair=tr%7Cen"))
+        y = "{\"responseData\":{\"translatedText\":\"Mud brick walls are made of clay soil and straw.\"},\"responseStatus\":200}";
+    if (um_icinde(url, "kota"))
+        y = "{\"responseData\":{\"translatedText\":\"MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY.\"},\"responseStatus\":200}";
+    uint32_t u = um_uzun(y);
+    if (u + 1 > n) return -1;
+    um_bellek_kopya(cik, y, u + 1);
+    return (int64_t)u;
+}
+static int cv_motor(const char *kd, const char *hd, const char *m, char *c, uint32_t n) {
+    (void)kd; (void)hd; (void)m;
+    um_kopya(c, n, "MOTOR CEVIRISI"); return 14;
 }
 
 int main(void) {
@@ -1820,6 +1842,76 @@ int main(void) {
         kabul_calistir(taban, &pk, prp, sizeof prp);
         dene("kabul: PDF okundu ve yerlestirildi", pk.parca >= 1 && um_icinde(prp, "PDF: 1 sayfa") != 0);
         dene("kabul: sifreli PDF nedeniyle bildirildi", um_icinde(prp, "şifreli PDF") != 0);
+    }
+
+    printf("\n56) CEVIRMEN: DIL CEVIRISI, YONTEM DURUSTLUGU, YABANCI BELGE KABULU\n");
+    {
+        char kd[8], hd[8], mt[256], kod[8];
+        dene("istek: ingilizceye cevir", ceviri_istek_coz("ingilizceye çevir: merhaba dünya", kd, hd, mt, sizeof mt) == UM_OLDU &&
+             um_esit(kd, "tr") && um_esit(hd, "en") && um_esit(mt, "merhaba dünya"));
+        dene("istek: almancadan turkceye", ceviri_istek_coz("almancadan türkçeye çevir: guten tag", kd, hd, mt, sizeof mt) == UM_OLDU &&
+             um_esit(kd, "de") && um_esit(hd, "tr"));
+        dene("istek: metin yoksa reddedilir", ceviri_istek_coz("ingilizceye çevir", kd, hd, mt, sizeof mt) == UM_YOK);
+        dene("dil kodu: ingilizceye -> en", ceviri_dil_kodu("ingilizceye", kod) == UM_OLDU && um_esit(kod, "en"));
+        dene("dil kodu: bilinmeyen sozcuk", ceviri_dil_kodu("kerpiç", kod) == UM_YOK);
+        dene("ozan: 'ingilizceye cevir' -> GT_CEVIR", ozan_coz("ingilizceye çevir: merhaba").tur == GT_CEVIR);
+
+        char taban[200], tad[48];
+        snprintf(tad, sizeof tad, "umay-ceviri-sina-%d", uh_pid());
+        uh_gecici(tad, taban, sizeof taban);
+        up_dizin_yarat(taban);
+        ayar_yaz("kutuphane", taban);
+        bilgi_dizin_kur(taban);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        ogren_getirici_ata(cv_sahte);
+
+        static char co[2048]; ceviri_yontem_t y;
+        int r = ceviri_yap("en", "tr", "Mud brick walls are made of clay soil and straw.", co, sizeof co, &y);
+        dene("ag: en->tr web cevirisi", r > 0 && y == CY_AG && um_icinde(co, "Kerpiç duvarlar"));
+        r = ceviri_yap("tr", "en", "Kerpiç duvar kil toprak ve samanla yapılır.", co, sizeof co, &y);
+        dene("ag: tr->en web cevirisi", r > 0 && y == CY_AG && um_icinde(co, "Mud brick"));
+        r = ceviri_yap("en", "tr", "kota test sentence", co, sizeof co, &y);
+        dene("kota uyarisi ceviri sayilmaz", r == UM_YOK || y != CY_AG);
+        g_cv_ag_yok = 1;
+        r = ceviri_yap("en", "tr", "clay soil and straw wall", co, sizeof co, &y);
+        dene("ag yok: sozluk yedegi kullanilir ve adi konur", r > 0 && y == CY_SOZLUK);
+        r = ceviri_yap("en", "tr", "The quarterly philosophical manuscript contradicts everything", co, sizeof co, &y);
+        dene("ag yok + sozluk kapsamiyor: UYDURMAZ", r == UM_YOK && y == CY_YOK);
+        dene("ayni dil: ceviri yok", ceviri_yap("tr", "tr", "merhaba", co, sizeof co, &y) == UM_YOK);
+        g_cv_ag_yok = 0;
+        ceviri_motor_ata(cv_motor);
+        r = ceviri_yap("en", "tr", "anything", co, sizeof co, &y);
+        dene("gomulu motor once denenir", r > 0 && y == CY_MOTOR && um_esit(co, "MOTOR CEVIRISI"));
+        ceviri_motor_ata(0);
+
+        /* yabanci dilli belge: kabulde siniflanir, Turkce ceviri kaydi yazilir */
+        char gd[260], yol[300];
+        snprintf(gd, sizeof gd, "%s/gelen", taban);
+        up_dizin_yarat(gd);
+        const char *en_doc =
+            "Mud brick walls are built with clay soil and straw. The adobe is mixed and the plaster is applied to the masonry foundation with lime mortar.\n";
+        snprintf(yol, sizeof yol, "%s/adobe.txt", gd);
+        up_yaz_yola(yol, en_doc, um_uzun(en_doc));
+        kabul_sonuc_t ks; static char kr[2048];
+        kabul_calistir(taban, &ks, kr, sizeof kr);
+        dene("yabanci belge ozgun diliyle dogru alana (balbal)", um_icinde(kr, "balbal") != 0);
+        dene("kabul raporu CEVIRMEN'i bildirir", um_icinde(kr, "ÇEVİRMEN") != 0);
+        char cy[300];
+        snprintf(cy, sizeof cy, "%s/balbal", taban);
+        up_girdi_t gi[16];
+        int na = up_dizin_listele(cy, gi, 0, 16), cev = 0;
+        for (int i = 0; i < na; i++) if (um_bas_mi(gi[i].ad, "ceviri-")) cev = 1;
+        dene("Turkce ceviri belgesi ceviri- onekiyle yazildi", cev);
+        baglam_t bq[3];
+        int nb = bilgi_baglam_bul("kerpiç duvarlar kil toprak saman", bq, 3);
+        int bulundu = 0;
+        for (int i = 0; i < nb; i++)
+            if (bq[i].kaynak_tur == KT_DIS && um_esit(bq[i].dil, "tr") && um_esit(bq[i].ozgun_dil, "en")) bulundu = 1;
+        dene("ceviri kaydi DIS/dogrulanmamis, dil=tr, ozgun_dil=en", bulundu);
+        dene("sira bosaldi", ceviri_bekleyen() == 0);
+
+        ogren_getirici_ata(0);
+        uh_ortam_ata("UMAY_OGREN", "0");
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

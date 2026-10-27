@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (365 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (383 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
@@ -158,3 +158,15 @@ kendiliğinden, 30 sn'de bir yoklayarak) YAZIT ajanı:
 süzgeçleri, nesne akışları (PDF 1.5+), sayfa sırası, ToUnicode ile Türkçe harfler. Desteklenmeyenler açıkça bildirilir:
 şifreli PDF, metin katmanı olmayan (taranmış) PDF — OCR gerekir —, bozuk dosya. Bilinen sınır: bazı TeX PDF'lerinde
 harf aralığı yüzünden sözcük içinde fazladan boşluk çıkabilir.
+
+## ÇEVİRMEN — dil çevirisi ajanı
+
+"ingilizceye çevir: ...", "almancadan türkçeye çevir: ...", "... türkçesi" gibi istekleri ÇEVİRMEN yürütür.
+Yöntem sırası: gömülü model (`ceviri_motor_ata`) → web çeviri hizmeti (MyMemory; `UMAY_AG_CEVİRİ` ile değişir; yalnız
+öğrenme açıkken) → kelime kelime sözlük (`<kütüphane>/sozluk-ceviri.txt`, "sözcük=karşılık"; çekirdek liste dahil).
+Çıktı hangi yolla çevrildiğini yazar; makine çevirisi "doğrulanmamış"tır. Sözlük içerik sözcüklerinin %70'ini
+kapsamıyorsa çeviri yapılmaz — uydurma yok.
+
+**Yabancı belgeler:** kabulde İngilizce parçalar (İngilizce iz sözcükleriyle) doğru alana konur, ardından Türkçe çevirisi
+`ceviri-<özet>.txt` olarak yazılır (`#dil: tr`, `#ozgun_dil: en`, KT_DIS = doğrulanmamış). Ağ yoksa parça
+`_ceviri/bekleyen.txt` sırasına girer, ağ gelince çevrilir. Sözlük çevirisi kütüphaneye YAZILMAZ.

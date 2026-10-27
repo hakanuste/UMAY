@@ -33,6 +33,8 @@ typedef int64_t (*ogren_getirici_t)(const char *url, char *cik, uint32_t n);
 void ogren_getirici_ata(ogren_getirici_t f);       /* 0 = portun getiricisi */
 
 int  ogren_acik(void);                             /* 1 = öğrenme açık */
+/* Ağ çıkışı (diğer modüller için): kapalıysa ya da ağ yoksa <0. */
+int64_t ogren_ag_getir(const char *url, char *cik, uint32_t n);
 
 /* Cevapsız soruyu kaydeder. UM_OLDU: yeni kayıt; UM_YOK: zaten vardı
  * ya da öğrenme kapalı. Kategori bilinmiyorsa "ortak" olur. */

@@ -427,6 +427,12 @@ static int64_t getir(const char *url, char *cik) {
     return up_ag_getir(url, cik, OG_YANIT_MAX, 10);
 }
 
+int64_t ogren_ag_getir(const char *url, char *cik, uint32_t n) {
+    if (!ogren_acik()) return -1;
+    if (g_getir) return g_getir(url, cik, n);
+    return up_ag_getir(url, cik, n, 12);
+}
+
 static void bekle_hiz(void) {
     uint64_t s = up_ms();
     if (g_son_ms && s - g_son_ms < OG_ARALIK_MS && !g_getir) up_uyu((uint32_t)(OG_ARALIK_MS - (s - g_son_ms)));

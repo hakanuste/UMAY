@@ -4,6 +4,7 @@
 #include "umay_ogren.h"
 #include "umay_egit.h"
 #include "umay_kabul.h"
+#include "umay_ceviri.h"
 #include "umay.h"
 #include "umay_port.h"
 #include "umay_str.h"
@@ -116,6 +117,9 @@ static void ileti_isle(const umay_ileti_t *i) {
     if (g.tur == GT_ARASTIR && !g.hedef_ajan[0])
         um_kopya(g.hedef_ajan, sizeof g.hedef_ajan, "ARAŞTIRMACI");
 
+    if (g.tur == GT_CEVIR && !g.hedef_ajan[0])
+        um_kopya(g.hedef_ajan, sizeof g.hedef_ajan, "ÇEVİRMEN");
+
     /* araştırma, çözümleme ve tasarım çıktıları bengi taşa geçer */
     g.bengiye_yaz = (g.tur == GT_ARASTIR || g.tur == GT_ANALIZ ||
                      g.tur == GT_TASARLA || g.tur == GT_KONTROL);
@@ -136,7 +140,7 @@ static void ileti_isle(const umay_ileti_t *i) {
         return;
     }
 
-    if (c.alan != ALAN_YOK && c.yardimci_sayi > 0) {
+    if (c.alan != ALAN_YOK && c.yardimci_sayi > 0 && g.tur != GT_CEVIR && g.tur != GT_ARASTIR) {
         /* çok uzmanlı soru: meclis kur */
         alan_t alanlar[UMAY_MECLIS_UYE + 1];
         int n = 0;
@@ -215,6 +219,7 @@ int umay_kur(void) {
     otag_kur(&g_otag);
     /* çekirdek görevliler */
     otag_alp_kat(&g_otag, alp_arastirmaci());
+    otag_alp_kat(&g_otag, alp_cevirmen());
     otag_alp_kat(&g_otag, alp_bilge());
     otag_alp_kat(&g_otag, alp_gozcu());
     otag_alp_kat(&g_otag, alp_onarici());
@@ -291,7 +296,7 @@ void umay_tur(void) {
     gui_ciz(&g_otag);
     onay_temizle();
     /* Boştayken eksik kalan bir konuyu seyrek aralıkla web'den kapat. */
-    if (n == 0 && !otag_mesgul(&g_otag)) { egit_bosta(); kabul_bosta(); }
+    if (n == 0 && !otag_mesgul(&g_otag)) { egit_bosta(); kabul_bosta(); ceviri_bosta(); }
 }
 
 int umay_kosuyor(void) { return g_kosuyor; }

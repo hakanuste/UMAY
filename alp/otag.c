@@ -23,6 +23,7 @@ const char *gorev_tur_adi(gorev_tur_t t) {
     case GT_ONAR:    return "ONAR";
     case GT_IZLE:    return "İZLE";
     case GT_UYGULA:  return "UYGULA";
+    case GT_CEVIR:   return "ÇEVİR";
     default:         return "BİLİNMEZ";
     }
 }

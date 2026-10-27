@@ -24,11 +24,12 @@ typedef enum {
     GT_ONAR,        /* aksaklık giderme                    */
     GT_IZLE,        /* sürekli gözetim                     */
     GT_UYGULA,      /* yıkıcı olabilen iş — onay ister     */
+    GT_CEVIR,       /* dil çevirisi                        */
     GT_SAYI
 } gorev_tur_t;
 
 #define GT_BIT(t) (1u << (t))
-#define GT_HEPSI  0xFFu
+#define GT_HEPSI  ((1u << GT_SAYI) - 1u)
 
 typedef enum {
     GD_YENI = 0,
@@ -173,6 +174,7 @@ alp_t *alp_gozcu(void);
 alp_t *alp_onarici(void);
 alp_t *alp_bilge(void);
 alp_t *alp_arastirmaci(void);
+alp_t *alp_cevirmen(void);
 alp_t *alp_yazman(void);
 
 /* --- uzman kadrosu (12) --- */

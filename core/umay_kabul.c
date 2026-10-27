@@ -4,6 +4,7 @@
 #include "umay_ogren.h"
 #include "umay_ortak.h"
 #include "umay_pdf.h"
+#include "umay_ceviri.h"
 #include "umay_port.h"
 #include "umay_str.h"
 
@@ -120,6 +121,8 @@ static int parca_yaz(const char *kok, const char *kat, uint32_t h, const char *e
     up_biraktir(b);
     if (r < 0) return -1;
     bilgi_belge_ekle(yol);
+    /* yabancı dilde ise Türkçe çeviri için sıraya al (ÇEVİRMEN) */
+    if (!um_esit(ogren_dil_kestir(metin), "tr")) ceviri_kayit(yol);
     return 1;
 }
 
@@ -321,6 +324,12 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         up_biraktir(m);
     }
     if (liste) up_biraktir(liste);
+    if (ceviri_bekleyen() > 0) {
+        int cv = ogren_acik() ? ceviri_gecis(10) : 0;
+        char t[160];
+        um_bicim(t, sizeof t, "ÇEVİRMEN: %d yabancı dilli parça Türkçeye çevrildi, %d sırada (ağ açılınca çevrilir)\n", cv, ceviri_bekleyen());
+        um_ekle(rapor, n, t);
+    }
     char son[160];
     um_bicim(son, sizeof son, "KABUL: %d belge, %d parça yerleşti, %d belirsiz, %d atlandı%s\n",
              s->dosya, s->parca, s->belirsiz, s->tekrar,
