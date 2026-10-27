@@ -118,6 +118,17 @@ int  bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *s,
                              baglam_t *cikan, int en_cok);
 int  bilgi_catisma_bul(const baglam_t *dizi, int sayi, catisma_t *c);
 
+/* ---- 5N1K: ne, nerede, ne zaman, neden, nasıl, kim (+ kaç) ----
+ * Her uzman bu altı soru türüne de yanıt verebilmelidir. Tür, yanıt
+ * cümlesinin seçiminde (nasıl → "yapılır, önce, sonra"; ne zaman → "mevsim,
+ * ay, saat"; ...) ve kapsam denetiminde kullanılır. */
+typedef enum { ST_YOK = 0, ST_NE, ST_NEREDE, ST_NE_ZAMAN, ST_NEDEN, ST_NASIL, ST_KIM, ST_KAC, ST_SAYI } soru_tipi_t;
+soru_tipi_t bilgi_soru_tipi(const char *soru);
+const char *bilgi_soru_tipi_adi(soru_tipi_t t);
+int         bilgi_tip_ipucu_var(soru_tipi_t t, const char *metin);   /* metin bu türe yanıt veriyor mu */
+/* Bir kategorinin ilk en_cok kaydının başlığı (kapsam denetimi konu listesi). */
+int         bilgi_konu_listesi(const char *kategori, char (*baslik)[96], int en_cok);
+
 /* Soruyu/metni durak sozcukleri atilmis, Turkce kucultulmus sozcuklere
  * ayirir. Donen deger sozcuk sayisidir. bengi katmani da kullanir:
  * ayirici ve durak listesi TEK yerde durmali — iki ayri ayirici

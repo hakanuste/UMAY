@@ -174,6 +174,88 @@ int bilgi_dizin_kur(const char *kok) {
 
 int bilgi_sayi(void) { return g_sayi; }
 
+/* ---------------- 5N1K ---------------- */
+static int belirteç_var(char (*t)[24], int n, const char *a) {
+    for (int i = 0; i < n; i++) if (um_esit(t[i], a)) return 1;
+    return 0;
+}
+
+soru_tipi_t bilgi_soru_tipi(const char *soru) {
+    if (!soru) return ST_YOK;
+    char k[512];
+    um_kucult(k, sizeof k, soru);
+    char t[24][24];
+    int n = 0;
+    const char *p = k;
+    while (*p && n < 24) {
+        while (*p) { uint32_t b; uint32_t kn = um_utf8_oku(p, &b); if (um_kelime_karakteri(kn)) break; p += b ? b : 1; }
+        char w[24]; uint32_t o = 0;
+        while (*p) {
+            uint32_t b; uint32_t kn = um_utf8_oku(p, &b);
+            if (!um_kelime_karakteri(kn)) break;
+            if (!b) b = 1;
+            if (o + b + 1 < sizeof w) { for (uint32_t q = 0; q < b; q++) w[o++] = p[q]; }
+            p += b;
+        }
+        w[o] = 0;
+        if (o) um_kopya(t[n++], sizeof t[0], w);
+    }
+    for (int i = 0; i + 1 < n; i++)
+        if (um_esit(t[i], "ne") && (um_esit(t[i + 1], "zaman") || um_esit(t[i + 1], "vakit"))) return ST_NE_ZAMAN;
+    if (belirteç_var(t, n, "nerede") || belirteç_var(t, n, "nereye") || belirteç_var(t, n, "nereden") ||
+        belirteç_var(t, n, "neresi") || belirteç_var(t, n, "nerelerde")) return ST_NEREDE;
+    if (belirteç_var(t, n, "neden") || belirteç_var(t, n, "niçin") || belirteç_var(t, n, "niye") ||
+        belirteç_var(t, n, "nedenidir") || belirteç_var(t, n, "sebebi")) return ST_NEDEN;
+    if (belirteç_var(t, n, "nasıl") || belirteç_var(t, n, "nasil")) return ST_NASIL;
+    if (belirteç_var(t, n, "kim") || belirteç_var(t, n, "kimin") || belirteç_var(t, n, "kimler") ||
+        belirteç_var(t, n, "kime") || belirteç_var(t, n, "kimdir")) return ST_KIM;
+    if (belirteç_var(t, n, "kaç") || belirteç_var(t, n, "kaçtır")) return ST_KAC;
+    for (int i = 0; i + 1 < n; i++)
+        if (um_esit(t[i], "ne") && um_esit(t[i + 1], "kadar")) return ST_KAC;
+    if (belirteç_var(t, n, "nedir") || belirteç_var(t, n, "ne") || belirteç_var(t, n, "neler") ||
+        belirteç_var(t, n, "nelerdir") || belirteç_var(t, n, "anlat") || belirteç_var(t, n, "hangi")) return ST_NE;
+    return ST_YOK;
+}
+
+const char *bilgi_soru_tipi_adi(soru_tipi_t t) {
+    static const char *AD[ST_SAYI] = { "-", "ne", "nerede", "ne zaman", "neden", "nasıl", "kim", "kaç" };
+    return (t >= 0 && t < ST_SAYI) ? AD[t] : "-";
+}
+
+/* metnin bu soru türüne YANIT verdiğini düşündüren ipuçları */
+int bilgi_tip_ipucu_var(soru_tipi_t t, const char *metin) {
+    static const char *IP[ST_SAYI][22] = {
+        { 0 }, { 0 },
+        /* nerede */  { "köy","konum","içinde","altında","üstünde","yanında","bölge","arazi","sınır","kuzey","güney",
+                        "doğu","batı","çatı","garaj","kamelya","bahçe","sera","yer altı","toprak altı","cephe", 0 },
+        /* ne zaman */{ "zaman","mevsim","kış","yaz","bahar","sonbahar","ay ","gün","saat","yıl","zirve","sabah",
+                        "akşam","haftada","her ","önce","sonra","dönem", 0 },
+        /* neden */   { "çünkü","için","bu yüzden","sebep","nedeniyle","böylece","amacıyla","sayesinde","korur",
+                        "azaltır","önler","sağlar","yoruml", 0 },
+        /* nasıl */   { "yapılır","kurulur","uygulanır","önce","sonra","ardından","adım","karıştır","serilir",
+                        "işlenir","bağlan","sürülür","beslenir","dönüştürülür","hazırlan","kullanılır","konur",
+                        "çıkarılır","üretilir","saklanır", 0 },
+        /* kim */     { "kullanıcı","hakan","usta","uzman","kişi","hekim","avukat","eğitmen","dede","sahibi", 0 },
+        /* kaç */     { "0","1","2","3","4","5","6","7","8","9","yaklaşık","ortalama","kadar", 0 }
+    };
+    if (t <= ST_NE || t >= ST_SAYI || !metin) return 1;
+    char k[BILGI_ALINTI_MAX + 8];
+    um_kucult(k, sizeof k, metin);
+    for (int i = 0; IP[t][i]; i++) if (um_icinde(k, IP[t][i])) return 1;
+    return 0;
+}
+
+int bilgi_konu_listesi(const char *kategori, char (*baslik)[96], int en_cok) {
+    int n = 0;
+    for (int i = 0; i < g_sayi && n < en_cok; i++) {
+        if (!g_indeks[i].dolu || !um_esit(g_indeks[i].kategori, kategori)) continue;
+        int var = 0;
+        for (int q = 0; q < n; q++) if (um_esit(baslik[q], g_indeks[i].baslik)) var = 1;
+        if (!var) um_kopya(baslik[n++], 96, g_indeks[i].baslik);
+    }
+    return n;
+}
+
 /* Dizini ilk n kayda kırpar: sonradan eklenenleri GERİ ALIR (eğitim kapısı). */
 void bilgi_kirp(int n) {
     if (n < 0) n = 0;
@@ -662,6 +744,7 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
          * cümleyle yanıtlanıyordu (kayıtta 12-15 derece bilgisi vardı). */
         int32_t uz = (int32_t)um_uzun(r->icerik), bas = 0, bit;
         int32_t en_iyi = -1, en_skor = 0, cs = 0;
+        soru_tipi_t tip = bilgi_soru_tipi(soru);
         while (cs < uz) {
             int32_t ce = cs;
             while (ce < uz && !(r->icerik[ce] == '.' && (ce + 1 >= uz || r->icerik[ce + 1] == ' ' || r->icerik[ce + 1] == '\n'))) ce++;
@@ -670,6 +753,15 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
             int sk = 0;
             for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk++;
             kucuk[ce < uz ? ce : uz] = son;
+            /* 5N1K: soru türünün ipucunu taşıyan cümle eşitlikte öne geçer
+             * ("nasıl" → yapılır/önce/sonra, "ne zaman" → mevsim/ay/saat ...) */
+            if (sk > 0) {
+                char son2 = r->icerik[ce < uz ? ce : uz];
+                char tmp[BILGI_ALINTI_MAX + 8];
+                int32_t cl = (ce < uz ? ce : uz) - cs; if (cl > (int32_t)sizeof tmp - 1) cl = (int32_t)sizeof tmp - 1;
+                um_bellek_kopya(tmp, r->icerik + cs, (uint64_t)cl); tmp[cl] = 0; (void)son2;
+                sk = sk * 2 + (bilgi_tip_ipucu_var(tip, tmp) ? 1 : 0);
+            }
             if (sk > en_skor) { en_skor = sk; en_iyi = cs; }
             cs = ce + 1;
             while (cs < uz && (r->icerik[cs] == ' ' || r->icerik[cs] == '\n')) cs++;

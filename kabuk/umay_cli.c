@@ -33,6 +33,7 @@ static void kullanim(const char *ad)
     printf("  %s --ogren \"konu\" bir konuyu web'den araştırıp kütüphaneye ekler\n", ad);
     printf("  %s --arastir \"soru\" planlı, kaynaklı araştırma raporu\n", ad);
     printf("  %s --egit         bir eğitim turu (ölç, öğren, kapıdan geçir)\n", ad);
+    printf("  %s --5n1k          uzmanların 5N1K kapsam denetimi\n", ad);
     printf("  %s --karne        ajanların başarı karnesi\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
     printf("  %s --yardim       bu yazı\n\n", ad);
@@ -59,6 +60,17 @@ int main(int argc, char **argv)
         if (um_esit(argv[1], "--surum")   || um_esit(argv[1], "-s") ||
             um_esit(argv[1], "--version") || um_esit(argv[1], "-V")) {
             printf("UMAY %s\n", UMAY_SURUM);
+            return 0;
+        }
+        if (um_esit(argv[1], "--5n1k")) {
+            gui_sade_kip();
+            if (umay_kur() != 0) { fprintf(stderr, "UMAY: baslatilamadi\n"); return 1; }
+            gui_girdi_kapat();
+            gui_sade_coz();
+            static char c5[4096];
+            egit_5n1k(1, c5, sizeof c5);
+            fputs(c5, stdout);
+            umay_kapan();
             return 0;
         }
         if (um_esit(argv[1], "--arastir") || um_esit(argv[1], "--egit") || um_esit(argv[1], "--karne")) {

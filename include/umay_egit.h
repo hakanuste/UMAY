@@ -47,4 +47,12 @@ uint32_t egit_rapor(const egit_sonuc_t *s, char *c, uint32_t n);
 
 /* Boştayken seyrek aralıkla bir tur çalıştırır (umay_tur çağırır). */
 void egit_bosta(void);
+
+/* 5N1K denetimi: her uzman (12 alan) × altı soru türü (ne, nerede, ne zaman,
+ * neden, nasıl, kim). Bir hücre, alanın konu başlıklarından en az biri için
+ * soru türünün ipucunu taşıyan, kaynaklı bir yanıt bulunursa doludur.
+ * Boş hücreler web-öğrenme boşluğu olarak kaydedilir (kayit=1). Uydurma yok:
+ * boşluk, kaynakla (web ya da kullanıcı belgesi) kapanır.
+ * Dönüş: boş hücre sayısı. */
+int egit_5n1k(int kayit, char *cikti, uint32_t n);
 #endif

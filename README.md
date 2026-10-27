@@ -241,7 +241,7 @@ giriş noktası `um_bellek_kopya`ya düşüyordu. ELF'in bağlanması
 
     make sina
 
-**329 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
+**343 sınama, tek ikili, tek sonuç satırı.** US1 motor sınaması bir
 süre ayrı bir ikilideydi; iki ayrı sonuç satırı veriyordu ve `kur.sh`
 yalnız sonuncusunu okuyup "10 geçti" yazıyordu. Hepsi `sina/sina.c`de.
 

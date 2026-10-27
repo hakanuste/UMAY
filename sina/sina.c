@@ -1713,6 +1713,26 @@ int main(void) {
         dene("alinti soruyla eslesen cumleyi verir (12-15 derece)", var);
     }
 
+    printf("\n53) 5N1K: SORU TURU, NASIL YAPILIR -> KONUNUN AJANI, KAPSAM DENETIMI\n");
+    {
+        dene("tur: nedir -> ne", bilgi_soru_tipi("zeolit nedir") == ST_NE);
+        dene("tur: nerede", bilgi_soru_tipi("kiler nerede olmalı") == ST_NEREDE);
+        dene("tur: ne zaman", bilgi_soru_tipi("kompost ne zaman çevrilir") == ST_NE_ZAMAN);
+        dene("tur: neden", bilgi_soru_tipi("neden kerpiç kullanılır") == ST_NEDEN);
+        dene("tur: nasil", bilgi_soru_tipi("sıva nasıl yapılır") == ST_NASIL);
+        dene("tur: kim", bilgi_soru_tipi("bu projeyi kim yapıyor") == ST_KIM);
+        dene("tur: kac", bilgi_soru_tipi("kaç derece olmalı") == ST_KAC);
+        dene("tur: soru degil", bilgi_soru_tipi("merhaba") == ST_YOK);
+        dene("nasil ipucu: 'önce ... sonra' yanit sayilir", bilgi_tip_ipucu_var(ST_NASIL, "Önce toprağı serin, sonra saman karıştır."));
+        dene("nasil ipucu: ilgisiz metin yanit sayilmaz", !bilgi_tip_ipucu_var(ST_NASIL, "Kiler serindir."));
+        dene("nasil yapilir: kerpic siva -> BALBAL", ozan_coz("kerpiç sıva nasıl yapılır").alan == ALAN_BALBAL);
+        dene("nasil yapilir: biyokomur -> genel degil", ozan_coz("biyokömür nasıl yapılır").alan != ALAN_YOK);
+        static char c53[4096];
+        int bos = egit_5n1k(0, c53, sizeof c53);
+        dene("5N1K denetimi 12 uzmani listeler", um_icinde(c53, "balbal") && um_icinde(c53, "yazit") && um_icinde(c53, "demir"));
+        dene("5N1K denetimi bos hucreyi sayar", bos >= 0 && um_icinde(c53, "dolu"));
+    }
+
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
     if (g_atlandi)
         printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",

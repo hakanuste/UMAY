@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (329 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (343 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
@@ -125,3 +125,15 @@ Dil modelinin ağırlıkları değişmez; "eğitilen" şey kütüphanedir.
 - Ajan *seçimi* karneden öğrenmez; karne şimdilik ölçer ve eğitim turunu yönlendirir.
 - Kapı ölçüsü kütüphane kapsamıdır, yanıt kalitesi değil (yanıtı bir model üretiyorsa
   ayrıca ölçülmelidir).
+
+## 5N1K — her uzman altı soruyu yanıtlar
+
+Soru türü (`bilgi_soru_tipi`): ne, nerede, ne zaman, neden, nasıl, kim (+ kaç).
+Tür, yanıt cümlesinin seçimini yönlendirir ("nasıl" → yapılır/önce/sonra; "ne zaman" → mevsim/ay/saat ...).
+
+**"Nasıl yapılır" → konunun ajanı.** Anahtar sözcük alan bulamazsa `ozan_coz`, bilgi tabanındaki en uygun kaydın
+kategorisinden alanı bulur; konunun uzmanı çalışır, genel ajan değil.
+
+**Denetim:** `umay --5n1k` 12 uzman × 6 tür matrisi basar. Boş hücre = o uzmanın konularında, soru türünün
+ipucunu taşıyan kaynaklı yanıt yok. Boşluklar web-öğrenme sırasına yazılır (`umay --ogren`); uydurma yanıt
+üretilmez — özellikle tıp/hukuk gibi alanlarda boşluk kaynakla (web ya da belgen) kapanır.

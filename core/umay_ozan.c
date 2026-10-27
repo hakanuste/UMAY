@@ -4,6 +4,7 @@
 #include "umay_str.h"
 #include "umay_port.h"
 #include "umay_alp.h"
+#include "umay_bilgi.h"
 
 static char g_kullanici[UMAY_AD_MAX] = "yiğidim";
 static uint32_t g_tur;      /* kalıp döngüsü — tekdüzeliği kırar */
@@ -217,6 +218,16 @@ coz_t ozan_coz(const char *soz) {
     }
     int en = 0;
     for (int i = 1; i < ALAN_SAYI; i++) if (skor[i] > skor[en]) en = i;
+    /* Anahtar sözcük alan bulamadıysa (örn. "zeolit nasıl yapılır"): bilgi
+     * tabanında en uygun kaydın kategorisinden alanı bul; böylece "nasıl
+     * yapılır" gibi sorularda konunun uzmanı çalışır, BİLGE değil. */
+    if (skor[en] == 0 && bilgi_soru_tipi(soz) != ST_YOK &&
+        (c.niyet == NIYET_SORU || c.niyet == NIYET_BILINMEZ || c.niyet == NIYET_OGUT)) {
+        baglam_t bg[1];
+        if (bilgi_baglam_bul(soz, bg, 1) > 0 && bg[0].skor >= 2)
+            for (int i = 1; i < ALAN_SAYI; i++)
+                if (um_esit(bg[0].kategori, bilgi_alan_kategorisi((alan_t)i))) { en = i; skor[i] = 1; break; }
+    }
     if (skor[en] > 0) {
         c.alan = (alan_t)en;
         c.guven = c.guven < 70 ? 70 : c.guven;

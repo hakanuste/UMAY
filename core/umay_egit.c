@@ -219,3 +219,51 @@ void egit_bosta(void) {
     egit_sonuc_t sn;
     egit_calistir(2, &sn);
 }
+
+/* ---------------- 5N1K denetimi ---------------- */
+int egit_5n1k(int kayit, char *cikti, uint32_t n) {
+    static const soru_tipi_t TIP[6] = { ST_NE, ST_NEREDE, ST_NE_ZAMAN, ST_NEDEN, ST_NASIL, ST_KIM };
+    static const char *SOZ[6] = { "nedir", "nerede", "ne zaman", "neden", "nasıl yapılır", "kim" };
+    int bos = 0, dolu = 0;
+    um_kopya(cikti, n, "5N1K DENETİMİ (uzman × ne/nerede/ne zaman/neden/nasıl/kim)\n");
+    um_ekle(cikti, n, "  uzman     ne  nrd  zmn  ned  nsl  kim\n");
+    for (int a = 1; a < ALAN_SAYI; a++) {
+        const char *kat = bilgi_alan_kategorisi((alan_t)a);
+        if (um_esit(kat, "ortak")) continue;
+        char (*bas)[96] = (char (*)[96])up_ayir(6 * 96);
+        if (!bas) continue;
+        int nb = bilgi_konu_listesi(kat, bas, 6);
+        char satir[48];
+        um_kopya(satir, sizeof satir, "  ");
+        um_ekle(satir, sizeof satir, kat);
+        while (um_uzun(satir) < 10) um_ekle(satir, sizeof satir, " ");
+        um_ekle(cikti, n, satir);
+        for (int t = 0; t < 6; t++) {
+            int ok = 0;
+            for (int b = 0; b < nb && !ok; b++) {
+                char q[160];
+                um_bicim(q, sizeof q, "%s %s", bas[b], SOZ[t]);
+                baglam_t bg[1];
+                if (bilgi_baglam_bul(q, bg, 1) > 0 && um_esit(bg[0].kategori, kat) &&
+                    bilgi_tip_ipucu_var(TIP[t], bg[0].alinti)) ok = 1;
+            }
+            if (ok) dolu++;
+            else {
+                bos++;
+                if (kayit && nb > 0) {
+                    char q[160];
+                    um_bicim(q, sizeof q, "%s %s", bas[0], SOZ[t]);
+                    ogren_bosluk_kaydet(kat, q);
+                }
+            }
+            um_ekle(cikti, n, ok ? "   ✓  " : "   ·  ");
+        }
+        um_ekle(cikti, n, "\n");
+        up_biraktir(bas);
+    }
+    char son[160];
+    um_bicim(son, sizeof son, "  dolu %d / boş %d%s\n", dolu, bos,
+             (kayit && bos) ? "  (boşluklar web-öğrenme sırasına yazıldı)" : "");
+    um_ekle(cikti, n, son);
+    return bos;
+}
