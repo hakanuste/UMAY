@@ -3,10 +3,13 @@
  *
  * Çeviri yöntemleri (sırayla denenir):
  *   1. MOTOR   gömülü model takılıysa (ceviri_motor_ata) onunla.
- *   2. AĞ      web çeviri hizmeti (MyMemory; UMAY_AG_CEVIRI ile değişir),
+ *   2. GOOGLE  Google Çeviri (anahtarsız translate.googleapis.com uç noktası;
+ *              UMAY_AG_GOOGLE ile değişir). Resmî olmayan uç nokta: kota/engel
+ *              olabilir, o zaman bir sonrakine düşer.
+ *   3. AĞ      yedek web çeviri hizmeti (MyMemory; UMAY_AG_CEVIRI ile değişir),
  *              yalnız öğrenme açıkken ve ağ varken. Cümle sınırında ≤450
  *              baytlık parçalar halinde.
- *   3. SÖZLÜK  kelime kelime; <kütüphane>/sozluk-ceviri.txt ("en=tr" satırları)
+ *   4. SÖZLÜK  kelime kelime; <kütüphane>/sozluk-ceviri.txt ("en=tr" satırları)
  *              + küçük dahili çekirdek. Çevrilen sözcük oranı düşükse
  *              çeviri YAPILMAZ (kötü çeviri sunmak yerine "çeviremedim").
  *
@@ -18,7 +21,7 @@
 #define UMAY_CEVIRI_H
 #include "umay.h"
 
-typedef enum { CY_YOK = 0, CY_MOTOR, CY_AG, CY_SOZLUK } ceviri_yontem_t;
+typedef enum { CY_YOK = 0, CY_MOTOR, CY_GOOGLE, CY_AG, CY_SOZLUK } ceviri_yontem_t;   /* CY_AG = MyMemory */
 
 typedef int (*ceviri_motor_t)(const char *kd, const char *hd, const char *metin, char *cik, uint32_t n);
 void ceviri_motor_ata(ceviri_motor_t f);               /* 0 = motor yok */

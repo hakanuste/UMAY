@@ -14,7 +14,8 @@ void ceviri_motor_ata(ceviri_motor_t f) { g_motor = f; }
 const char *ceviri_yontem_adi(ceviri_yontem_t y) {
     switch (y) {
     case CY_MOTOR:  return "gömülü model";
-    case CY_AG:     return "web çeviri hizmeti";
+    case CY_GOOGLE: return "Google Çeviri";
+    case CY_AG:     return "web çeviri hizmeti (MyMemory)";
     case CY_SOZLUK: return "sözlük (kelime kelime)";
     default:        return "-";
     }
@@ -227,7 +228,78 @@ static int sozluk_cevir(const char *kd, const char *hd, const char *metin, char 
     return (int)um_uzun(cik);
 }
 
-/* ---------------------------------------------------------------- ağ */
+/* ---------------------------------------------------------------- Google Çeviri */
+/* Yanıt: [[["çeviri","özgün",...],["çeviri2","özgün2",...]],null,"en",...] — her iç dizinin ilk dizgesi birleşir. */
+static const uint8_t *js_dizge(const uint8_t *p, const uint8_t *s, char *cik, uint32_t n, uint32_t *o) {
+    /* p '"' üzerinde */
+    p++;
+    while (p < s && *p != '"') {
+        if (*p == '\\' && p + 1 < s) {
+            p++;
+            if (*p == 'u' && p + 4 < s) {
+                uint32_t u = 0;
+                for (int i = 1; i <= 4; i++) { uint8_t c = p[i]; u = u * 16 + (uint32_t)(c <= '9' ? c - '0' : (c | 32) - 'a' + 10); }
+                p += 4;
+                if (u >= 0xD800 && u < 0xDC00 && p + 6 < s && p[1] == '\\' && p[2] == 'u') {
+                    uint32_t v = 0;
+                    for (int i = 3; i <= 6; i++) { uint8_t c = p[i]; v = v * 16 + (uint32_t)(c <= '9' ? c - '0' : (c | 32) - 'a' + 10); }
+                    u = 0x10000 + ((u - 0xD800) << 10) + (v - 0xDC00); p += 6;
+                }
+                char b[4]; uint32_t k = um_utf8_yaz(u, b);
+                if (*o + k + 1 < n) { for (uint32_t i = 0; i < k; i++) cik[(*o)++] = b[i]; }
+            } else {
+                char c = *p == 'n' ? '\n' : *p == 't' ? '\t' : (char)*p;
+                if (*o + 2 < n) cik[(*o)++] = c;
+            }
+            p++;
+        } else { if (*o + 2 < n) cik[(*o)++] = (char)*p; p++; }
+    }
+    return p < s ? p + 1 : s;
+}
+
+static int google_coz(const char *json, char *cik, uint32_t n) {
+    const uint8_t *p = (const uint8_t *)json, *s = p + um_uzun(json);
+    uint32_t o = 0;
+    while (p < s && *p != '[') p++;
+    if (p >= s || p + 1 >= s || p[1] != '[') return UM_YOK;
+    p += 2;                                  /* "[[" */
+    for (;;) {
+        while (p < s && (*p == ' ' || *p == ',' || *p == '\n')) p++;
+        if (p >= s || *p != '[') break;
+        p++;
+        if (p < s && *p == '"') p = js_dizge(p, s, cik, n, &o);
+        /* iç dizinin kalanını atla (dizgeler içindeki ] sayılmaz) */
+        int d = 1;
+        while (p < s && d > 0) {
+            if (*p == '"') { p++; while (p < s && *p != '"') { if (*p == '\\') p++; p++; } if (p < s) p++; continue; }
+            if (*p == '[') d++; else if (*p == ']') d--;
+            p++;
+        }
+    }
+    cik[o] = 0;
+    return o ? (int)o : UM_YOK;
+}
+
+static int google_parca(const char *kd, const char *hd, const char *parca, char *cik, uint32_t n) {
+    char kodlu[1600], url[2048];
+    ogren_url_kodla(parca, kodlu, sizeof kodlu);
+    const char *taban = "https://translate.googleapis.com/translate_a/single";
+    const char *env = up_ortam("UMAY_AG_GOOGLE");
+    if (env && *env) taban = env;
+    um_bicim(url, sizeof url, "%s?client=gtx&sl=%s&tl=%s&dt=t&q=%s", taban, kd, hd, kodlu);
+    char *yanit = (char *)up_ayir(1u << 17);
+    if (!yanit) return UM_YOK;
+    int64_t r = ogren_ag_getir(url, yanit, 1u << 17);
+    int sonuc = UM_YOK;
+    if (r > 0) {
+        yanit[r < (1 << 17) ? r : (1 << 17) - 1] = 0;
+        if (yanit[0] == '[' && google_coz(yanit, cik, n) > 0) sonuc = UM_OLDU;   /* HTML (engel/captcha) '[' ile başlamaz */
+    }
+    up_biraktir(yanit);
+    return sonuc;
+}
+
+/* ---------------------------------------------------------------- ağ (MyMemory yedeği) */
 static int ag_parca(const char *kd, const char *hd, const char *parca, char *cik, uint32_t n) {
     char kodlu[1600], url[2048];
     ogren_url_kodla(parca, kodlu, sizeof kodlu);
@@ -257,21 +329,29 @@ int ceviri_yap(const char *kd, const char *hd, const char *metin, char *cik, uin
     if (!metin || !*metin || um_esit(kd, hd)) return UM_YOK;
     if (g_motor && g_motor(kd, hd, metin, cik, n) > 0) { if (yontem) *yontem = CY_MOTOR; return (int)um_uzun(cik); }
     if (ogren_acik()) {
-        uint32_t ml = um_uzun(metin);
         uint32_t *bas = (uint32_t *)up_ayir(512 * 4), *uz = (uint32_t *)up_ayir(512 * 4);
         if (bas && uz) {
             int np = ogren_parcala(metin, CY_PARCA, bas, uz, 512);
-            int tamam = np > 0;
-            for (int i = 0; i < np && tamam; i++) {
-                char par[CY_PARCA + 8], cv[2200];
-                um_bellek_kopya(par, metin + bas[i], uz[i]); par[uz[i]] = 0;
-                if (ag_parca(kd, hd, par, cv, sizeof cv) != UM_OLDU) { tamam = 0; break; }
-                if (cik[0]) um_ekle(cik, n, " ");
-                um_ekle(cik, n, cv);
+            for (int motor = 0; motor < 2 && np > 0; motor++) {       /* 0 = Google, 1 = MyMemory */
+                int tamam = 1;
+                cik[0] = 0;
+                for (int i = 0; i < np && tamam; i++) {
+                    char par[CY_PARCA + 8], cv[2200];
+                    um_bellek_kopya(par, metin + bas[i], uz[i]); par[uz[i]] = 0;
+                    int r2 = motor == 0 ? google_parca(kd, hd, par, cv, sizeof cv) : ag_parca(kd, hd, par, cv, sizeof cv);
+                    if (r2 != UM_OLDU) { tamam = 0; break; }
+                    if (cik[0]) um_ekle(cik, n, " ");
+                    um_ekle(cik, n, cv);
+                }
+                if (tamam && cik[0]) {
+                    up_biraktir(bas); up_biraktir(uz);
+                    if (yontem) *yontem = motor == 0 ? CY_GOOGLE : CY_AG;
+                    return (int)um_uzun(cik);
+                }
             }
-            up_biraktir(bas); up_biraktir(uz);
-            if (tamam && cik[0]) { (void)ml; if (yontem) *yontem = CY_AG; return (int)um_uzun(cik); }
-        } else { if (bas) up_biraktir(bas); if (uz) up_biraktir(uz); }
+        }
+        if (bas) up_biraktir(bas);
+        if (uz) up_biraktir(uz);
         cik[0] = 0;
     }
     int r = sozluk_cevir(kd, hd, metin, cik, n);
@@ -359,7 +439,7 @@ static int belge_cevir(const char *yol) {
     ceviri_yontem_t y;
     int r = ceviri_yap(dil, "tr", govde, cev, cap, &y);
     int sonuc = -1;
-    if (r > 0 && (y == CY_AG || y == CY_MOTOR)) {
+    if (r > 0 && (y == CY_AG || y == CY_GOOGLE || y == CY_MOTOR)) {
         uint32_t cc = cap + 1024;
         char *b = (char *)up_ayir(cc);
         if (b) {

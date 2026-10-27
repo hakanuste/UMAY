@@ -134,10 +134,21 @@ static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
 }
 
 
-static int g_cv_ag_yok;
+static int g_cv_ag_yok, g_cv_google_yok;
 static int64_t cv_sahte(const char *url, char *cik, uint32_t n) {
     if (g_cv_ag_yok) return -1;
     const char *y = "{\"responseData\":{\"translatedText\":\"?\"},\"responseStatus\":200}";
+    if (um_icinde(url, "translate_a/single")) {
+        if (g_cv_google_yok) y = "<html>Sorry, unusual traffic detected</html>";
+        else if (um_icinde(url, "sl=en&tl=tr"))
+            y = "[[[\"Kerpi\\u00e7 duvarlar \",\"Mud brick walls \",null,null,10],[\"kil, toprak ve samanla \\\"yap\\u0131l\\u0131r\\\".\",\"are made of clay.\",null,null,10]],null,\"en\"]";
+        else
+            y = "[[[\"Mud brick walls\",\"Kerpi\\u00e7 duvar\",null,null,10]],null,\"tr\"]";
+        uint32_t u0 = um_uzun(y);
+        if (u0 + 1 > n) return -1;
+        um_bellek_kopya(cik, y, u0 + 1);
+        return (int64_t)u0;
+    }
     if (um_icinde(url, "langpair=en%7Ctr"))
         y = "{\"responseData\":{\"translatedText\":\"Kerpi\\u00e7 duvarlar kil toprak ve samanla yap\\u0131l\u0131r.\"},\"responseStatus\":200}";
     else if (um_icinde(url, "langpair=tr%7Cen"))
@@ -1868,11 +1879,18 @@ int main(void) {
 
         static char co[2048]; ceviri_yontem_t y;
         int r = ceviri_yap("en", "tr", "Mud brick walls are made of clay soil and straw.", co, sizeof co, &y);
-        dene("ag: en->tr web cevirisi", r > 0 && y == CY_AG && um_icinde(co, "Kerpiç duvarlar"));
+        dene("google: en->tr, birden cok parca birlesir, kacis cozulur", r > 0 && y == CY_GOOGLE && um_icinde(co, "Kerpiç duvarlar kil, toprak ve samanla \"yapılır\"."));
+        g_cv_google_yok = 1;
+        r = ceviri_yap("en", "tr", "Mud brick walls are made of clay soil and straw.", co, sizeof co, &y);
+        dene("google engelli (HTML): MyMemory yedegine duser", r > 0 && y == CY_AG && um_icinde(co, "Kerpiç duvarlar"));
+        g_cv_google_yok = 0;
         r = ceviri_yap("tr", "en", "Kerpiç duvar kil toprak ve samanla yapılır.", co, sizeof co, &y);
-        dene("ag: tr->en web cevirisi", r > 0 && y == CY_AG && um_icinde(co, "Mud brick"));
+        dene("google: tr->en", r > 0 && y == CY_GOOGLE && um_icinde(co, "Mud brick"));
         r = ceviri_yap("en", "tr", "kota test sentence", co, sizeof co, &y);
-        dene("kota uyarisi ceviri sayilmaz", r == UM_YOK || y != CY_AG);
+        g_cv_google_yok = 1;
+        r = ceviri_yap("en", "tr", "kota test sentence", co, sizeof co, &y);
+        dene("MyMemory kota uyarisi ceviri sayilmaz", r == UM_YOK || y != CY_AG);
+        g_cv_google_yok = 0;
         g_cv_ag_yok = 1;
         r = ceviri_yap("en", "tr", "clay soil and straw wall", co, sizeof co, &y);
         dene("ag yok: sozluk yedegi kullanilir ve adi konur", r > 0 && y == CY_SOZLUK);

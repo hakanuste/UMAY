@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (383 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (384 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
@@ -162,8 +162,9 @@ harf aralığı yüzünden sözcük içinde fazladan boşluk çıkabilir.
 ## ÇEVİRMEN — dil çevirisi ajanı
 
 "ingilizceye çevir: ...", "almancadan türkçeye çevir: ...", "... türkçesi" gibi istekleri ÇEVİRMEN yürütür.
-Yöntem sırası: gömülü model (`ceviri_motor_ata`) → web çeviri hizmeti (MyMemory; `UMAY_AG_CEVİRİ` ile değişir; yalnız
-öğrenme açıkken) → kelime kelime sözlük (`<kütüphane>/sozluk-ceviri.txt`, "sözcük=karşılık"; çekirdek liste dahil).
+Yöntem sırası: gömülü model (`ceviri_motor_ata`) → Google Çeviri (anahtarsız `translate.googleapis.com` uç noktası,
+`UMAY_AG_GOOGLE` ile değişir; resmî olmayan uç nokta, kota/engel olursa bir sonrakine düşer) → MyMemory (`UMAY_AG_CEVIRI`;
+yalnız öğrenme açıkken) → kelime kelime sözlük (`<kütüphane>/sozluk-ceviri.txt`, "sözcük=karşılık"; çekirdek liste dahil).
 Çıktı hangi yolla çevrildiğini yazar; makine çevirisi "doğrulanmamış"tır. Sözlük içerik sözcüklerinin %70'ini
 kapsamıyorsa çeviri yapılmaz — uydurma yok.
 
