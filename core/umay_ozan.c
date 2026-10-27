@@ -50,7 +50,7 @@ void ozan_acilis(char *c, uint32_t n) {
 
 /* ---------------- Alan sözlüğü ----------------
  * Her uzmanlık alanının iz sözcükleri. Küçük harfli aranır. */
-typedef struct { alan_t alan; const char *izler[22]; } alan_soz_t;
+typedef struct { alan_t alan; const char *izler[40]; } alan_soz_t;
 
 static const alan_soz_t ALAN_SOZLUK[] = {
 { ALAN_AKCA,  { "borsa","hisse","kripto","bitcoin","döviz","altın","faiz","enflasyon",
@@ -63,7 +63,8 @@ static const alan_soz_t ALAN_SOZLUK[] = {
                 "kilovat","lifepo4","enerji","voltajlı dizge","aydınlatma", 0 } },
 { ALAN_DEMIR, { "elektronik","devre","pcb","lehim","direnç","kondansatör","mikrodenetleyici",
                 "arduino","raspberry","orange pi","sensör","röle","amper","kablo","yonga",
-                "kart","besleme","osiloskop", 0 } },
+                "kart","besleme","osiloskop","telsiz","anten","swr","empedans","aprs","sstv",
+                "vhf","uhf","mhz","frekans","radyo","kısa dalga","sinyal", 0 } },
 { ALAN_TULGA, { "motor","araç","musso","şanzıman","m104","diferansiyel","fren","süspansiyon",
                 "biyodizel","lastik","aks","enjeksiyon","4wd","arazi aracı","debriyaj",
                 "krank","supap","yakıt", 0 } },
@@ -84,6 +85,22 @@ static const alan_soz_t ALAN_SOZLUK[] = {
 { ALAN_YAZIT, { "arşiv","belge","doküman","dosyala","indeksle","kaynakça","kitap",
                 "kütüphane","yedek","etiket","künye","katalog","fihrist","not defteri", 0 } },
 { ALAN_YOK,   { 0 } }
+};
+
+/* ---------------- Bağlama göre alan seçimi ----------------
+ * Bazı sözcükler iki alana aittir: "kiler yapımı" inşaattır (BALBAL),
+ * "kiler düzeni, stoklama" ise gıda ve toprak işidir (YER-SU). Sözcük her
+ * iki alana zayıf (+1) puan verir; yanındaki İPUCU sözcükler kararı verir (+3). */
+typedef struct { const char *iz; alan_t alan; const char *ipucu[16]; } baglam_kural_t;
+static const baglam_kural_t BAGLAM_KURAL[] = {
+{ "kiler",  ALAN_YERSU,  { "stok","saklama","muhafaza","raf","düzen","konserve","kurut","turşu",
+                           "gıda","envanter","depolama","erzak düzeni","tohum", 0 } },
+{ "kiler",  ALAN_BALBAL, { "yapım","yapımı","inşa","kaz","duvar","harç","havalandırma","baca",
+                           "gömül","tasarım","derinlik","boyut","derece","sıcaklık","nem", 0 } },
+{ "sarnıç", ALAN_YERSU,  { "sulama","hasat","yağmur suyu","arıtma","su kalite","depolama","kullanım","dolum", 0 } },
+{ "sarnıç", ALAN_BALBAL, { "yapım","yapımı","inşa","sıva","harç","kaz","boyut","derinlik", 0 } },
+{ "tohum",  ALAN_ALPAGU, { "kriz","hayatta kalma","sığınak", 0 } },
+{ 0, ALAN_YOK, { 0 } }
 };
 
 const char *ozan_uzman_kimligi(alan_t a) {
@@ -189,6 +206,14 @@ coz_t ozan_coz(const char *soz) {
         const alan_soz_t *as = &ALAN_SOZLUK[i];
         for (int j = 0; as->izler[j]; j++)
             if (um_icinde(k, as->izler[j])) skor[as->alan]++;
+    }
+    /* bağlama göre: sözcük geçiyorsa ve ipucu da geçiyorsa o alana +3 */
+    for (int i = 0; BAGLAM_KURAL[i].iz; i++) {
+        const baglam_kural_t *bk = &BAGLAM_KURAL[i];
+        if (!um_icinde(k, bk->iz)) continue;
+        skor[bk->alan]++;                                   /* zayıf: sözcüğün kendisi */
+        for (int j = 0; bk->ipucu[j]; j++)
+            if (um_icinde(k, bk->ipucu[j])) { skor[bk->alan] += 3; break; }
     }
     int en = 0;
     for (int i = 1; i < ALAN_SAYI; i++) if (skor[i] > skor[en]) en = i;

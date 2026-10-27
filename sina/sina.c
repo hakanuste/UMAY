@@ -1696,6 +1696,23 @@ int main(void) {
         ayar_yaz("kutuphane", "kut");
     }
 
+
+    printf("\n52) AJAN SECIMI BAGLAMA GORE; ALINTI DOGRU CUMLEDEN\n");
+    {
+        dene("kiler YAPIMI -> BALBAL", ozan_coz("kiler yapımı nasıl olmalı").alan == ALAN_BALBAL);
+        dene("kiler DUZENI/STOKLAMA -> YER-SU", ozan_coz("kiler düzeni ve stoklama nasıl olmalı").alan == ALAN_YERSU);
+        dene("kiler SICAKLIGI -> BALBAL (pasif sogutma tasarimi)", ozan_coz("kiler sıcaklığı kaç derece").alan == ALAN_BALBAL);
+        dene("sarnic YAPIMI -> BALBAL", ozan_coz("sarnıç yapımı için harç").alan == ALAN_BALBAL);
+        dene("sarnic suyunun SULAMADA kullanimi -> YER-SU", ozan_coz("sarnıç suyu sulamada kullanım").alan == ALAN_YERSU);
+        dene("telsiz anten -> DEMIR", ozan_coz("telsiz anten nedir").alan == ALAN_DEMIR);
+        dene("SWR/frekans -> DEMIR", ozan_coz("swr ve frekans nedir").alan == ALAN_DEMIR);
+        baglam_t bq[2];
+        int nq = bilgi_baglam_bul("yer altı kileri kaç derece", bq, 2);
+        int var = 0;
+        for (int i = 0; i < nq; i++) if (um_icinde(bq[i].alinti, "12-15")) var = 1;
+        dene("alinti soruyla eslesen cumleyi verir (12-15 derece)", var);
+    }
+
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
     if (g_atlandi)
         printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",

@@ -656,17 +656,28 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
         um_kopya(kucuk, sizeof kucuk, r->icerik);
         um_kucult_esbicim(kucuk);
 
-        int32_t idx = -1;
-        for (int a = 0; a < kws; a++) {
-            const char *bul = um_icinde(kucuk, kw[a]);
-            if (bul) { int32_t k = (int32_t)(bul - kucuk); if (idx < 0 || k < idx) idx = k; }
+        /* ALINTI CÜMLESİ: soruyla EN ÇOK anahtar sözcük paylaşan cümlede başlar.
+         * Eskiden ilk eşleşen sözcüğün çevresi alınıyordu; "kil" kökü "killi"
+         * sözcüğünde tuttuğu için kiler sorusu kayıdın başındaki ilgisiz
+         * cümleyle yanıtlanıyordu (kayıtta 12-15 derece bilgisi vardı). */
+        int32_t uz = (int32_t)um_uzun(r->icerik), bas = 0, bit;
+        int32_t en_iyi = -1, en_skor = 0, cs = 0;
+        while (cs < uz) {
+            int32_t ce = cs;
+            while (ce < uz && !(r->icerik[ce] == '.' && (ce + 1 >= uz || r->icerik[ce + 1] == ' ' || r->icerik[ce + 1] == '\n'))) ce++;
+            char son = kucuk[ce < uz ? ce : uz];
+            kucuk[ce < uz ? ce : uz] = 0;
+            int sk = 0;
+            for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk++;
+            kucuk[ce < uz ? ce : uz] = son;
+            if (sk > en_skor) { en_skor = sk; en_iyi = cs; }
+            cs = ce + 1;
+            while (cs < uz && (r->icerik[cs] == ' ' || r->icerik[cs] == '\n')) cs++;
         }
-        int32_t uz = (int32_t)um_uzun(r->icerik), bas, bit;
-        if (idx < 0) { bas = 0; bit = uz < 600 ? uz : 600; }
-        else { bas = idx - 200; if (bas < 0) bas = 0;
-               bit = idx + 600; if (bit > uz) bit = uz; }
-        /* sözcük ortasından başlamasın: sonraki boşluğa kaydır */
-        if (bas > 0) {
+        if (en_iyi < 0) { bas = 0; bit = uz < 600 ? uz : 600; }
+        else { bas = en_iyi; bit = bas + 600; if (bit > uz) bit = uz; }
+        /* sözcük ortasından başlamasın: sonraki boşluğa kaydır (cümle başında gerekmez) */
+        if (bas > 0 && en_iyi < 0) {
             int32_t k = bas;
             while (k < bit && r->icerik[k] != ' ' && k - bas < 40) k++;
             if (k < bit) bas = k + 1;

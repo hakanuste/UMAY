@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (321 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (329 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
