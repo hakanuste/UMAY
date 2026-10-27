@@ -152,6 +152,12 @@ const char *bilgi_alan_kategorisi(alan_t a) {
     }
 }
 
+alan_t bilgi_kategori_alani(const char *kategori) {
+    for (int a = 1; a < ALAN_SAYI; a++)
+        if (um_esit(kategori, bilgi_alan_kategorisi((alan_t)a))) return (alan_t)a;
+    return ALAN_YOK;
+}
+
 int bilgi_kategori_sayisi(const char *kategori) {
     int n = 0;
     for (int i = 0; i < g_sayi; i++)
@@ -403,6 +409,8 @@ static int belge_yukle(const char *yol) {
     return kayit_ekle_dil(kategori, baslik, kaynak_tam, tur, etiket,
                           govde_bul(tampon), dil, ozgun);
 }
+
+int bilgi_belge_ekle(const char *yol) { return belge_yukle(yol); }
 
 /* Depoyu tarar: 13 alan dizini + kök. Kategori yine üstveriden gelir;
  * dizin adı yalnız nereye bakılacağını söyler, kategoriyi belirlemez. */

@@ -71,7 +71,7 @@ Kapalıyken ne ağa çıkılır ne de `_ogren/` dosyaları yazılır.
 ## Sınır: ne **sınanmadı**
 
 Bu geliştirme ortamında web'e çıkış yoktur. Ayrıştırıcılar ve bütün akış
-**sahte sunucu/getirici** ile sınandı (343 sınama; Linux, Windows/Wine, ARM64).
+**sahte sunucu/getirici** ile sınandı (355 sınama; Linux, Windows/Wine, ARM64).
 Gerçek Vikipedi ve DuckDuckGo yanıtlarıyla **ilk koşu sizin elinizden
 çıkacak**; DuckDuckGo biçimini değiştirirse özet ayrıştırıcısı güncellenmelidir
 (Vikipedi'nin API'si kararlıdır).
@@ -137,3 +137,17 @@ kategorisinden alanı bulur; konunun uzmanı çalışır, genel ajan değil.
 **Denetim:** `umay --5n1k` 12 uzman × 6 tür matrisi basar. Boş hücre = o uzmanın konularında, soru türünün
 ipucunu taşıyan kaynaklı yanıt yok. Boşluklar web-öğrenme sırasına yazılır (`umay --ogren`); uydurma yanıt
 üretilmez — özellikle tıp/hukuk gibi alanlarda boşluk kaynakla (web ya da belgen) kapanır.
+
+## KABUL — getirdiğin kaynakları ajanlar yerleştirir
+
+Belgelerini (.txt, .md; künyeli ya da künyesiz) `<kütüphane>/gelen/` dizinine at. `umay --kabul` (ya da UMAY boştayken
+kendiliğinden, 30 sn'de bir yoklayarak) YAZIT ajanı:
+
+1. Belgenin mührüne (FNV-1a) bakar; aynı belge ikinci kez alınmaz (`gelen/_islendi.txt`).
+2. Künyesi geçerliyse (`#kategori:`) olduğu gibi o alana koyar.
+3. Künyesizse paragraf paragraf 12 uzmanın iz sözcükleriyle puanlar; zayıf paragraf öncekinin konusunu sürdürür
+   (yalnız yeterince uzunsa), yoksa bilgi tabanındaki en yakın kayda bakılır; bitişik aynı konulu paragraflar birleşir.
+4. Parçayı kazanan uzmanın dizinine künyeli yazar (`#kaynak:` = özgün dosya adı). İkinci alan yakın puandaysa
+   parça ona da konur.
+5. Hiçbir uzmana varamayan parça `ortak`a konur ve raporda **belirsiz** diye bildirilir; uydurma sınıflama yapılmaz.
+6. Metin olmayan dosya (pdf, resim ...) atlanır ve bildirilir; metne çevirip yeniden at.

@@ -20,6 +20,8 @@
 #include "umay_port.h"
 #include "umay_ogren.h"
 #include "umay_arastir.h"
+#include "umay_kabul.h"
+#include "umay_ortak.h"
 #include "umay_egit.h"
 #include "umay_bilgi.h"
 
@@ -33,6 +35,7 @@ static void kullanim(const char *ad)
     printf("  %s --ogren \"konu\" bir konuyu web'den araştırıp kütüphaneye ekler\n", ad);
     printf("  %s --arastir \"soru\" planlı, kaynaklı araştırma raporu\n", ad);
     printf("  %s --egit         bir eğitim turu (ölç, öğren, kapıdan geçir)\n", ad);
+    printf("  %s --kabul         gelen/ içindeki belgeleri ajanlar inceleyip alanına koyar\n", ad);
     printf("  %s --5n1k          uzmanların 5N1K kapsam denetimi\n", ad);
     printf("  %s --karne        ajanların başarı karnesi\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
@@ -60,6 +63,18 @@ int main(int argc, char **argv)
         if (um_esit(argv[1], "--surum")   || um_esit(argv[1], "-s") ||
             um_esit(argv[1], "--version") || um_esit(argv[1], "-V")) {
             printf("UMAY %s\n", UMAY_SURUM);
+            return 0;
+        }
+        if (um_esit(argv[1], "--kabul")) {
+            gui_sade_kip();
+            if (umay_kur() != 0) { fprintf(stderr, "UMAY: baslatilamadi\n"); return 1; }
+            gui_girdi_kapat();
+            gui_sade_coz();
+            static char ck[8192];
+            kabul_sonuc_t ks;
+            kabul_calistir(ayar_metin("kutuphane", "kut"), &ks, ck, sizeof ck);
+            fputs(ck, stdout);
+            umay_kapan();
             return 0;
         }
         if (um_esit(argv[1], "--5n1k")) {

@@ -90,7 +90,9 @@ typedef struct {
     char baslik_b[96];
 } catisma_t;
 
-const char *bilgi_alan_kategorisi(alan_t a);   /* ALAN_TULGA -> "tulga" */
+const char *bilgi_alan_kategorisi(alan_t a);
+alan_t      bilgi_kategori_alani(const char *kategori);   /* "tulga" -> ALAN_TULGA (yoksa ALAN_YOK) */
+int         bilgi_belge_ekle(const char *yol);            /* tek belgeyi indekse ekler (UM_OLDU) */   /* ALAN_TULGA -> "tulga" */
 const char *bilgi_alan_dizini(int i);          /* 0..12 depo dizin adları */
 
 int  bilgi_dizin_kur(const char *kok);         /* 13 alt dizini açar */

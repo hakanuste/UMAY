@@ -123,6 +123,36 @@ const char *ozan_uzman_kimligi(alan_t a) {
 }
 
 /* Niyet çözümü — anahtar sözcük tabanlı, US motoru olmadan da çalışır. */
+/* Küçük harfli metni 12 alana göre puanlar (sözlük + bağlam kuralı). */
+static void alan_skorla_k(const char *k, int skor[ALAN_SAYI]) {
+    for (int i = 0; i < ALAN_SAYI; i++) skor[i] = 0;
+    for (int i = 0; ALAN_SOZLUK[i].alan != ALAN_YOK; i++) {
+        const alan_soz_t *as = &ALAN_SOZLUK[i];
+        for (int j = 0; as->izler[j]; j++)
+            if (um_icinde(k, as->izler[j])) skor[as->alan]++;
+    }
+    for (int i = 0; BAGLAM_KURAL[i].iz; i++) {
+        const baglam_kural_t *bk = &BAGLAM_KURAL[i];
+        if (!um_icinde(k, bk->iz)) continue;
+        skor[bk->alan]++;
+        for (int j = 0; bk->ipucu[j]; j++)
+            if (um_icinde(k, bk->ipucu[j])) { skor[bk->alan] += 3; break; }
+    }
+}
+
+/* Uzun metin için (belge kabulü): ISO tamponu yığında değil öbekte. */
+int ozan_alan_skorla(const char *metin, int skor[ALAN_SAYI]) {
+    for (int i = 0; i < ALAN_SAYI; i++) skor[i] = 0;
+    if (!metin) return 0;
+    uint32_t n = um_uzun(metin);
+    char *k = (char *)up_ayir((uint64_t)n + 1);
+    if (!k) return 0;
+    um_kucult(k, n + 1, metin);
+    alan_skorla_k(k, skor);
+    up_biraktir(k);
+    return 1;
+}
+
 coz_t ozan_coz(const char *soz) {
     coz_t c;
     um_bellek_doldur(&c, 0, sizeof c);      /* alan/yardımcı alanları da sıfırlanır */
@@ -202,20 +232,7 @@ coz_t ozan_coz(const char *soz) {
 
     /* --- alan skorlaması: hangi uzman(lar) bu işi görmeli? --- */
     int skor[ALAN_SAYI];
-    for (int i = 0; i < ALAN_SAYI; i++) skor[i] = 0;
-    for (int i = 0; ALAN_SOZLUK[i].alan != ALAN_YOK; i++) {
-        const alan_soz_t *as = &ALAN_SOZLUK[i];
-        for (int j = 0; as->izler[j]; j++)
-            if (um_icinde(k, as->izler[j])) skor[as->alan]++;
-    }
-    /* bağlama göre: sözcük geçiyorsa ve ipucu da geçiyorsa o alana +3 */
-    for (int i = 0; BAGLAM_KURAL[i].iz; i++) {
-        const baglam_kural_t *bk = &BAGLAM_KURAL[i];
-        if (!um_icinde(k, bk->iz)) continue;
-        skor[bk->alan]++;                                   /* zayıf: sözcüğün kendisi */
-        for (int j = 0; bk->ipucu[j]; j++)
-            if (um_icinde(k, bk->ipucu[j])) { skor[bk->alan] += 3; break; }
-    }
+    alan_skorla_k(k, skor);
     int en = 0;
     for (int i = 1; i < ALAN_SAYI; i++) if (skor[i] > skor[en]) en = i;
     /* Anahtar sözcük alan bulamadıysa (örn. "zeolit nasıl yapılır"): bilgi

@@ -16,6 +16,7 @@
 #include "umay_bekci.h"
 #include "umay_arastir.h"
 #include "umay_egit.h"
+#include "umay_kabul.h"
 #include "umay_bekci.h"
 #include "umay_arastir.h"
 #include "umay_egit.h"
@@ -1731,6 +1732,53 @@ int main(void) {
         int bos = egit_5n1k(0, c53, sizeof c53);
         dene("5N1K denetimi 12 uzmani listeler", um_icinde(c53, "balbal") && um_icinde(c53, "yazit") && um_icinde(c53, "demir"));
         dene("5N1K denetimi bos hucreyi sayar", bos >= 0 && um_icinde(c53, "dolu"));
+    }
+
+    printf("\n54) KABUL: GETIRILEN KAYNAKLARI AJANLAR INCELEYIP YERINE KOYAR\n");
+    {
+        char taban[200], tad[48];
+        snprintf(tad, sizeof tad, "umay-kabul-sina-%d", uh_pid());
+        uh_gecici(tad, taban, sizeof taban);
+        up_dizin_yarat(taban);
+        ayar_yaz("kutuphane", taban);
+        bilgi_dizin_kur(taban);
+        char gd[260], yol[300];
+        snprintf(gd, sizeof gd, "%s/gelen", taban);
+        up_dizin_yarat(gd);
+        const char *doc =
+            "Kerpiç Yapı Rehberi\n\n"
+            "Kerpiç duvar için killi toprak ve saman karıştırılır. Önce toprak elenir, sonra saman eklenir ve çamur dinlendirilir. Doğal taş temel üzerine kerpiç duvar örülür, samanlı sıva ile iç yüzey kaplanır.\n\n"
+            "Kompost yığınında solucan ve organik atık kullanılır. Vermikompost için kırmızı kaliforniya solucanı mutfak atığını humusa çevirir; toprak verimi artar, sulama ihtiyacı azalır.\n\n"
+            "HF telsiz için anten boyu frekansa göre hesaplanır. SWR düşük olmalıdır, dipol anten kısa dalga bandında kullanılır.\n\n"
+            "Bugün hava çok güzel ve yarın pazar.\n";
+        snprintf(yol, sizeof yol, "%s/kaynak1.txt", gd);
+        up_yaz_yola(yol, doc, um_uzun(doc));
+        snprintf(yol, sizeof yol, "%s/resim.png", gd);
+        up_yaz_yola(yol, "x", 1);
+        dene("bekleyen belge 1 (metin olmayan sayılmaz)", kabul_bekleyen(taban) == 1);
+        kabul_sonuc_t ks; static char kr[4096];
+        int yz = kabul_calistir(taban, &ks, kr, sizeof kr);
+        dene("belge parcalanip yerlesti (>=3 parca)", yz >= 3);
+        dene("kerpic -> balbal", um_icinde(kr, "balbal") != 0);
+        dene("kompost -> yer-su", um_icinde(kr, "yer-su") != 0);
+        dene("telsiz -> demir", um_icinde(kr, "demir") != 0);
+        dene("alakasiz cumle BELIRSIZ diye isaretlenir (uydurma yok)", ks.belirsiz == 1 && um_icinde(kr, "belirsiz") != 0);
+        dene("metin olmayan dosya bildirilir", ks.desteklenmeyen == 1);
+        dene("kutuphaneye yeni kayit eklendi", ks.yeni_kayit >= 3);
+        baglam_t bk[2];
+        dene("yerlesen parca soruyla bulunur", bilgi_baglam_bul("kerpiç duvar saman karıştırılır", bk, 2) > 0 &&
+                                              um_esit(bk[0].kategori, "balbal"));
+        kabul_sonuc_t k2; static char kr2[1024];
+        kabul_calistir(taban, &k2, kr2, sizeof kr2);
+        dene("ayni belge ikinci kez alinmaz", k2.dosya == 0 && k2.parca == 0 && k2.tekrar >= 1);
+        dene("islenen belge artik bekleyen degil", kabul_bekleyen(taban) == 0);
+        /* kunyeli belge: oldugu gibi kendi alanina */
+        const char *kd = "#kategori: kopuz\n#baslik: Kopuz Notu\n#etiket: kopuz\n#kaynak: deneme\n\nKopuz üç telli bir çalgıdır.\n";
+        snprintf(yol, sizeof yol, "%s/kopuz.txt", gd);
+        up_yaz_yola(yol, kd, um_uzun(kd));
+        kabul_sonuc_t k3; static char kr3[1024];
+        kabul_calistir(taban, &k3, kr3, sizeof kr3);
+        dene("kunyeli belge kendi alanina gider", um_icinde(kr3, "kopuz") && um_icinde(kr3, "künyesine göre"));
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

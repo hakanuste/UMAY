@@ -12,4 +12,6 @@ coz_t       ozan_coz(const char *soz);               /* niyet + alan çözümlem
 const char *ozan_uzman_kimligi(alan_t a);            /* uzmana özel kimlik metni */
 void        ozan_soyle(niyet_t niyet, const char *oz, char *c, uint32_t n);
 void        ozan_ogut(const char *konu, char *c, uint32_t n);
+/* Metni alanlara göre puanlar (skor[ALAN_SAYI]); belge kabulünde kullanılır. */
+int ozan_alan_skorla(const char *metin, int skor[ALAN_SAYI]);
 #endif
