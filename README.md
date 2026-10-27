@@ -210,6 +210,8 @@ bulduğunu "doğrulanmamış" işaretiyle kütüphaneye yazar. `umay --ogren`,
 `umay --ogren "konu"`; kapatmak için `UMAY_OGREN=0`. Dil modelinin ağırlıkları
 cihazda güncellenmez — tanım, gizlilik ve sınırlar: [docs/OGREN.md](docs/OGREN.md).
 
+Gömülü dil modeli (llama.cpp, isteğe bağlı): [docs/MOTOR.md](docs/MOTOR.md).
+
 Planlı araştırma (`umay --arastir "soru"`), döngü bekçisi, ajan karnesi (`--karne`) ve
 kapılı eğitim turu (`--egit`) aynı belgede.
 

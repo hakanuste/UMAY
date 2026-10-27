@@ -10,13 +10,17 @@
 set -u
 ONEK="${ONEK:-$HOME/.local}"
 SES=0
+MODEL=""
 for a in "$@"; do
   case "$a" in
     --ses) SES=1 ;;
+    --model) MODEL=oneri ;;
+    --model=*) MODEL="${a#--model=}" ;;
     --onek=*) ONEK="${a#--onek=}" ;;
     --yardim|-y|-h)
-      echo "kullanim: ./kur.sh [--ses] [--onek=DIZIN]"
+      echo "kullanim: ./kur.sh [--ses] [--model[=kucuk|orta|buyuk]] [--onek=DIZIN]"
       echo "  --ses        Piper ses arka ucunu da kurar"
+      echo "  --model[=kucuk|orta|buyuk]  gomulu LLM modelini indirir (bos: bellege gore)"
       echo "  --onek=DIZIN varsayilan: \$HOME/.local"
       exit 0 ;;
     *) echo "bilinmeyen secenek: $a"; exit 2 ;;
@@ -81,6 +85,13 @@ esac
 if [ "$SES" = 1 ]; then
   echo
   ./ses/piper_kur.sh || yaz "UYARI: ses kurulamadi; UMAY yaziyla calisir."
+fi
+
+# --- 6b) model ---
+if [ -n "$MODEL" ]; then
+  echo
+  ./arac/model.sh "$MODEL" "$ONEK/share/umay/kut" || yaz "UYARI: model indirilemedi; UMAY yedek motorla calisir."
+  yaz "NOT: model yalniz motorlu yapida kullanilir (./arac/motor.sh)."
 fi
 
 # --- 7) dogrula ---

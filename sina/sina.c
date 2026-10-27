@@ -1933,6 +1933,23 @@ int main(void) {
         uh_ortam_ata("UMAY_OGREN", "0");
     }
 
+    /* --- 57. Gomulu LLM: cikti saglamligi ve motor yoksa durust hata --- */
+    {
+        printf("\n[57] gomulu LLM korumalari\n");
+        dene("saglam: duz Turkce cumle", us_llama_cikti_saglam("Yer altı kileri 12-15 derece sabit kalır.\n"));
+        dene("saglam degil: bos", !us_llama_cikti_saglam(""));
+        dene("saglam degil: gecersiz UTF-8", !us_llama_cikti_saglam("abc\xff\xfe\xfd"));
+        dene("saglam degil: kontrol baytlari", !us_llama_cikti_saglam("\x01\x02\x03\x04\x05\x06 a"));
+        dene("saglam degil: yarim cok baytli dizi", !us_llama_cikti_saglam("abc\xe2\x82"));
+        dene("saglam degil: yabanci yazi yigini", !us_llama_cikti_saglam("\xe4\xbd\xa0\xe5\xa5\xbd\xe4\xb8\x96\xe7\x95\x8c"));
+        umay_us_t *lm = us_llama_motor();
+        dene("us_llama motoru tanimli", lm != 0 && lm->hazirla != 0);
+        if (lm && lm->hazirla) {
+            /* motor baglanmamis (stub) ya da model yok: hazir diye yalan soylemez */
+            dene("olmayan model dosyasi hazirlanamaz", lm->hazirla(lm, "/yok/yok/model.gguf") != UM_OLDU);
+        }
+    }
+
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
     if (g_atlandi)
         printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",

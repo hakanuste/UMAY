@@ -18,7 +18,7 @@ set(UMAY_KAYNAK
   alp/otag.c alp/alp_gozcu.c alp/alp_onarici.c alp/alp_bilge.c alp/alp_arastirmaci.c alp/alp_cevirmen.c
   alp/alp_yazman.c alp/alp_uzman.c
   us/us_stub.c us/umay_us.c us/umay_us_ipc.c us/umay_us_yerel.c
-  us/us1.c us/umay_us_ollama.c
+  us/us1.c us/umay_us_ollama.c us/umay_us_llama.c us/umay_motor_yok.c
   ses/umay_ses.c ses/umay_piper.c
   port/umay_port_host.c port/umay_host_uyum.c
   gui/umay_gui_gomulu.c)

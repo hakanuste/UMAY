@@ -53,6 +53,10 @@ umay_us_t *us_ipc_motor(void);
  * cikarim. Ollama kapali, model kurulu degil ya da yanit bozuksa
  * BASARISIZ doner; sahte basari yok. ÖTÜKEN yapiminda yoktur. */
 umay_us_t *us_ollama_motor(void);
+/* us/umay_us_llama.c — GÖMÜLÜ dil modeli (llama.cpp; motor/). Motor bu yapıda
+ * yoksa ya da model bulunamazsa hazırlama BAŞARISIZ döner. */
+umay_us_t *us_llama_motor(void);
+int        us_llama_cikti_saglam(const char *s);   /* geçerli UTF-8 + okunur oran ≥ %85 */
 /* us/umay_us_yerel.c — diskteki US1 modelini tamsayı motoruyla koşturur.
  * Model yoksa ya da bozuksa BAŞARISIZ döner; sahte başarı yok. */
 umay_us_t *us_yerel_motor(void);

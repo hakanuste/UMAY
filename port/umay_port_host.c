@@ -200,8 +200,12 @@ static umay_us_t *g_secilen;
  * SUNMAMAK. */
 static int konak_hazirla(umay_us_t *u, const char *model_yolu)
 {
-    umay_us_t *adaylar[2];
+    umay_us_t *adaylar[3];
     int n = 0;
+    {   /* gömülü model önce; UMAY_LLM=0 ile kapatılır */
+        const char *kapali = getenv("UMAY_LLM");
+        if (!(kapali && kapali[0] == '0' && !kapali[1])) adaylar[n++] = us_llama_motor();
+    }
     adaylar[n++] = us_ollama_motor();
     {
         const char *istek = getenv("UMAY_US1");
