@@ -1,0 +1,5 @@
+# Öz Türkçe karşılıklar — "yabancı=karşılık". Kaynak: Atatürk'ün Geometri kitabı (1937), kullanıcı getirdi.
+müselles=üçgen
+murabba=kare
+zaviye=açı
+müsavi=eşit
