@@ -1,0 +1,58 @@
+# Her itiş ve çekme isteğinde otomatik derleme + sınama. Bilgi (kut/, docs/kaynak/) değişince
+# eğitim verisi de yeniden üretilir. Swift/iOS işleri bu ortamda denenemediği için burada ilk kez derlenir.
+name: yap
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make
+      - run: make sina
+      - run: make gomulu-sina
+      - run: make otuken-denetle
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make
+      - run: make sina
+      - name: macOS uygulaması (Swift + gömülü motor)
+        run: ./arac/mac_uygulama.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: Umay.app, path: kov/Umay.app }
+
+  ios-benzetim:
+    runs-on: macos-latest
+    continue-on-error: true      # ilk kez derleniyor; sonuç yine de görünür
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: ./arac/uygulama_kitaplik.sh xcframework
+      - run: cd uygulama && xcodegen generate
+      - run: >
+          xcodebuild -project uygulama/Umay.xcodeproj -scheme Umay
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
+
+  veri:
+    # Yeni bilgi geldiğinde (kut/ ya da docs/kaynak/ değişince) eğitim verisini yeniden üret.
+    runs-on: ubuntu-latest
+    needs: linux
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - id: degisim
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -qE '^(kut/|docs/kaynak/)'; then echo "var=1" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.degisim.outputs.var == '1' || github.event_name == 'workflow_dispatch'
+        run: make && UMAY_OGREN=0 ./kov/umay --veri > veri.jsonl
+      - if: steps.degisim.outputs.var == '1' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with: { name: veri.jsonl, path: veri.jsonl }

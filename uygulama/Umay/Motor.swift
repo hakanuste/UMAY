@@ -84,6 +84,7 @@ final class UmayMotor: ObservableObject {
                 self.motorAdi = ad
                 self.modelDosyasi = model
                 self.durum = kod == 0 ? "" : "UMAY başlatılamadı."
+                self.gelenYokla()
             }
         }
     }
@@ -110,6 +111,23 @@ final class UmayMotor: ObservableObject {
     }
 
     // MARK: belge ekleme (KABUL)
+
+    /// gelen/ klasöründe işlenmemiş belge varsa ajanlara inceletir (açılışta ve uygulama öne gelince).
+    func gelenYokla() {
+        guard basladi, !mesgul else { return }
+        let adlar = (try? FileManager.default.contentsOfDirectory(atPath: UmayMotor.gelenDizini.path)) ?? []
+        guard adlar.contains(where: { !$0.hasPrefix("_") && !$0.hasPrefix(".") }) else { return }
+        mesgul = true
+        sira.async { [weak self] in
+            var rapor = [CChar](repeating: 0, count: 8192)
+            let n = umay_gomulu_kabul(&rapor, UInt32(rapor.count))
+            let metin = String(cString: rapor)
+            DispatchQueue.main.async {
+                if n > 0 { self?.iletiler.append(Ileti(benMi: false, metin: metin, sistemMi: true)) }
+                self?.mesgul = false
+            }
+        }
+    }
 
     func belgeEkle(_ adresler: [URL]) {
         let fm = FileManager.default

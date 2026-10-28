@@ -19,6 +19,7 @@ struct SohbetGorunumu: View {
     @State private var girdi = ""
     @State private var ayarAcik = false
     @State private var belgeSec = false
+    @Environment(\.scenePhase) private var evre
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,6 +50,7 @@ struct SohbetGorunumu: View {
             }
             .padding()
         }
+        .onChange(of: evre) { yeni in if yeni == .active { motor.gelenYokla() } }
         .sheet(isPresented: $ayarAcik) { AyarGorunumu(motor: motor) }
         .fileImporter(isPresented: $belgeSec,
                       allowedContentTypes: [.plainText, .pdf, UTType(filenameExtension: "md") ?? .plainText],
