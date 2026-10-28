@@ -10,6 +10,7 @@
 #include "umay_bengi.h"
 #include "umay_onay.h"
 #include "umay_us.h"
+#include "umay_ozturk.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -1948,6 +1949,32 @@ int main(void) {
             /* motor baglanmamis (stub) ya da model yok: hazir diye yalan soylemez */
             dene("olmayan model dosyasi hazirlanamaz", lm->hazirla(lm, "/yok/yok/model.gguf") != UM_OLDU);
         }
+    }
+
+    /* --- 58. Öz Türkçe süzgeci --- */
+    {
+        printf("\n[58] öz Türkçe süzgeci\n");
+        ozturk_bulgu_t b[8];
+        ozturk_yukle("/yok/yok");
+        dene("temiz metinde bulgu yok", ozturk_tara("Yer altı kileri on iki derece kalır.", b, 8) == 0);
+        int a = ozturk_tara("Bu tefekkürün sonucu önemli.", b, 8);
+        dene("ekli sözcük bulunur (tefekkürün)", a == 1 && um_esit(b[0].sozcuk, "tefekkür"));
+        dene("öneri verilir", um_icinde(b[0].oneri, "düşünce") != 0);
+        dene("büyük harf/İ-ı küçültmesi", ozturk_tara("HAYAT güzel", b, 8) == 1);
+        dene("tekrar eden sözcük bir kez sayılır", ozturk_tara("fikir fikir fikirler", b, 8) == 1);
+        char l[256];
+        ozturk_tara("sebep ve netice", b, 8);
+        ozturk_liste(b, 2, l, sizeof l);
+        dene("liste yazımı", um_icinde(l, "sebep (yerine: neden)") != 0);
+        /* ek dosya */
+        char kd[300]; snprintf(kd, sizeof kd, "%s/oz%ld", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", (long)time(0));
+        up_dizin_yarat(kd);
+        char dy[340]; snprintf(dy, sizeof dy, "%s/ozturkce.txt", kd);
+        const char *ek = "# deneme\nbilig = bilgi\nmuhtelif=çeşitli\n";
+        up_yaz_yola(dy, ek, um_uzun(ek));
+        dene("ek dosya 2 satır yükler", ozturk_yukle(kd) == 2);
+        dene("ek sözcük bulunur", ozturk_tara("muhtelif işler", b, 8) == 1 && um_icinde(b[0].oneri, "çeşitli") != 0);
+        ozturk_yukle("/yok/yok");
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

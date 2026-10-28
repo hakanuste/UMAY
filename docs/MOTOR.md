@@ -48,3 +48,7 @@ xcode-select --install ; brew install cmake
 ./arac/mac_sina.sh --model     # derler, sınar, motoru kurar, küçük modeli indirir; rapor: mac_rapor.txt
 ```
 macOS'ta motor ilk yapımda Metal/Accelerate/OpenMP kapalı (en güvenli); hız için sonra açılır.
+
+## Öz Türkçe süzgeci
+Gömülü model yanıt verince `core/umay_ozturk.c` yabancı kökenli sözcük arar (ek/çekim alır: tefekkürün). Bulursa model bir kez "şu sözcükleri kullanmadan yeniden yaz" diye uyarılır; yeni yazım bozuksa ya da daha az sözcük düzeltmişse özgün yanıt korunur ve günlüğe yazılır — yanıt sessizce değiştirilmez.
+Gömülü liste bir ÖNERİdir. Kendi sözcüklerinizi `<kut>/ozturkce.txt` dosyasına `yabancı=karşılık` satırlarıyla ekleyin (`#` yorum). Divanü Lügati't-Türk kaynaklı karşılıklar için asıl metin kaynak alınmalıdır.

@@ -23,6 +23,7 @@
 #include "umay_ortak.h"
 #include "umay_port.h"
 #include "umay_str.h"
+#include "umay_ozturk.h"
 
 #define LLM_ISTEM_MAX 12288
 
@@ -77,6 +78,7 @@ static int model_bul(const char *verilen, char *yol, uint32_t n) {
 
 static int llama_hazirla(umay_us_t *u, const char *model_yolu) {
     (void)u;
+    ozturk_yukle(ayar_metin("kutuphane", "kut"));
     const umay_motor_api_t *m = umay_motor_api();
     if (!m) { gun_yaz("US-LLAMA: bu yapıda gömülü motor yok (arac/motor.sh ile motorlu yap)."); return UM_YOK; }
     char yol[UMAY_YOL_MAX];
@@ -95,7 +97,7 @@ static int llama_hazirla(umay_us_t *u, const char *model_yolu) {
 
 static const char *SISTEM_KURAL =
     "\n\nKURALLAR: Yalnız 'DAYANAK' bölümündeki bilgiye dayanarak yanıtla. Dayanakta olmayanı uydurma; "
-    "dayanak yetmiyorsa 'bunu dayanağımda bulamadım' de. Öz Türkçe, kısa ve açık yaz. "
+    "dayanak yetmiyorsa 'bunu dayanağımda bulamadım' de. Öz Türkçe, kısa ve açık yaz: Arapça ve Farsça kökenli sözcük kullanma, Türkçe karşılığını yaz (ör. tefekkür yerine düşünce). "
     "Dayanakta sayı ya da ölçü varsa aynen koru.";
 
 static void dusunceyi_at(char *s) {
@@ -115,6 +117,35 @@ static void dusunceyi_at(char *s) {
     if (p != s) um_bellek_kopya(s, p, um_uzun(p) + 1);
     uint32_t u = um_uzun(s);
     while (u && (s[u - 1] == ' ' || s[u - 1] == '\n' || s[u - 1] == '\r')) s[--u] = 0;
+}
+
+
+/* Yanıtta yabancı kökenli sözcük varsa modelden bir kez yeniden yazmasını ister.
+ * Yeni yazım bozuksa ya da daha az sözcük düzeltmediyse özgün yanıt korunur (sessizce değiştirilmez). */
+static void ozturk_duzelt(const umay_motor_api_t *m, const char *sistem, char *cikti, uint32_t n, uint32_t im) {
+    ozturk_bulgu_t b[8];
+    int adet = ozturk_tara(cikti, b, 8);
+    if (adet == 0) return;
+    char liste[512];
+    ozturk_liste(b, adet, liste, sizeof liste);
+    uint32_t cu = um_uzun(cikti);
+    char *kul = (char *)up_ayir(LLM_ISTEM_MAX), *yeni = (char *)up_ayir(n);
+    if (!kul || !yeni) { if (kul) up_biraktir(kul); if (yeni) up_biraktir(yeni); return; }
+    if (cu > LLM_ISTEM_MAX - 700) { up_biraktir(kul); up_biraktir(yeni); return; }
+    um_bicim(kul, LLM_ISTEM_MAX,
+        "Aşağıdaki metni anlamını, sayıları ve ölçüleri değiştirmeden öz Türkçe ile yeniden yaz. "
+        "Şu sözcükleri kullanma: %s.\n\nMETİN:\n%s\n/no_think", liste, cikti);
+    yeni[0] = 0;
+    if (m->uret(sistem, kul, im, yeni, n) == 0) {
+        dusunceyi_at(yeni);
+        ozturk_bulgu_t b2[8];
+        int kalan = yeni[0] ? ozturk_tara(yeni, b2, 8) : adet;
+        if (yeni[0] && us_llama_cikti_saglam(yeni) && kalan < adet) {
+            um_kopya(cikti, n, yeni);
+            gun_yaz("US-LLAMA: öz Türkçe düzeltme uygulandı (%d sözcük, kalan %d).", adet, kalan);
+        } else gun_yaz("US-LLAMA: öz Türkçe yeniden yazım yetersiz, özgün yanıt korundu.");
+    }
+    up_biraktir(kul); up_biraktir(yeni);
 }
 
 static int llama_uret(umay_us_t *u, const us_istem_t *i, char *cikti, uint32_t n) {
@@ -142,6 +173,7 @@ static int llama_uret(umay_us_t *u, const us_istem_t *i, char *cikti, uint32_t n
                 gun_yaz("US-LLAMA: çıktı okunur metin değil (bozuk ya da anlamsız), yanıt saymıyorum.");
                 cikti[0] = 0;
             }
+            if (cikti[0]) ozturk_duzelt(m, sistem, cikti, n, im);
             sonuc = cikti[0] ? UM_OLDU : UM_YOK;
             break;
         }
