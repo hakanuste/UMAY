@@ -17,10 +17,17 @@ from datasets import load_dataset
 from peft import LoraConfig
 from trl import SFTConfig, SFTTrainer
 ds = load_dataset("json", data_files=veri, split="train").train_test_split(test_size=0.1, seed=7)
-cfg = SFTConfig(output_dir=cikti, num_train_epochs=3, per_device_train_batch_size=2,
-                gradient_accumulation_steps=8, learning_rate=1e-4, lr_scheduler_type="cosine",
-                warmup_ratio=0.05, logging_steps=5, eval_strategy="epoch", save_strategy="epoch",
-                bf16=torch.cuda.is_bf16_supported(), fp16=not torch.cuda.is_bf16_supported(), max_length=1536, assistant_only_loss=False)
+import dataclasses
+ist = dict(output_dir=cikti, num_train_epochs=3, per_device_train_batch_size=2,
+           gradient_accumulation_steps=8, learning_rate=1e-4, lr_scheduler_type="cosine",
+           warmup_steps=3, logging_steps=5, eval_strategy="epoch", save_strategy="epoch",
+           bf16=torch.cuda.is_bf16_supported(), fp16=not torch.cuda.is_bf16_supported(),
+           max_length=1536, report_to="none")
+gecerli = {f.name for f in dataclasses.fields(SFTConfig)}
+atilan = sorted(k for k in ist if k not in gecerli)
+if atilan:
+    print("sürümde olmayan ayarlar atlandı:", atilan)
+cfg = SFTConfig(**{k: v for k, v in ist.items() if k in gecerli})
 lora = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, target_modules="all-linear", task_type="CAUSAL_LM")
 t = SFTTrainer(model=taban, args=cfg, train_dataset=ds["train"], eval_dataset=ds["test"], peft_config=lora)
 t.train()
