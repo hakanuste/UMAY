@@ -106,7 +106,19 @@ static int veri_uret(void) {
             if (ozturk_tara(yanit, b, 2) > 0) { atilan_yabanci++; continue; }   /* yabancı sözcük öğretme */
             veri_satir(dayanak, soru, yanit); yazilan++;
         }
-        /* olumsuz örnek: başka kaydın başlığı sorulur, dayanak yetmez */
+        /* olumsuz örnek 1: dayanakla AYNI konuda ama dayanağın yanıtlamadığı bir soru türü
+         * (konu sözcüğü geçer, yanıt geçmez: modelin uydurmaya en yatkın olduğu yer). */
+        static const struct { soru_tipi_t t; const char *kalip; } OK_[] = {
+            { ST_KIM, "%s kimin buluşudur?" }, { ST_NE_ZAMAN, "%s ne zaman icat edildi?" }, { ST_KAC, "%s kaç liraya mal olur?" },
+        };
+        for (unsigned d = 0; d < sizeof OK_ / sizeof OK_[0]; d++) {
+            unsigned q = ((unsigned)i + d) % (sizeof OK_ / sizeof OK_[0]);   /* kayıt başına en çok BİR (olumsuz payı dengede kalsın) */
+            if (bilgi_tip_ipucu_var(OK_[q].t, dayanak)) continue;     /* dayanak bu türe yanıt veriyorsa reddetme öğretme */
+            um_bicim(soru, sizeof soru, OK_[q].kalip, bas);
+            veri_satir(dayanak, soru, "Bunu dayanağımda bulamadım."); olumsuz++;
+            break;
+        }
+        /* olumsuz örnek 2: başka kaydın başlığı sorulur, dayanak yetmez */
         bilgi_ham_t d;
         if (bilgi_kayit_oku((i * 7 + 3) % n, &d) == UM_OLDU && !um_esit(d.kategori, k.kategori) && d.kaynak_tur != KT_DIS) {
             um_bicim(soru, sizeof soru, "%s nedir?", d.baslik);
