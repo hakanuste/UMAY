@@ -39,6 +39,8 @@ uint32_t um_kopya(char *h, uint32_t n, const char *k) {
     if (!h || n == 0) return 0;
     uint32_t i = 0;
     if (k) for (; k[i] && i + 1 < n; i++) h[i] = k[i];
+    /* kesildiyse UTF-8 çok baytlı bir karakterin ortasında bırakma */
+    if (k && k[i]) while (i > 0 && (((unsigned char)k[i]) & 0xC0) == 0x80) i--;
     h[i] = 0;
     return i;
 }
@@ -69,7 +71,10 @@ uint32_t um_bicim(char *h, uint32_t n, const char *kalip, ...) {
         if (*p == 's') {
             const char *s = va_arg(ap, const char*);
             if (!s) s = "(yok)";
+            const uint32_t bas = o;
             while (*s && o + 1 < n) h[o++] = *s++;
+            /* kesildiyse çok baytlı bir UTF-8 karakterin ortasında bırakma */
+            if (*s) while (o > bas && (((unsigned char)*s) & 0xC0) == 0x80) { o--; s--; }
         } else if (*p == 'd') {
             char t[24]; um_sayi_yaz(t, sizeof t, (int64_t)va_arg(ap, int));
             for (char *q = t; *q && o + 1 < n; q++) h[o++] = *q;

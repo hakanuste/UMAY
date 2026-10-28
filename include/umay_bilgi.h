@@ -84,8 +84,8 @@ typedef struct {
 typedef struct {
     int  var;
     char kategori[32];
-    char kaynak_a[96];
-    char kaynak_b[96];
+    char kaynak_a[192];
+    char kaynak_b[192];
     char baslik_a[96];
     char baslik_b[96];
 } catisma_t;

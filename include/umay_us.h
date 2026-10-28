@@ -90,7 +90,7 @@ typedef struct {
     us_nereden_t nereden;
     int          dayanaksiz;
     int          catisma;
-    char         catisma_notu[192];
+    char         catisma_notu[448];
     us_dayanak_t dayanak[US_DAYANAK_MAX];
     int          dayanak_sayi;
     char         uzman[US_UZMAN_MAX][UMAY_AD_MAX];

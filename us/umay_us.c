@@ -326,7 +326,7 @@ uint32_t us_cikti_yaz(const us_cikti_t *o, char *c, uint32_t n) {
         um_ekle(c, n, "Bu soru benim alanıma düşmedi; genel depoya indim, dayanağım oradan.\n");
 
     if (o->catisma) {
-        char s[256];
+        char s[576];
         um_bicim(s, sizeof s,
                  "Dikkat: %s. İkisini birleştirmedim; hangisine uyacağını sen seç.\n",
                  o->catisma_notu);
