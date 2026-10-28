@@ -31,6 +31,27 @@ static int g_hazir;
 
 /* Çıktı sağlam mı? Geçerli UTF-8 olmalı ve okunur karakter oranı yüksek olmalı.
  * Bozuk/anlamsız bayt yığını yanıt diye sunulmaz (üst katman stub'a düşer). */
+/* Küçük modeller sık sık aynı sözcüğü (ya da kısa bir sözcük dizisini) sonsuza
+ * kadar yineler: "weapons weapons weapons ...". Okunur harflerden oluştuğu için
+ * yukarıdaki denetimden geçer; ardışık yineleme dizisiyle yakalanır. */
+static int us_llama_tekrar_dongusu(const char *s) {
+    uint32_t h[256]; uint32_t n = 0, cur = 2166136261u; int icinde = 0;
+    for (const uint8_t *p = (const uint8_t *)s; ; p++) {
+        int bosluk = (*p == 0 || *p == ' ' || *p == '\n' || *p == '\t' || *p == '\r');
+        if (!bosluk) { cur = (cur ^ *p) * 16777619u; icinde = 1; }
+        else if (icinde) { if (n < 256) h[n++] = cur; cur = 2166136261u; icinde = 0; }
+        if (*p == 0) break;
+    }
+    for (uint32_t lag = 1; lag <= 3; lag++) {
+        uint32_t seri = 0, esik = 5 + 2 * lag;      /* 7, 9, 11 ardışık eşleşme */
+        for (uint32_t i = lag; i < n; i++) {
+            seri = (h[i] == h[i - lag]) ? seri + 1 : 0;
+            if (seri >= esik) return 1;
+        }
+    }
+    return 0;
+}
+
 int us_llama_cikti_saglam(const char *s) {
     const uint8_t *p = (const uint8_t *)s;
     uint32_t toplam = 0, okunur = 0;
@@ -51,7 +72,8 @@ int us_llama_cikti_saglam(const char *s) {
         toplam++;
         p += k;
     }
-    return toplam > 0 && okunur * 100 >= toplam * 85;
+    if (!(toplam > 0 && okunur * 100 >= toplam * 85)) return 0;
+    return !us_llama_tekrar_dongusu(s);
 }
 
 static int gguf_mi(const char *y) {

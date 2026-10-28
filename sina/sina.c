@@ -1943,6 +1943,10 @@ int main(void) {
         dene("saglam degil: kontrol baytlari", !us_llama_cikti_saglam("\x01\x02\x03\x04\x05\x06 a"));
         dene("saglam degil: yarim cok baytli dizi", !us_llama_cikti_saglam("abc\xe2\x82"));
         dene("saglam degil: yabanci yazi yigini", !us_llama_cikti_saglam("\xe4\xbd\xa0\xe5\xa5\xbd\xe4\xb8\x96\xe7\x95\x8c"));
+        dene("saglam degil: ayni sozcuk yineleniyor", !us_llama_cikti_saglam("weapons weapons weapons weapons weapons weapons weapons weapons weapons"));
+        dene("saglam degil: iki sozcuklu dongu", !us_llama_cikti_saglam("ev yer ev yer ev yer ev yer ev yer ev yer ev yer ev yer ev yer ev yer ev yer"));
+        dene("saglam: tekrarsiz uzun cumle", us_llama_cikti_saglam("Kiler yil boyu sabit sicaklik saglar; bacalar havayi pasif olarak degistirir ve nem dengede kalir."));
+        dene("saglam: iki kez gecen sozcuk sorun degil", us_llama_cikti_saglam("su su kadar temiz bir su gerekir"));
         umay_us_t *lm = us_llama_motor();
         dene("us_llama motoru tanimli", lm != 0 && lm->hazirla != 0);
         if (lm && lm->hazirla) {
