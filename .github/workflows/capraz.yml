@@ -14,12 +14,17 @@ jobs:
       - name: Araclar
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends wine64 qemu-user-static
+          sudo apt-get install -y --no-install-recommends wine64 qemu-user-static xvfb
           pip install ziglang
+      - name: Wine on hazirlik (bos ortamda ilk kosu zaman asimina ugramasin)
+        run: |
+          export WINEDEBUG=-all WINEPREFIX="${TMPDIR:-/tmp}/umay-wine" WINEDLLOVERRIDES="mscoree,mshtml="
+          timeout 300 xvfb-run -a wine64 wineboot -i || true
+          timeout 120 xvfb-run -a wine64 cmd /c echo wine-tamam || echo "wine yanit vermedi"
       - name: Derle, sina, paketle
         run: |
           set +e
-          arac/capraz.sh --paketle 2>&1 | tee capraz.log
+          xvfb-run -a arac/capraz.sh --paketle 2>&1 | tee capraz.log
           kod=${PIPESTATUS[0]}
           if [ "$kod" != 0 ]; then echo "::error title=capraz::$(tail -8 capraz.log | tr '\n' '|' | cut -c1-900)"; fi
           exit $kod
