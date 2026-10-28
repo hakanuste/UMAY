@@ -12,3 +12,11 @@
 - Şu an örnek sayısı çok az (≈90, kütüphane büyüdükçe artar). Bu davranış öğretmeye yeter, bilgi öğretmeye yetmez.
 - Yanıtlar dayanak cümlelerinden seçilir (çıkarıcı); model özet/yorum becerisini bu veriyle kazanmaz. Daha iyisi için daha büyük bir öğretmen modelle veri üretmek gerekir.
 - `ince_ayar.py` denenmedi. Sonuç kalitesi bilinmiyor.
+
+## Hugging Face / Colab ile (ekran kartı olmadan kendi bilgisayarında değil, bulutta)
+HF hesabı `Hakanuste` Pro değil; HF Jobs ücretli ekran kartı ister (koşulları hesabında kontrol et). Ücretsiz yol: Google Colab (T4, 16 GB) — betik bf16 yoksa kendiliğinden fp16'ya geçer.
+1. Mac'te `umay --veri > veri.jsonl` (kendi belgelerinle).
+2. Colab → Çalışma zamanı türü: T4 GPU. `veri.jsonl` ve `arac/ince_ayar.py` dosyalarını yükle.
+3. `!pip install -q peft trl datasets accelerate` sonra `!python ince_ayar.py veri.jsonl cikti Qwen/Qwen3-1.7B`
+4. Modeli HF'ye özel depo olarak yüklemek için: `HF_TOKEN` (yazma izinli) ve `UMAY_HF_DEPO=Hakanuste/umay-qwen3-1.7b` ortam değişkenlerini ver.
+5. Birleşmiş modeli GGUF'a çevir (llama.cpp `convert_hf_to_gguf.py`, sonra `llama-quantize … Q8_0`), `kut/model/` içine koy.
