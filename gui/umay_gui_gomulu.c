@@ -12,6 +12,9 @@
 #include "umay_port.h"
 #include "umay_str.h"
 #include "umay_kabuk.h"
+#include "umay_us.h"
+#include "umay_kabul.h"
+#include "umay_ortak.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -75,6 +78,16 @@ int umay_gomulu_sor(const char *soru, char *cevap, uint32_t n)
     memcpy(cevap, g_cevap, k);
     cevap[k] = 0;
     return (int)k;
+}
+
+const char *umay_gomulu_motor(void) { return g_hazir ? us_motor_adi() : "yok"; }
+
+int umay_gomulu_kabul(char *rapor, uint32_t n)
+{
+    if (!g_hazir || !rapor || n == 0) return -1;
+    rapor[0] = 0;
+    kabul_sonuc_t s;
+    return kabul_calistir(ayar_metin("kutuphane", "kut"), &s, rapor, n);
 }
 
 void umay_gomulu_kapat(void)

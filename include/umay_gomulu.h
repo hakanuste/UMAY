@@ -37,6 +37,14 @@ void        umay_gomulu_ag_ata(umay_ag_getirici_t getirici);
  * (ayni iplik kurali: sor ile ESZAMANLI cagirmayin). */
 int         umay_gomulu_ogren(const char *konu);
 
+/* Etkin çıkarım motorunun adı: "llama" = gömülü gerçek model; "stub-ozan" = modelsiz yedek.
+ * Uygulama bunu kullanıcıya GÖSTERMELİ: yedek motor gerçek model değildir. */
+const char *umay_gomulu_motor(void);
+
+/* <veri>/gelen/ içindeki yeni belgeleri (.txt .md .pdf) ajanlara inceletir ve yerleştirir.
+ * Dönen: yazılan parça sayısı; rapor okunur özettir. Bloke eder: arka planda, sor ile ESZAMANLI değil. */
+int         umay_gomulu_kabul(char *rapor, uint32_t n);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

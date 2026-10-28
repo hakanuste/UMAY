@@ -1,0 +1,27 @@
+# XcodeGen tanımı (brew install xcodegen; xcodegen generate). Önce: ./arac/uygulama_kitaplik.sh xcframework
+name: Umay
+options:
+  bundleIdPrefix: org.umay
+  deploymentTarget: { iOS: "16.0", macOS: "12.0" }
+targets:
+  Umay:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Umay
+      - path: ../kut
+        type: folder
+        excludes: ["model/**", "gelen/**", "_ogren/**"]
+        buildPhase: resources
+    dependencies:
+      - framework: ../kov/uyg/Umay.xcframework
+        embed: false
+      - sdk: libc++.tbd
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: Umay/UmayKopru.h
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1"
+        PRODUCT_BUNDLE_IDENTIFIER: org.umay.uygulama

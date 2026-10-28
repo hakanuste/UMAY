@@ -6,6 +6,13 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
+#ifdef __APPLE__
+#  include <TargetConditionals.h>
+#endif
+/* iOS: alt süreç (popen/system) kullanılamaz; çağrılar başarısızlık döner, ağı uygulama getirir. */
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+#  define UH_ALT_SUREC_YOK 1
+#endif
 
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
@@ -180,7 +187,9 @@ FILE *uh_boru_ac(const char *komut)
 {
     char k[KOMUT_AZAMI];
     if (kabuk_komutu(komut, k, sizeof k) != 0) return 0;
-#ifdef _WIN32
+#ifdef UH_ALT_SUREC_YOK
+    return 0;
+#elif defined(_WIN32)
     return _popen(k, "w");
 #else
     return popen(k, "w");
@@ -189,7 +198,9 @@ FILE *uh_boru_ac(const char *komut)
 
 int uh_boru_kapat(FILE *f)
 {
-#ifdef _WIN32
+#ifdef UH_ALT_SUREC_YOK
+    (void)f; return -1;
+#elif defined(_WIN32)
     return _pclose(f);
 #else
     return pclose(f);
@@ -200,7 +211,11 @@ int uh_komut(const char *komut)
 {
     char k[KOMUT_AZAMI];
     if (kabuk_komutu(komut, k, sizeof k) != 0) return -1;
+#ifdef UH_ALT_SUREC_YOK
+    return -1;
+#else
     return system(k);
+#endif
 }
 
 int uh_pid(void)

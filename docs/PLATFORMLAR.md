@@ -14,7 +14,7 @@ platforma göre koşullu derleme yoktur.
 | Windows ARM64 | `umay-*-windows-arm64.zip` | yalnız **derlendi** (çalıştırılamadı) |
 | macOS (Intel, Apple Silicon) | `./kur.sh` ya da `umay-*-macos-*.tar.gz` | yalnız **derlendi** (bu ortamda Mac yok) |
 | Android uygulaması (JNI) | `CMakeLists.txt` `-DUMAY_JNI=ON` | JNI köprüsü JVM'de uçtan uca sınandı; **Android'de denenmedi** |
-| iOS uygulaması | `libumay.a` + `umay_gomulu.h` | **derlenmedi, denenmedi** (Xcode/Swift yok) |
+| macOS + iOS uygulaması (SwiftUI) | [uygulama/README.md](../uygulama/README.md) | C kitaplığı (motorlu) Linux'ta sınandı; **Swift kodu derlenmedi** |
 
 "Derlendi" yalnız derleyicinin kabul ettiği demektir; çalıştığı demek **değildir**.
 Gerçek Windows, Mac ve telefonda ilk koşu sizin elinizden çıkacak.
