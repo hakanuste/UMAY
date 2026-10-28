@@ -100,6 +100,16 @@ static const char *SISTEM_KURAL =
     "dayanak yetmiyorsa 'bunu dayanağımda bulamadım' de. Öz Türkçe, kısa ve açık yaz: Arapça ve Farsça kökenli sözcük kullanma, Türkçe karşılığını yaz (ör. tefekkür yerine düşünce). "
     "Dayanakta sayı ya da ölçü varsa aynen koru.";
 
+/* Terminalde ham görünen "**kalın**" işaretlerini kaldırır (metin değişmez, yalnız imler). */
+static void imleri_at(char *s) {
+    char *o = s;
+    for (char *p = s; *p; ) {
+        if (p[0] == '*' && p[1] == '*') { p += 2; continue; }
+        *o++ = *p++;
+    }
+    *o = 0;
+}
+
 static void dusunceyi_at(char *s) {
     /* <think>...</think> bloğunu at (Qwen3 düşünme kipi kapalı olsa da güvence) */
     char *a = s;
@@ -169,6 +179,7 @@ static int llama_uret(umay_us_t *u, const us_istem_t *i, char *cikti, uint32_t n
         int r = m->uret(sistem, kul, im, cikti, n);
         if (r == 0) {
             dusunceyi_at(cikti);
+            imleri_at(cikti);
             if (cikti[0] && !us_llama_cikti_saglam(cikti)) {
                 gun_yaz("US-LLAMA: çıktı okunur metin değil (bozuk ya da anlamsız), yanıt saymıyorum.");
                 cikti[0] = 0;
