@@ -30,7 +30,6 @@ jobs:
 
   ios-benzetim:
     runs-on: macos-latest
-    continue-on-error: true      # ilk kez derleniyor; sonuç yine de görünür
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen

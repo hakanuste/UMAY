@@ -1,7 +1,7 @@
 # UMAY uygulaması (macOS + iOS) — SwiftUI
 
 Tek kod, iki platform. Çekirdek C'dir (`umay_gomulu.h` ile bağlanır); Swift yalnız yüzü çizer.
-**DURUM: Swift kodu bu ortamda DERLENMEDİ** (Linux'ta Swift derleyicisi yok; yalnız sözdizimi ayrıştırıcıyla denetlendi, tür/API hatalarını derleyici bulacak). C tarafı (motorlu kitaplık + gömülü arayüz) Linux'ta sınandı.
+**DURUM:** Swift kodu GitHub Actions macOS makinesinde **derlendi**: macOS uygulaması (`swiftc`, gömülü motorla) ve iOS Benzetici (`xcodebuild`). Gerçek Mac'te ve iPhone'da **çalıştırılmadı**; arayüzün davranışı henüz görülmedi. C tarafı (motorlu kitaplık + gömülü arayüz) Linux'ta sınandı.
 İlk derleme sizin elinizden çıkacak; derleme hatası olursa çıktıyı gönderin.
 
 ## Ne var
