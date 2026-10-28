@@ -100,6 +100,7 @@ typedef struct {
     const char  *motor;                         /* çıktıyı üreten motorun adı */
     int          yedege_dustu;
     int          oncul_kullanildi;              /* önceki görev çıktısı işe girdi */
+    int          dayanak_disi;                  /* yanıtın özü dayanakta yok: modelin kendi bilgisi */
 } us_cikti_t;
 
 /* Çıkarım katmanına verilen tam istem */
@@ -137,4 +138,6 @@ void     us_ozet_kat(us_cikti_t *o, const us_cikti_t *parca);
 uint32_t us_cikti_yaz(const us_cikti_t *o, char *c, uint32_t n);
 uint32_t us_ozet_kuyruk(const us_cikti_t *o, char *c, uint32_t n);
 const char *us_guven_adi(us_guven_t g);
+/* Yanıttaki içerik sözcüklerinin (ve sayıların) yüzde kaçı dayanakta geçiyor? toplam: sayılan sözcük. */
+int         us_dayanak_destegi(const char *yanit, const char *dayanak, int *toplam);
 #endif

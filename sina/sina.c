@@ -2001,6 +2001,18 @@ int main(void) {
         ozturk_yukle("/yok/yok");
     }
 
+    /* --- 60. Yanıt dayanağa dayanıyor mu --- */
+    {
+        printf("\n[60] dayanak desteği\n");
+        const char *day = "Yer altı kileri 12-15 derece sabit sıcaklık ve pasif havalandırma bacalarıyla nem dengesi sağlar. "
+                          "Haritacılık: Kazakistan ve Özbekistan için İpek Yolu dağ geçitleri ve sınır kapısı koordinatları.";
+        int top = 0;
+        dene("dayanaktan çıkan yanıt desteklenir", us_dayanak_destegi("Yer altı kileri 12-15 derece sabit sıcaklıkta olur.", day, &top) >= 80 && top >= 3);
+        dene("dayanakta olmayan ad/yanıt desteklenmez", us_dayanak_destegi("Kazakistanın başkenti Astanadır.", day, &top) < 50 && top >= 3);
+        dene("uydurma sayı yakalanır", us_dayanak_destegi("Kiler 40 derece olur, sıcaklık 99 değişir.", day, &top) < 50);
+        dene("boş yanıt: destek sayılır (denetlenecek şey yok)", us_dayanak_destegi("", day, &top) == 100 && top == 0);
+    }
+
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
     if (g_atlandi)
         printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",

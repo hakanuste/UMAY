@@ -156,6 +156,45 @@ static void dil_uyarisi(us_cikti_t *o) {
     }
 }
 
+
+/* Yanıt dayanağa dayanıyor mu? İçerik sözcüklerinin (≥5 bayt) kök öbeği (ilk 6 bayt) ve sayılar dayanakta aranır.
+ * Kaynak satırı "Dayanağım: …" yalnız alıntıyı gösterir; yanıtın o alıntıdan çıktığını GARANTİ ETMEZ. Bu denetim
+ * modelin kendi bilgisiyle konuştuğu durumu (dayanakta yazmayan bir ad ya da sayı) yakalar. */
+int us_dayanak_destegi(const char *yanit, const char *dayanak, int *toplam) {
+    int top = 0, bulunan = 0;
+    if (toplam) *toplam = 0;
+    if (!yanit || !dayanak) return 100;
+    uint32_t dn = um_uzun(dayanak), yn = um_uzun(yanit);
+    char *d = (char *)up_ayir((uint64_t)dn * 2 + 2), *y = (char *)up_ayir((uint64_t)yn * 2 + 2);
+    if (!d || !y) { if (d) up_biraktir(d); if (y) up_biraktir(y); return 100; }
+    um_kucult(d, dn * 2 + 2, dayanak);
+    um_kucult(y, yn * 2 + 2, yanit);
+    const char *p = y;
+    while (*p) {
+        uint32_t by = 1, kn = um_utf8_oku(p, &by);
+        if (!um_kelime_karakteri(kn)) { p += by ? by : 1; continue; }
+        const char *bas = p; int rakam = 1;
+        while (*p) {
+            kn = um_utf8_oku(p, &by);
+            if (!um_kelime_karakteri(kn)) break;
+            if (kn < '0' || kn > '9') rakam = 0;
+            p += by ? by : 1;
+        }
+        uint32_t uz = (uint32_t)(p - bas);
+        if (uz >= 64 || (!rakam && uz < 5) || (rakam && uz < 2)) continue;
+        char t[64];
+        uint32_t k = rakam ? uz : (uz < 6 ? uz : 6);
+        while (!rakam && k > 0 && ((uint8_t)bas[k] & 0xC0) == 0x80 && k < uz) k--;   /* UTF-8 sınırı */
+        um_bellek_kopya(t, bas, k); t[k] = 0;
+        int w = rakam ? 2 : 1;                       /* sayı daha ağır: uydurulmuş sayı en tehlikelisidir */
+        top += w;
+        if (um_icinde(d, t)) bulunan += w;
+    }
+    up_biraktir(d); up_biraktir(y);
+    if (toplam) *toplam = top;
+    return top ? bulunan * 100 / top : 100;
+}
+
 int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     if (!i || !o) return UM_YANLIS;
     um_bellek_doldur(o, 0, sizeof *o);
@@ -252,6 +291,16 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     }
 
     o->guven = guven_hesapla(i);
+    /* Yanıtın özü dayanakta yoksa (model kendi bilgisiyle konuşmuş): güven ZAYIF, açıkça söylenir. */
+    if (!o->yedege_dustu && um_icinde(baglam_metni, "") && o->metin[0]) {
+        int top = 0, yuzde = us_dayanak_destegi(o->metin, baglam_metni, &top);
+        if (top >= 3 && yuzde < 50) {
+            o->dayanak_disi = 1;
+            if (o->guven > GUVEN_ZAYIF) o->guven = GUVEN_ZAYIF;
+            uyari_ekle(o, "Bu yanıtın özü dayanağımda yazmıyor; dil modelinin kendi bilgisi, doğrulanmadı. "
+                          "Aşağıdaki kaynaklar konuyu içeriyor ama bu yanıtı doğrulamıyor.");
+        }
+    }
     /* öncül çıktı işe karıştıysa güven ORTA'yı geçemez */
     if (o->oncul_kullanildi && o->guven > GUVEN_ORTA) o->guven = GUVEN_ORTA;
     return UM_OLDU;
