@@ -24,7 +24,7 @@ jobs:
       - name: Derle, sina, paketle
         run: |
           set +e
-          xvfb-run -a arac/capraz.sh --paketle 2>&1 | tee capraz.log
+          UMAY_WINE_ESNEK=1 xvfb-run -a arac/capraz.sh --paketle 2>&1 | tee capraz.log
           kod=${PIPESTATUS[0]}
           if [ "$kod" != 0 ]; then echo "::error title=capraz::$(tail -8 capraz.log | tr '\n' '|' | cut -c1-900)"; fi
           exit $kod

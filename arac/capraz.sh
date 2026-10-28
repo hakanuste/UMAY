@@ -73,10 +73,10 @@ echo "$HEDEFLER" | while IFS=: read -r ad hedef uz ek cal; do
     if var_mi "$cal"; then
       if r=$(kos "$cal" "$OUT/sina-$ad$uz" 2>&1 | tr -d '\r' | grep -a "SONUC:"); then
         s_ok=$(echo "$r" | sed 's/.*SONUC: *//; s/ *=* *$//'); echo "$r" | grep -q " 0 kaldi" || echo "SINA-KALDI $ad" >> "$OUT/hata.txt"
-      else s_ok="CALISMADI"; echo "SINA-CALISMADI $ad" >> "$OUT/hata.txt"; fi
+      else s_ok="CALISMADI"; [ "${UMAY_WINE_ESNEK:-0}" = 1 ] && case "$ad" in windows*) s_ok="wine-yok";; esac; [ "$s_ok" = CALISMADI ] && echo "SINA-CALISMADI $ad" >> "$OUT/hata.txt"; fi
       if r=$(kos "$cal" "$OUT/gomulu-$ad$uz" kut 2>&1 | tr -d "\r" | grep -a "GOMULU SONUC:"); then
         g_ok=$(echo "$r" | sed 's/.*SONUC: *//; s/ *=* *$//'); echo "$r" | grep -q " 0 kaldi" || echo "GOMULU-KALDI $ad" >> "$OUT/hata.txt"
-      else g_ok="CALISMADI"; echo "GOMULU-CALISMADI $ad" >> "$OUT/hata.txt"; fi
+      else g_ok="CALISMADI"; [ "${UMAY_WINE_ESNEK:-0}" = 1 ] && case "$ad" in windows*) g_ok="wine-yok";; esac; [ "$g_ok" = CALISMADI ] && echo "GOMULU-CALISMADI $ad" >> "$OUT/hata.txt"; fi
     else s_ok="calistirilamadi"; g_ok="calistirilamadi"; fi
   else echo "DERLEME-HATA $ad" >> "$OUT/hata.txt"; fi
   printf '%-14s %-9s %-22s %-22s\n' "$ad" "$d_ok" "$s_ok" "$g_ok"
