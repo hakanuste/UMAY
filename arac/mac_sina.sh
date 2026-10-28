@@ -15,7 +15,7 @@ make clean >/dev/null 2>&1; make 2>&1 | tail -15; echo "make çıkış: ${PIPEST
 ad "2) sınama"
 make sina 2>&1 | grep -E "KALDI|SONUC|\[KALDI\]|error" | tail -20
 ad "3) ÖTÜKEN dikişi"
-make otuken-denetle 2>&1 | tail -2
+if [ "$(uname -s)" = Darwin ]; then echo "atlandı: bu kapı ELF/Linux bağlayıcısı içindir (macOS Mach-O); ÖTÜKEN Linux'ta denetlenir"; else make otuken-denetle 2>&1 | tail -2; fi
 ad "4) kısa konuşma (yedek motor)"
 UMAY_OGREN=0 ./kov/umay "yer altı kileri kaç derece" 2>&1 | head -12
 ad "5) gömülü motor yapımı"
@@ -25,7 +25,14 @@ else echo "cmake yok, atlandı"; fi
 if [ "${1:-}" = "--model" ] && [ -x kov/umay-motorlu ]; then
   ad "6) model indir + soru"
   ./arac/model.sh kucuk kut
-  ( time UMAY_OGREN=0 ./kov/umay-motorlu "yer altı kileri kaç derece" ) 2>&1 | head -25
+  M=$(ls kut/model/*.gguf 2>/dev/null | head -1)
+  for soru in "yer altı kileri kaç derece" "kerpiç duvar nasıl yapılır"; do
+    echo "--- soru: $soru"
+    s0=$(date +%s)
+    UMAY_LLM="$M" UMAY_OGREN=0 ./kov/umay-motorlu "$soru" 2>/tmp/umay_mac_gunluk.txt
+    echo "--- süre: $(( $(date +%s) - s0 )) sn"
+    grep -E "US-LLAMA|US motoru|yedek|düştüm" /tmp/umay_mac_gunluk.txt
+  done
 fi
 ad "bitti"
 echo "Rapor: $(pwd)/$R"
