@@ -18,10 +18,20 @@ from peft import LoraConfig
 from trl import SFTConfig, SFTTrainer
 ds = load_dataset("json", data_files=veri, split="train").train_test_split(test_size=0.1, seed=7)
 import dataclasses
+# T4 gibi eski kartlar (hesaplama yeteneği < 8) gerçek bf16 matmul'ı desteklemez; torch.cuda.is_bf16_supported()
+# bunlarda yine de True dönebilir. Gerçek ölçüt hesaplama yeteneğidir.
+yeni_kart = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+if not yeni_kart:
+    try:                                   # trl'nin bf16'ya özel çekirdeğini kapat (yoksa sessizce geç)
+        import trl.kernels.chunked_logprob as _cl
+        _cl._MM_OUT_DTYPE = False
+    except Exception:
+        pass
 ist = dict(output_dir=cikti, num_train_epochs=3, per_device_train_batch_size=2,
            gradient_accumulation_steps=8, learning_rate=1e-4, lr_scheduler_type="cosine",
            warmup_steps=3, logging_steps=5, eval_strategy="epoch", save_strategy="epoch",
-           bf16=torch.cuda.is_bf16_supported(), fp16=not torch.cuda.is_bf16_supported(),
+           bf16=yeni_kart, fp16=not yeni_kart,
+           model_init_kwargs={"dtype": torch.bfloat16 if yeni_kart else torch.float16},
            max_length=1536, report_to="none")
 gecerli = {f.name for f in dataclasses.fields(SFTConfig)}
 atilan = sorted(k for k in ist if k not in gecerli)
