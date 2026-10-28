@@ -1,0 +1,40 @@
+#kategori: yazit
+#baslik: Türk mitolojisi: tanrılar, tanrıçalar ve kutsal varlıklar
+#etiket: mitoloji,tengri,umay,asena,erlik,ulgen,otuken
+#kaynak: kullanıcının getirdiği çizelge (ikincil, doğrulanmamış)
+#dil: tr
+
+Türk mitolojisi: tanrılar, tanrıçalar ve kutsal varlıklar (kullanıcının getirdiği çizelge; ikincil kaynak, doğrulanmamış)
+
+Not (çizelgenin kendi notu): İsimler ve görevler farklı kaynaklarda değişiklik gösterebilir. Çizelge geleneksel Türk inanç sistemlerine ve mitolojik kaynaklara dayanarak hazırlanmıştır. Çizelgede anılan kaynaklar: Altay Destanları, Göktürk Yazıtları, Dede Korkut Kitabı, Manas Destanı, Yakut inançları, Şamanist gelenekler ve diğer sözlü kaynaklar.
+
+Kozmik düzen: Türk mitolojisinde evren üç katmandan oluşur. Üstte Gök (ilahi güçler), ortada Yer (yaşam ve iyeler), altta Yeraltı (karanlık güçler). Bu düzen, dengenin ve sonsuz döngünün güvencesidir.
+
+ÜST DÜNYA (GÖK KATI): Işık, düzen, iyilik ve ilahi güçlerin yaşadığı yerdir.
+Gök Tengri: Göklerin yüce ruhu. Kayra Han ile özdeş kabul edilir. Her şeyi gözetir.
+Kayra Han: En yüce yaratıcı. Evrenin düzenini kuran ve koruyandır.
+Gün Ana: Güneşin ve ışığın tanrıçası. Yaşamı, sıcaklığı ve bereketi sağlar.
+Ay Ata: Ay'ın efendisidir. Geceyi, zamanı ve serinliği yönetir.
+Ülgen: Bilgelik, akıl ve ilham tanrısıdır. Yol gösterir, aklı ve sanatı korur.
+Tulpar: Kutsal, kanatlı at. Hızın ve ilahi gücün simgesidir.
+Karakuş: Göklerin habercisidir. Koruyucu ruh ve kutun simgesidir.
+
+ORTA DÜNYA (YERYÜZÜ): İnsanların, hayvanların, bitkilerin ve iyelerin yaşadığı dünyadır.
+Asena: Dişi kurt. Türklerin atası ve yol göstericisi ruhu olarak bilinir.
+Umay Ana: Doğumun, çocukların ve kadınların koruyucusu. Bereket ve şefkat tanrıçasıdır.
+Ak Ana: Temizliğin, suyun ve arınmanın tanrıçası. Korur ve iyileştirir.
+Od Ana: Ateşin ve ocağın tanrıçası. Evleri, aileyi korur.
+Od Ata: Ateşin ve aile ocağının erkek ilksidir. Korur ve güç verir.
+Yer Ana: Toprağın ve bereketin tanrıçası. Üretkenliği ve yaşamı sağlar.
+Su İyesi: Suların efendisi. Nehirleri, gölleri ve denizleri yönetir.
+Ağaç İyesi: Ağaçların ruhu. Ormanları ve yaşam döngüsünü korur.
+Dağ İyesi: Dağların ruhu. Yüceliği, kayaları ve doğal gücü temsil eder.
+Ev İyesi: Evleri, yuvaları ve aile düzenini koruyan iye.
+
+ALT DÜNYA (YERALTI): Karanlık, kaos ve ölümün hüküm sürdüğü yerdir.
+Erlik Han: Yeraltının hükümdarı. Ölüm, karanlık ve kaosun efendisidir. Ruhları yeraltına çeker.
+Kara Oğlanlar: Erlik Han'ın oğulları. Karanlık güçleri ve yeraltı ordularını yönetirler.
+Kara Kızlar: Erlik Han'ın kızları. Hastalıkları, korkuları ve karanlık yanılsamaları yayarlar.
+Albastı / Alkarısı: Gece ruhu. İnsanların rüyalarına girer, onları boğar ve korkutur.
+
+Çizelgedeki ek anlatım (Gök, Kut, Türk, Ötüken, Asena başlıkları): Gök her şeyin başlangıcıdır; Türk'ün ilhamı, gücü ve ebedi yurdudur. Kut, yaşatma gücü ve ilahi lütuftur; adil olana verilir, milleti yüceltir. Ötüken, Türk'ün kalbi ve kutsal yurdudur: geçmişin, bugünün ve geleceğin buluştuğu yer. Asena, Bozkurt neslinden gelen dirilişin ve Türk'ün türeyişinin simgesidir.
