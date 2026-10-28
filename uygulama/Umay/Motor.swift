@@ -2,14 +2,14 @@ import Foundation
 
 /// UMAY'ın C çekirdeğini saran sınıf. Çekirdek tek iplikli olduğundan bütün çağrılar tek sıradan geçer.
 final class UmayMotor: ObservableObject {
-    struct Ileti: Identifiable {
-        let id = UUID()
+    struct Ileti: Identifiable, Codable {
+        var id = UUID()
         let benMi: Bool
         let metin: String
         var sistemMi = false
     }
 
-    @Published var iletiler: [Ileti] = []
+    @Published var iletiler: [Ileti] = [] { didSet { gecmisiYaz() } }
     @Published var mesgul = false
     @Published var durum = "Başlatılıyor…"
     @Published var motorAdi = "…"
@@ -26,7 +26,25 @@ final class UmayMotor: ObservableObject {
     static var modelDizini: URL { kutDizini.appendingPathComponent("model", isDirectory: true) }
     static var gelenDizini: URL { kutDizini.appendingPathComponent("gelen", isDirectory: true) }
 
-    init() { baslat() }
+    init() { gecmisiOku(); baslat() }
+
+    // MARK: sohbet geçmişi (yalnız bu aygıtta, kullanıcının veri dizininde)
+
+    private static var gecmisDosyasi: URL { kutDizini.deletingLastPathComponent().appendingPathComponent("sohbet.json") }
+
+    private func gecmisiOku() {
+        guard let d = try? Data(contentsOf: UmayMotor.gecmisDosyasi),
+              let l = try? JSONDecoder().decode([Ileti].self, from: d) else { return }
+        iletiler = l
+    }
+
+    private func gecmisiYaz() {
+        let son = Array(iletiler.suffix(200))     // en çok son 200 ileti
+        try? FileManager.default.createDirectory(at: UmayMotor.kutDizini.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let d = try? JSONEncoder().encode(son) { try? d.write(to: UmayMotor.gecmisDosyasi, options: .atomic) }
+    }
+
+    func temizle() { iletiler = [] }
 
     // MARK: başlatma
 

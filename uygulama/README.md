@@ -1,7 +1,7 @@
 # UMAY uygulaması (macOS + iOS) — SwiftUI
 
 Tek kod, iki platform. Çekirdek C'dir (`umay_gomulu.h` ile bağlanır); Swift yalnız yüzü çizer.
-**DURUM: Swift kodu bu ortamda DERLENMEDİ** (Linux'ta Swift derleyicisi yok). C tarafı (motorlu kitaplık + gömülü arayüz) Linux'ta sınandı.
+**DURUM: Swift kodu bu ortamda DERLENMEDİ** (Linux'ta Swift derleyicisi yok; yalnız sözdizimi ayrıştırıcıyla denetlendi, tür/API hatalarını derleyici bulacak). C tarafı (motorlu kitaplık + gömülü arayüz) Linux'ta sınandı.
 İlk derleme sizin elinizden çıkacak; derleme hatası olursa çıktıyı gönderin.
 
 ## Ne var
@@ -30,4 +30,5 @@ Xcode'da takımınızı (ücretsiz Apple kimliği yeter, uygulama 7 gün çalı�
 ## Bilinen sınırlar
 - Yalnız işlemci (CPU) çıkarımı; Metal/GPU hızlandırma yok. 2017 Air'de 1,7B model bir yanıt için yaklaşık bir dakika sürdü.
 - Model değişikliği ve "öğren" ayarı uygulama yeniden açılınca işler.
-- Sohbet geçmişi saklanmaz (BENGİ belleği çekirdekte tutulur).
+- Sohbet geçmişi yalnız bu aygıtta saklanır (son 200 ileti, `Application Support/Umay/sohbet.json`); sağ üstteki çöp kutusu siler.
+- Sesle soru sorma (mikrofon) henüz yok.

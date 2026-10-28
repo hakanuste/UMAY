@@ -69,6 +69,8 @@ struct SohbetGorunumu: View {
                     .font(.caption).foregroundColor(motor.gercekModel ? .secondary : .orange)
             }
             Spacer()
+            Button { motor.temizle() } label: { Image(systemName: "trash") }
+                .disabled(motor.iletiler.isEmpty || motor.mesgul)
             Button { ayarAcik = true } label: { Image(systemName: "gearshape") }
         }
         .padding(.horizontal).padding(.vertical, 8)
