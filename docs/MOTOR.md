@@ -41,3 +41,10 @@ Model `<kut>/model/` altına konur. Ayarlar (`ayar.txt`): `llm` (dosya yolu), `l
 
 ## Sonraki adım
 Seçenek 2: hazır bir modelin Hakan'ın belgeleriyle ince ayarı (Hugging Face hesabı: Hakanuste).
+
+## macOS'ta hızlı sınama
+```
+xcode-select --install ; brew install cmake
+./arac/mac_sina.sh --model     # derler, sınar, motoru kurar, küçük modeli indirir; rapor: mac_rapor.txt
+```
+macOS'ta motor ilk yapımda Metal/Accelerate/OpenMP kapalı (en güvenli); hız için sonra açılır.

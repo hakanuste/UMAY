@@ -16,6 +16,8 @@ GEN=""; command -v ninja >/dev/null && GEN="-G Ninja"
 # Dağıtılabilir yapım: x86'da AVX2 tabanı (2013+ işlemciler); ARM'da varsayılan.
 EK="-DGGML_NATIVE=$YEREL"
 case "$(uname -m)" in x86_64|amd64) [ "$YEREL" = OFF ] && EK="$EK -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DGGML_AVX=ON" ;; esac
+# macOS: ilk yapım en güvenli ayarla (Metal/Accelerate/OpenMP kapalı); hız için sonra açılır.
+[ "$(uname -s)" = Darwin ] && EK="$EK -DGGML_METAL=OFF -DGGML_ACCELERATE=OFF -DGGML_BLAS=OFF -DGGML_OPENMP=OFF"
 cmake -S motor -B kov/motor $GEN -DCMAKE_BUILD_TYPE=Release $EK >/dev/null
 cmake --build kov/motor --target umay_motor -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
