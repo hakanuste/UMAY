@@ -9,7 +9,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(UMAY_PAYLASIMLI "libumay'i paylasimli kutuphane (.so/.dll/.dylib) olarak uret" OFF)
-option(UMAY_MOTOR "Gomulu llama.cpp motorunu bagla (motor/ altindaki yapi)" OFF)
+option(UMAY_MOTOR "Gomulu dil modeli motorunu bagla (motor/ altindaki yapi)" OFF)
 option(UMAY_JNI "Android JNI koprusunu da derle (jni.h gerekir)" OFF)
 
 set(UMAY_KAYNAK
@@ -24,8 +24,10 @@ set(UMAY_KAYNAK
   port/umay_port_host.c port/umay_host_uyum.c
   gui/umay_gui_gomulu.c)
 
+# Motor baglaninca modelsiz yedek kaynak cikar (yerine motor/ altindaki yapi baglanir)
+set(UMAY_MOTORSUZ us/umay_motor_yok.c)
 if(UMAY_MOTOR)
-  list(REMOVE_ITEM UMAY_KAYNAK us/umay_motor_yok.c)   # yerine motor/umay_motor.cpp baglanir
+  list(REMOVE_ITEM UMAY_KAYNAK ${UMAY_MOTORSUZ})
 endif()
 
 if(UMAY_JNI)

@@ -25,7 +25,7 @@ CFLAGS="-std=c11 -Wall -Wextra -Werror -Iinclude"
 
 # CMakeLists.txt ile Makefile ayni kaynak listesini tasimali (kayma = sessiz kusur).
 if [ "$(make -s liste-gomulu | tr ' ' '\n' | sort)" != \
-     "$(grep -oE '[a-z_/0-9]+\.c' CMakeLists.txt | grep -v jni | sort)" ]; then
+     "$(grep -oE '[a-z_/0-9]+\.c' CMakeLists.txt | grep -v jni | sort -u)" ]; then
   echo "HATA: CMakeLists.txt kaynak listesi Makefile GOMULU_KAYNAK'tan ayrildi"; exit 1
 fi
 
