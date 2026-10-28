@@ -1,0 +1,37 @@
+#kategori: yazit
+#baslik: Türk mitolojisi: ikinci ve üçüncü çizelge (ek adlar, çelişen anlatımlar)
+#etiket: mitoloji,tengri,umay,erlik,ulgen,kubey,gok-boru
+#kaynak: kullanıcının getirdiği iki çizelge (ikincil, doğrulanmamış; görsel üretimi, kaynak gösterilmemiş)
+#dil: tr
+
+Türk mitolojisi, ikinci çizelge ("Tüm Tanrı ve Tanrıçalar"; Gök, Yer, Yeraltı ve Doğa-Ruh tanrıları diye dörde ayrılmış). Çizelge kaynak göstermiyor; adların bir bölümü başka kaynaklarda doğrulanmadı.
+Kayra Han: Yaradan, Gök Tanrı. Tüm varlığın yaratıcısı, düzenin ve kaderin sahibidir.
+Ay Ata: Ay Tanrısı. Geceyi, zamanı ve döngüleri yönetir.
+Gün Ana: Güneş Tanrısı. Hayatı, ışığı ve bereketi sağlayan yüce varlık.
+Tulpar: Gök atlarının ruhu; hızın, özgürlüğün ve sadakatin simgesi. Ayrıca "hız ve zafer tanrısı" diye de anılmış.
+Asena: Bozkurtların ana ruhu. Türklerin koruyucu dişi ruhu, yol gösterici ve kutsaldır.
+Gök Börü: Kut ve ilham ruhu. Türklerin ilahi atası ve yol göstericisi.
+Göktürk: Savaşçıların ruhu; savaşın, zaferin ve yiğitliğin koruyucusu (çizelgedeki anlatım; bu ad başka kaynakta bir tanrı adı olarak doğrulanmadı).
+Ülgen: Bu çizelgede "Yer-Su tanrısı; yeraltının, bilgeliğin ve ataların ruhudur" diye geçiyor.
+Ak Kular: Kutsal ruh; temizlik, arınma ve koruyucu ruh.
+Erlik: Yeraltı hanı. Ölümden sonraki dünyanın hükümdarı.
+Baktıi: Kader tanrıçası; kaderi dokur, alın yazısını belirler (başka kaynakta doğrulanmadı).
+Umay: Doğum ve koruyucu tanrıça. Çocukları, anneleri ve doğumu korur.
+Uyolar: Gençlik ve can tanrıları. Gençleri, doğayı ve yaşam gücünü korur (başka kaynakta doğrulanmadı).
+Köbey: Aile ve ev tanrıçası. Yuvayı, düzeni ve aile birliğini korur.
+Od Ana: Ateş tanrıçası; ateşi, ocağı ve dönüşümü yönetir.
+Od Ata: Ateş tanrısı; savaşın, gücün ve ateşin erkeğidir.
+Ak Ana: Su tanrıçası; suların, nehirlerin ve bolluğun ruhu.
+Gönül Hanım: Sevgi ve merhamet tanrıçası (başka kaynakta doğrulanmadı).
+Erlik Han'ın Kızları: Yeraltı ruhları; Erlik'in yardımcı ruhları, ölüler diyarında görev yaparlar.
+Yel Ata: Rüzgar tanrısı; rüzgarı, fırtınayı ve gökyüzü yollarını yönetir.
+Yel Ana: Rüzgar tanrıçası; esintiyi, nefesi ve havanın dengelerini korur.
+Su İyesi: Su ve deniz tanrısı; denizleri, gölleri ve su canlılarını yönetir.
+Çizelgenin kapanış notu: Bu tanrılar ve ruhlar Türk inanç sisteminde evrenin dengesini sağlar; hepsi Kayra Han'ın düzeni altında, gök, yer ve yeraltı arasında uyumu korur.
+
+Üçüncü çizelge, "Kozmik Düzen" (üç katman):
+ÜST DÜNYA (GÖK): Gök Tengri (göğün hakanı), Ülgen (yaratıcı, bilgelik tanrısı), Kayra Han (en yüce yaratıcı), Ay Ata (ay tanrısı), Gün Ana (güneş tanrıçası), Tulpar (kutsal kanatlı at), Karakuş (kutsal kuş).
+ORTA DÜNYA (YERYÜZÜ): Umay Ana (koruyucu ana), Ak Ana (bereket tanrıçası), Od Ana (ateş tanrıçası), Od Ata (ateş tanrısı), Yer Ana (yeryüzü tanrıçası), Su İyesi (su ruhu), Dağ İyesi (dağ ruhu), Ağaç İyesi (ağaç ruhu), Ev İyesi (yuva ruhu), Yer-Su İyeleri (doğa ruhları), Asena (efsanevi dişi kurt, atalarımızın rehberi).
+ALT DÜNYA (YERALTI): Erlik Han (yeraltı hakanı), Kara Oğlanlar (Erlik'in oğulları), Kara Kızlar (Erlik'in kızları), Yeraltı Ruhları (karanlık varlıklar).
+
+ÇELİŞKİLER (kaynaklar birleştirilmez, ikisi de anılır): Ülgen ikinci çizelgede "Yer-Su tanrısı", üçüncüde ve ilk çizelgede "yaratıcı, bilgelik ve akıl tanrısı" diye anılıyor. Ak Ana ikinci çizelgede su tanrıçası, üçüncüde bereket tanrıçası, ilkinde temizlik ve arınma tanrıçası. Gök Tengri ile Kayra Han bir çizelgede özdeş, üçüncüde ayrı varlıklar olarak gösteriliyor. Asena ilk çizelgelerde Orta Dünya'da, ikincisinde Gök'ün yanında yer alıyor.
