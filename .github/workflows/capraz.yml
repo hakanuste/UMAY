@@ -17,7 +17,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends wine64 qemu-user-static
           pip install ziglang
       - name: Derle, sina, paketle
-        run: arac/capraz.sh --paketle
+        run: |
+          set +e
+          arac/capraz.sh --paketle 2>&1 | tee capraz.log
+          kod=${PIPESTATUS[0]}
+          if [ "$kod" != 0 ]; then echo "::error title=capraz::$(tail -8 capraz.log | tr '\n' '|' | cut -c1-900)"; fi
+          exit $kod
       - uses: actions/upload-artifact@v4
         with:
           name: umay-paketler
