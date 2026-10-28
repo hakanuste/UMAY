@@ -12,4 +12,8 @@ int ozturk_yukle(const char *kut);
 int ozturk_tara(const char *metin, ozturk_bulgu_t *b, int en_cok);
 /* "tefekkür (yerine: düşünce), ..." biçiminde yasak listesi yazar. */
 void ozturk_liste(const ozturk_bulgu_t *b, int adet, char *cikti, uint32_t n);
+/* ÇEVİRMEN'in öğrenmesi: sözlük/terim belgesindeki "eski = yeni" ya da "eski → yeni" çiftlerini
+ * <kut>/ozturkce.txt'ye ekler (yalnız belge öz Türkçe/terim/sözlük/karşılık söylüyorsa; yalnız tek
+ * sözcük çiftleri; bilineni atlar). Eklenen çift sayısını döner ve listeyi yeniden yükler. */
+int ozturk_ogren(const char *metin, uint32_t boy, const char *kut);
 #endif

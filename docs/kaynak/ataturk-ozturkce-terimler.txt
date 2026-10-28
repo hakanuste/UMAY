@@ -1,0 +1,39 @@
+Atatürk dönemi öz Türkçe terimler — kullanıcı getirdi (ikincil kaynak, doğrulanmamış)
+Her satır "Yeni (Eski karşılığı: Eski)" biçimindedir. Terim ve sözlük belgesidir.
+
+Askerî terimler
+* Kurmay (Eski karşılığı: Erkân-ı Harp)
+* Subay (Eski karşılığı: Zâbit)
+* Tümen (Eski karşılığı: Fırka)
+* Savunma (Eski karşılığı: Müdafaa)
+* Saldırı (Eski karşılığı: Taarruz)
+
+Siyaset ve idari yapı terimleri
+* Bakan / Bakanlık (Eski karşılığı: Nazır / Nezaret)
+* Başbakan (Eski karşılığı: Başvekil / Sadrazam)
+* Milletvekili (Eski karşılığı: Mebus)
+* Başkan (Eski karşılığı: Reis)
+* Kurul (Eski karşılığı: Heyet)
+* Sayıştay (Eski karşılığı: Divan-ı Muhasebat)
+* Danıştay (Eski karşılığı: Şura-yı Devlet)
+* Yargıtay (Eski karşılığı: Mahkeme-i Temyiz)
+
+Hukuk ve toplumsal terimler
+* Yasa (Eski karşılığı: Kanun)
+* Tüzük (Eski karşılığı: Nizamname)
+* Yönetmelik (Eski karşılığı: Talimatname)
+* Kamu (Eski karşılığı: Amme)
+* Kuruluş (Eski karşılığı: Müessese)
+* Özgürlük (Eski karşılığı: Hürriyet)
+* Görev (Eski karşılığı: Vazife)
+
+Eğitim ve gündelik dil
+* Okul (Eski karşılığı: Mektep)
+* Öğrenci (Eski karşılığı: Talebe)
+* Öğretmen (Eski karşılığı: Muallim)
+* Sınav (Eski karşılığı: İmtihan)
+* Yüzyıl (Eski karşılığı: Asır)
+* Kuzey (Eski karşılığı: Şimal)
+* Güney (Eski karşılığı: Cenup)
+
+Not: bu liste hep Atatürk'e bağlanarak anlatılmıştır; bir kısmı (Başbakan, Yargıtay, Danıştay, Sayıştay gibi) ondan sonra resmîleşmiştir ve kimin türettiği tartışmalıdır. Bazı satırlar (Kolordu, Alay, Ordugâh, Nafia) eşleşme olarak doğru olmadığından alınmadı.

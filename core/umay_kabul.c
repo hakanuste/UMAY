@@ -1,4 +1,5 @@
 #include "umay_kabul.h"
+#include "umay_ozturk.h"
 #include "umay_bilgi.h"
 #include "umay_ozan.h"
 #include "umay_ogren.h"
@@ -199,6 +200,14 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
             m = metin;
             { char t[48]; um_bicim(t, sizeof t, "  (PDF: %d sayfa, %d bayt metin)\n", sayfa, pr); um_ekle(rapor, n, t); }
         }
+
+        /* ÇEVİRMEN: sözlük/terim belgesinden "eski = yeni" çiftlerini öğren */
+        { int oz = ozturk_ogren(m, boy, kok);
+          if (oz > 0) {
+              char t[160];
+              um_bicim(t, sizeof t, "  ÇEVİRMEN: %d öz Türkçe karşılık öğrendi (gözden geçir: %s/ozturkce.txt)\n", oz, kok);
+              um_ekle(rapor, n, t);
+          } }
 
         char baslik0[72]; ilk_satir(m, baslik0, sizeof baslik0);
         if (!baslik0[0]) um_kopya(baslik0, sizeof baslik0, g[i].ad);

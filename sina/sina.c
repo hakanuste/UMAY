@@ -1977,6 +1977,30 @@ int main(void) {
         ozturk_yukle("/yok/yok");
     }
 
+    /* --- 59. ÇEVİRMEN sözlük belgesinden öğrenir --- */
+    {
+        printf("\n[59] öz Türkçe öğrenme\n");
+        char kd[300]; snprintf(kd, sizeof kd, "%s/ozo%ld", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", (long)time(0));
+        up_dizin_yarat(kd);
+        ozturk_yukle(kd);
+        const char *d1 =
+            "Dil Devrimi terimleri\n"
+            "* Hendese \\(\\rightarrow \\) Geometri [[1](https://x)]\n"
+            "   * Mütenasip -> Orantılı\n"
+            "kesr = bölüntü; adet = sayı; nısf-ı kutur = yarıçap; tecrübe = deneyim\n"
+            "* Savunma (Eski karşılığı: Müdafaa)\n* Kurum / Kuruluş (Eski karşılığı: Müessese)\n* Kurmay (Eski karşılığı: Erkân-ı Harp)\n"
+            "Not: toplam = ilk ve ikinci sayı birlikte\n";
+        int a = ozturk_ogren(d1, um_uzun(d1), kd);
+        dene("altı yeni çift öğrenildi (bilinen ve çok sözcüklü atlandı)", a == 6);
+        ozturk_bulgu_t b[4];
+        dene("öğrenilen sözcük süzgeçte bulunur", ozturk_tara("Mütenasip bir sonuç", b, 4) == 1 && um_icinde(b[0].oneri, "orantılı") != 0);
+        dene("parantezli biçim: eski sözcük süzgeçte", ozturk_tara("müdafaa hattı", b, 4) == 1 && um_icinde(b[0].oneri, "savunma") != 0);
+        dene("aynı belge ikinci kez öğretmez", ozturk_ogren(d1, um_uzun(d1), kd) == 0);
+        const char *d2 = "değişken: x = 5000\ny = zaman\n";
+        dene("terim/sözlük ipucu yoksa öğrenmez", ozturk_ogren(d2, um_uzun(d2), kd) == 0);
+        ozturk_yukle("/yok/yok");
+    }
+
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
     if (g_atlandi)
         printf("\n=== SONUC: %d gecti, %d kaldi, %d atlandi (veri kurulu degil) ===\n",
