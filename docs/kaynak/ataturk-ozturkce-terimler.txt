@@ -36,4 +36,4 @@ Eğitim ve gündelik dil
 * Kuzey (Eski karşılığı: Şimal)
 * Güney (Eski karşılığı: Cenup)
 
-Not: bu liste hep Atatürk'e bağlanarak anlatılmıştır; bir kısmı (Başbakan, Yargıtay, Danıştay, Sayıştay gibi) ondan sonra resmîleşmiştir ve kimin türettiği tartışmalıdır. Bazı satırlar (Kolordu, Alay, Ordugâh, Nafia) eşleşme olarak doğru olmadığından alınmadı.
+Not: kullanıcıya göre bu terimlerin Atatürk'e bağlanması çalışma defterlerinde de görülen bir bilgidir (defter kaynağı henüz belgeye eklenmedi). Bazı satırlar (Kolordu, Alay, Ordugâh, Nafia) eşleşme olarak doğru olmadığından alınmadı.
