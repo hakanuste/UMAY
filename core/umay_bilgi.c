@@ -453,7 +453,7 @@ int bilgi_tara(const char *kok) {
             /* model ve sözlük belge değildir */
             if (um_esit(girdi[i].ad, "umay.us1") ||
                 um_esit(girdi[i].ad, "sozluk.txt") ||
-                um_esit(girdi[i].ad, "bengi.txt") ||
+                um_esit(girdi[i].ad, "bengi.txt") || um_esit(girdi[i].ad, "ozturkce.txt") ||
                 um_esit(girdi[i].ad, "ayar.txt")) continue;
 
             um_bicim(yol, sizeof yol, "%s/%s", dyol, girdi[i].ad);
@@ -794,6 +794,14 @@ int bilgi_baglam_bul_kat(const char *soru, const char *const *kategoriler,
                          int kat_sayi, baglam_t *cikan, int en_cok) {
     bilgi_suzgec_t sz = { kategoriler, kat_sayi, 0, 0 };
     return bilgi_baglam_bul_suzgec(soru, &sz, cikan, en_cok);
+}
+
+int bilgi_kayit_oku(int i, bilgi_ham_t *k) {
+    if (!k || i < 0 || i >= g_sayi || !g_indeks[i].dolu) return UM_YOK;
+    const kayit_t *r = &g_indeks[i];
+    k->kategori = r->kategori; k->baslik = r->baslik; k->kaynak = r->kaynak;
+    k->dil = r->dil[0] ? r->dil : "tr"; k->icerik = r->icerik; k->kaynak_tur = r->kaynak_tur;
+    return UM_OLDU;
 }
 
 int bilgi_baglam_bul(const char *soru, baglam_t *cikan, int en_cok) {

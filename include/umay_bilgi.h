@@ -99,6 +99,9 @@ int  bilgi_dizin_kur(const char *kok);         /* 13 alt dizini açar */
 int  bilgi_doktrin_yukle(void);
 int  bilgi_tara(const char *kok);              /* üstveriye göre indeksler */
 int  bilgi_sayi(void);
+/* i. kaydı salt okunur verir (eğitim verisi çıkarmak için); yoksa UM_YOK. */
+typedef struct { const char *kategori, *baslik, *kaynak, *dil, *icerik; kaynak_tur_t kaynak_tur; } bilgi_ham_t;
+int  bilgi_kayit_oku(int i, bilgi_ham_t *k);
 void bilgi_kirp(int n);                        /* son eklenenleri geri al */
 int  bilgi_kategori_sayisi(const char *kategori);
 

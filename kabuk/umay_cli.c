@@ -21,6 +21,7 @@
 #include "umay_ogren.h"
 #include "umay_arastir.h"
 #include "umay_kabul.h"
+#include "umay_ozturk.h"
 #include "umay_ortak.h"
 #include "umay_egit.h"
 #include "umay_bilgi.h"
@@ -50,6 +51,73 @@ static void kullanim(const char *ad)
     printf("~/.local/share/umay/kut, /usr/local/share/umay/kut\n");
 }
 
+
+/* ---- --veri: ince ayar için sohbet biçiminde JSONL (dayanaklı yanıt, "bulamadım", öz Türkçe) ---- */
+static void json_yaz(const char *s) {
+    putchar('"');
+    for (; *s; s++) {
+        unsigned char c = (unsigned char)*s;
+        if (c == '"') fputs("\\\"", stdout);
+        else if (c == '\\') fputs("\\\\", stdout);
+        else if (c == '\n' || c == '\r' || c == '\t') fputs("\\n", stdout);
+        else if (c < 0x20) putchar(' ');
+        else putchar(c);
+    }
+    putchar('"');
+}
+static void veri_satir(const char *dayanak, const char *soru, const char *yanit) {
+    fputs("{\"messages\":[{\"role\":\"system\",\"content\":", stdout);
+    json_yaz("Sen UMAY'sın. Yalnız 'DAYANAK' bölümündeki bilgiye dayanarak, öz Türkçe, kısa ve açık yanıtla. Dayanakta olmayanı uydurma; yetmiyorsa 'bunu dayanağımda bulamadım' de.");
+    fputs("},{\"role\":\"user\",\"content\":", stdout);
+    static char u[4096];
+    um_bicim(u, sizeof u, "DAYANAK:\n%s\n\nSORU: %s", dayanak, soru);
+    json_yaz(u);
+    fputs("},{\"role\":\"assistant\",\"content\":", stdout);
+    json_yaz(yanit);
+    fputs("}]}\n", stdout);
+}
+static int veri_uret(void) {
+    static const struct { soru_tipi_t t; const char *kalip; } SK[] = {
+        { ST_NE, "%s nedir?" }, { ST_NASIL, "%s nasıl yapılır?" }, { ST_NEDEN, "%s neden önemli?" },
+        { ST_NEREDE, "%s nerede kullanılır?" }, { ST_KAC, "%s kaç derece, kaç ölçü?" },
+    };
+    int n = bilgi_sayi(), yazilan = 0, atilan_yabanci = 0, olumsuz = 0, atla = 0;
+    static char dayanak[1500], soru[160], yanit[900], bas[64];
+    for (int i = 0; i < n; i++) {
+        bilgi_ham_t k;
+        if (bilgi_kayit_oku(i, &k) != UM_OLDU) continue;
+        if (k.kaynak_tur == KT_DIS || !um_esit(k.dil, "tr") || um_uzun(k.icerik) < 120) { atla++; continue; }
+        um_kopya(dayanak, sizeof dayanak, k.icerik);
+        um_kopya(bas, sizeof bas, k.baslik);
+        for (unsigned q = 0; q < sizeof SK / sizeof SK[0]; q++) {
+            if (!bilgi_tip_ipucu_var(SK[q].t, dayanak)) continue;
+            um_bicim(soru, sizeof soru, SK[q].kalip, bas);
+            /* yanıt: ipucu taşıyan ilk üç cümle (dayanaktan aynen) */
+            yanit[0] = 0; int say = 0;
+            const char *p = dayanak;
+            while (*p && say < 3) {
+                char cum[400]; uint32_t o = 0;
+                while (*p && o + 1 < sizeof cum) { cum[o++] = *p; if (*p == '.' && (p[1] == ' ' || p[1] == '\n' || !p[1])) { p++; break; } p++; }
+                cum[o] = 0;
+                if (o > 20 && bilgi_tip_ipucu_var(SK[q].t, cum)) { if (yanit[0]) um_ekle(yanit, sizeof yanit, " "); um_ekle(yanit, sizeof yanit, cum); say++; }
+            }
+            if (!yanit[0]) continue;
+            ozturk_bulgu_t b[2];
+            if (ozturk_tara(yanit, b, 2) > 0) { atilan_yabanci++; continue; }   /* yabancı sözcük öğretme */
+            veri_satir(dayanak, soru, yanit); yazilan++;
+        }
+        /* olumsuz örnek: başka kaydın başlığı sorulur, dayanak yetmez */
+        bilgi_ham_t d;
+        if (bilgi_kayit_oku((i * 7 + 3) % n, &d) == UM_OLDU && !um_esit(d.kategori, k.kategori) && d.kaynak_tur != KT_DIS) {
+            um_bicim(soru, sizeof soru, "%s nedir?", d.baslik);
+            veri_satir(dayanak, soru, "Bunu dayanağımda bulamadım."); olumsuz++;
+        }
+    }
+    fprintf(stderr, "veri: %d örnek (%d olumsuz) · yabancı sözcük yüzünden atılan %d · atlanan kayıt %d\n",
+            yazilan + olumsuz, olumsuz, atilan_yabanci, atla);
+    return yazilan + olumsuz;
+}
+
 int main(int argc, char **argv)
 {
     const char *ad = (argc > 0 && argv[0]) ? argv[0] : "umay";
@@ -76,6 +144,15 @@ int main(int argc, char **argv)
             fputs(ck, stdout);
             umay_kapan();
             return 0;
+        }
+        if (um_esit(argv[1], "--veri")) {
+            gui_sade_kip();
+            if (umay_kur() != 0) { fprintf(stderr, "UMAY: baslatilamadi\n"); return 1; }
+            gui_girdi_kapat();
+            ozturk_yukle(ayar_metin("kutuphane", "kut"));
+            int v = veri_uret();
+            umay_kapan();
+            return v > 0 ? 0 : 1;
         }
         if (um_esit(argv[1], "--5n1k")) {
             gui_sade_kip();
