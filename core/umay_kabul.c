@@ -10,7 +10,7 @@
 #include "umay_str.h"
 
 #define PARCA_BAYT   2400
-#define PARCA_MAX    512
+#define PARCA_MAX    4096
 #define DOSYA_MAX    (64 * 1024 * 1024)
 #define METIN_MAX    (4 * 1024 * 1024)
 
@@ -147,6 +147,38 @@ int kabul_bekleyen(const char *kok) {
     return n;
 }
 
+static int bas_esit(const char *a, const char *b, uint32_t n) {
+    for (uint32_t i = 0; i < n; i++) if (a[i] != b[i]) return 0;
+    return 1;
+}
+
+/* _adlar.txt: uygulama uzun adı 32 bayta kısaltınca özgün adı buraya yazar.
+ * Kaynak ve başlıkta kısa dosya adı değil, kitabın kendi adı görünsün. */
+static void ozgun_ad(const char *adlar, const char *kisa, char *cik, uint32_t n, char *alan, uint32_t an) {
+    um_kopya(cik, n, kisa);
+    if (alan && an) alan[0] = 0;
+    if (!adlar) return;
+    uint32_t kl = um_uzun(kisa);
+    for (const char *p = adlar; *p; ) {
+        const char *e = p; while (*e && *e != '\n') e++;
+        if ((uint32_t)(e - p) > kl + 1 && bas_esit(p, kisa, kl) && p[kl] == '\t') {
+            const char *ob = p + kl + 1, *oe = e;
+            for (const char *t = ob; t < e; t++) if (*t == '\t') { oe = t; break; }
+            if (alan && an && oe < e) {              /* üçüncü sütun: kullanıcının seçtiği alan */
+                uint32_t a = (uint32_t)(e - (oe + 1)); if (a >= an) a = an - 1;
+                um_bellek_kopya(alan, oe + 1, a); alan[a] = 0;
+            }
+            uint32_t k = (uint32_t)(oe - ob);
+            if (k >= n) k = n - 1;
+            um_bellek_kopya(cik, ob, k); cik[k] = 0;
+            /* UTF-8 ortasında kesme */
+            while (k > 0 && ((unsigned char)cik[k]) >= 0x80 && ((unsigned char)cik[k] & 0xC0) == 0x80) cik[--k] = 0;
+            return;
+        }
+        p = *e ? e + 1 : e;
+    }
+}
+
 int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
     kabul_sonuc_t bos; if (!s) s = &bos;
     um_bellek_doldur(s, 0, sizeof *s);
@@ -157,6 +189,9 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
     char lyol[UMAY_YOL_MAX]; uint32_t lu = 0;
     um_bicim(lyol, sizeof lyol, "%s/_islendi.txt", gd);
     char *liste = oku_tum(lyol, &lu);
+    char alyol[UMAY_YOL_MAX]; uint32_t au = 0;
+    um_bicim(alyol, sizeof alyol, "%s/_adlar.txt", gd);
+    char *adlar = oku_tum(alyol, &au);       /* "kisa-ad<TAB>özgün ad" satırları; yoksa 0 */
 
     up_girdi_t g[32];
     int adet = up_dizin_listele(gd, g, 0, 32);
@@ -164,21 +199,25 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         um_ekle(rapor, n, "gelen/ boş. Belgelerini (.txt, .md) şuraya at: ");
         um_ekle(rapor, n, gd); um_ekle(rapor, n, "\n");
         if (liste) up_biraktir(liste);
+        if (adlar) up_biraktir(adlar);
         return 0;
     }
 
     for (int i = 0; i < adet; i++) {
         if (g[i].dizin_mi || g[i].ad[0] == '_') continue;
+        char gor[96], zalan[32]; ozgun_ad(adlar, g[i].ad, gor, sizeof gor, zalan, sizeof zalan);
+        int zorunlu = zalan[0] ? (int)bilgi_kategori_alani(zalan) : 0;   /* 0: otomatik */
+        if (zorunlu < 0) zorunlu = 0;   /* kitabın gerçek adı (kısa dosya adı değil) */
         if (!metin_dosyasi(g[i].ad)) {
             s->desteklenmeyen++;
-            um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad);
+            um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, gor);
             um_ekle(rapor, n, " metin değil (.txt/.md'ye çevirip yeniden at)\n");
             continue;
         }
         char yol[UMAY_YOL_MAX];
         um_bicim(yol, sizeof yol, "%s/%s", gd, g[i].ad);
         uint32_t boy = 0; char *m = oku_tum(yol, &boy);
-        if (!m) { um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " okunamadı ya da 64 MB'tan büyük\n"); continue; }
+        if (!m) { um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, gor); um_ekle(rapor, n, " okunamadı ya da 64 MB'tan büyük\n"); continue; }
         uint32_t hd = fnv(m, boy);
         if (islendi_mi(liste, hd)) { s->tekrar++; up_biraktir(m); continue; }
         s->dosya++;
@@ -190,9 +229,9 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
                 const char *ned = pr == PDF_SIFRELI ? "şifreli PDF (şifresiz kopyasını at)"
                                 : pr == PDF_METINSIZ ? "metin katmanı yok: taranmış görüntü olabilir, OCR gerekir"
                                 : "PDF okunamadı (bozuk ya da desteklenmeyen yapı)";
-                um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " — "); um_ekle(rapor, n, ned); um_ekle(rapor, n, "\n");
+                um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, gor); um_ekle(rapor, n, " — "); um_ekle(rapor, n, ned); um_ekle(rapor, n, "\n");
                 s->desteklenmeyen++;
-                islendi_ekle(kok, &liste, hd, g[i].ad, 0);
+                islendi_ekle(kok, &liste, hd, gor, 0);
                 if (metin) up_biraktir(metin);
                 continue;
             }
@@ -210,7 +249,7 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
           } }
 
         char baslik0[72]; ilk_satir(m, baslik0, sizeof baslik0);
-        if (!baslik0[0]) um_kopya(baslik0, sizeof baslik0, g[i].ad);
+        if (!baslik0[0]) um_kopya(baslik0, sizeof baslik0, gor);
         int kat_say[ALAN_SAYI + 1]; for (int q = 0; q <= ALAN_SAYI; q++) kat_say[q] = 0;
         int yaz = 0, bel = 0, kat_parca = 0;
 
@@ -231,9 +270,9 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
                 if (up_boy(yol2) <= 0 && up_yaz_yola(yol2, m, boy) >= 0) {
                     bilgi_belge_ekle(yol2); s->yeni_kayit++; yaz = 1; s->parca++;
                 }
-                um_ekle(rapor, n, "  ✓ "); um_ekle(rapor, n, g[i].ad);
+                um_ekle(rapor, n, "  ✓ "); um_ekle(rapor, n, gor);
                 um_ekle(rapor, n, " → "); um_ekle(rapor, n, kat); um_ekle(rapor, n, " (künyesine göre)\n");
-                islendi_ekle(kok, &liste, hd, g[i].ad, yaz);
+                islendi_ekle(kok, &liste, hd, gor, yaz);
                 up_biraktir(m);
                 continue;
             }
@@ -274,7 +313,8 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
             um_bellek_kopya(pm, m + pb[x], pu[x]); pm[pu[x]] = 0;
             int sk[ALAN_SAYI]; ozan_alan_skorla(pm, sk);
             int bb = en_iyi(sk, 0);
-            if (bb > 0 && sk[bb] >= 2) pk[x] = bb;
+            if (zorunlu > 0) pk[x] = zorunlu;          /* kullanıcı alanı söyledi: tahmin yok */
+            else if (bb > 0 && sk[bb] >= 2) pk[x] = bb;
             else if (bb > 0 && sk[bb] == 1 && onceki > 0 && pu[x] >= 100) pk[x] = onceki;
             else {
                 baglam_t bg[1]; char kes[320]; uint32_t kz = pu[x] < 300 ? pu[x] : 300;
@@ -303,16 +343,16 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
                 char bas_t[96], et[96];
                 um_bicim(bas_t, sizeof bas_t, "%s (bölüm %d)", baslik0, ++kat_parca);
                 um_bicim(et, sizeof et, "kabul,%s", kat);
-                int r = parca_yaz(kok, kat, hp, "", bas_t, et, g[i].ad, pm, cu);
+                int r = parca_yaz(kok, kat, hp, "", bas_t, et, gor, pm, cu);
                 if (r > 0) { yaz++; s->parca++; s->yeni_kayit++; kat_say[b]++; } else if (r == 0) s->tekrar++;
                 /* çok alanlı: ikinci alan yakın puandaysa ona da */
-                if (b) {
+                if (b && !zorunlu) {
                     int sk[ALAN_SAYI]; ozan_alan_skorla(pm, sk);
                     int i2; int b2 = en_iyi(sk, &i2);
                     if (i2 > 0 && i2 != b && sk[i2] >= 3 && sk[i2] * 3 >= sk[b2] * 2 && sk[b] >= 2) {
                         const char *k2 = bilgi_alan_kategorisi((alan_t)i2);
                         char et2[96]; um_bicim(et2, sizeof et2, "kabul,%s,%s", k2, kat);
-                        if (parca_yaz(kok, k2, hp, "-b", bas_t, et2, g[i].ad, pm, cu) > 0) { s->parca++; s->yeni_kayit++; kat_say[i2]++; }
+                        if (parca_yaz(kok, k2, hp, "-b", bas_t, et2, gor, pm, cu) > 0) { s->parca++; s->yeni_kayit++; kat_say[i2]++; }
                     }
                 }
                 up_biraktir(pm);
@@ -321,7 +361,7 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         }
         up_biraktir(pb); up_biraktir(pu); up_biraktir(pk);
         /* satır raporu */
-        um_ekle(rapor, n, "  ✓ "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " →");
+        um_ekle(rapor, n, "  ✓ "); um_ekle(rapor, n, gor); um_ekle(rapor, n, " →");
         for (int a = 0; a < ALAN_SAYI; a++) if (kat_say[a]) {
             char t[64];
             um_bicim(t, sizeof t, " %s %d,", a ? bilgi_alan_kategorisi((alan_t)a) : "ortak", kat_say[a]);
@@ -329,10 +369,11 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         }
         if (bel) { char t[48]; um_bicim(t, sizeof t, " (belirsiz %d parça: gözden geçir)", bel); um_ekle(rapor, n, t); }
         um_ekle(rapor, n, "\n");
-        islendi_ekle(kok, &liste, hd, g[i].ad, yaz);
+        islendi_ekle(kok, &liste, hd, gor, yaz);
         up_biraktir(m);
     }
     if (liste) up_biraktir(liste);
+    if (adlar) up_biraktir(adlar);
     if (ceviri_bekleyen() > 0) {
         int cv = ogren_acik() ? ceviri_gecis(10) : 0;
         char t[160];

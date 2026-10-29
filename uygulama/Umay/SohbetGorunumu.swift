@@ -46,6 +46,7 @@ struct SohbetGorunumu: View {
     @State private var girdi = ""
     @State private var ayarAcik = false
     @State private var belgeSec = false
+    @AppStorage("umay.belgeAlani") private var belgeAlani = "otomatik"
     @Environment(\.scenePhase) private var evre
 
     var body: some View {
@@ -69,6 +70,24 @@ struct SohbetGorunumu: View {
             HStack {
                 Button { belgeSec = true } label: { Image(systemName: "doc.badge.plus") }
                     .help("Belge ekle: ajanlar inceleyip yerleştirir")
+                Menu {
+                    Picker("Eklenen belgenin alanı", selection: $belgeAlani) {
+                        Text("Otomatik (ajanlar karar verir)").tag("otomatik")
+                        Text("Yazıt — kültür, tarih, genel arşiv").tag("yazit")
+                        Text("Yer-Su — tarım, toprak, su").tag("yer-su")
+                        Text("Balbal — yapı, taş ev, mimari").tag("balbal")
+                        Text("Kün — güneş enerjisi").tag("kun")
+                        Text("Demir — elektronik, donanım").tag("demir")
+                        Text("Tulga — araç, otomotiv").tag("tulga")
+                        Text("Otacı — sağlık, tıp").tag("otaci")
+                        Text("Yargu — hukuk").tag("yargu")
+                        Text("Akça — para, ekonomi").tag("akca")
+                        Text("Alpagu — güvenlik, savunma").tag("alpagu")
+                        Text("Kopuz — müzik").tag("kopuz")
+                        Text("Oyun — dans").tag("oyun")
+                    }
+                } label: { Text(belgeAlani == "otomatik" ? "Alan: otomatik" : "Alan: \(belgeAlani)").font(.caption) }
+                .menuStyle(.borderlessButton).fixedSize()
                 TextField("Bir şey sor…", text: $girdi)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(gonder)
@@ -82,7 +101,7 @@ struct SohbetGorunumu: View {
         .fileImporter(isPresented: $belgeSec,
                       allowedContentTypes: [.plainText, .pdf, UTType(filenameExtension: "md") ?? .plainText],
                       allowsMultipleSelection: true) { sonuc in
-            if case .success(let adresler) = sonuc { motor.belgeEkle(adresler) }
+            if case .success(let adresler) = sonuc { motor.belgeEkle(adresler, alan: belgeAlani == "otomatik" ? "" : belgeAlani) }
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 560)

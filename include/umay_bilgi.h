@@ -30,7 +30,7 @@
 #ifdef UMAY_OTUKEN
 #define BILGI_KAYIT_MAX   96
 #else
-#define BILGI_KAYIT_MAX   4096
+#define BILGI_KAYIT_MAX   16384
 #endif
 #endif
 #define BILGI_KELIME_MAX  96

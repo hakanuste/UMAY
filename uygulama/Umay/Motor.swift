@@ -175,6 +175,18 @@ final class UmayMotor: ObservableObject {
         return u.isEmpty ? "\(kok)-\(son)" : "\(kok)-\(son).\(u)"
     }
 
+    /// Kısa ad -> özgün ad eşlemesini gelen/_adlar.txt'ye yazar (KABUL kaynakta kitabın adını gösterir).
+    static func adiKaydet(kisa: String, ozgun: String, alan: String = "") {
+        guard kisa != ozgun || !alan.isEmpty else { return }
+        let yol = gelenDizini.appendingPathComponent("_adlar.txt")
+        let ek = alan.isEmpty ? "" : "\t\(alan)"
+        let satir = "\(kisa)\t\(ozgun.replacingOccurrences(of: "\n", with: " "))\(ek)\n"
+        if let d = satir.data(using: .utf8) {
+            if let h = try? FileHandle(forWritingTo: yol) { h.seekToEndOfFile(); h.write(d); try? h.close() }
+            else { try? d.write(to: yol) }
+        }
+    }
+
     /// gelen/ içindeki fazla uzun adlı dosyaları kısa adla yeniden adlandırır (aksi halde hiç görülmezler).
     func gelenAdlariniKisalt() {
         let fm = FileManager.default
@@ -183,11 +195,13 @@ final class UmayMotor: ObservableObject {
             let kaynak = UmayMotor.gelenDizini.appendingPathComponent(ad)
             let hedef = UmayMotor.gelenDizini.appendingPathComponent(UmayMotor.kisaAd(ad))
             try? fm.removeItem(at: hedef)
-            try? fm.moveItem(at: kaynak, to: hedef)
+            if (try? fm.moveItem(at: kaynak, to: hedef)) != nil {
+                UmayMotor.adiKaydet(kisa: hedef.lastPathComponent, ozgun: ad)
+            }
         }
     }
 
-    func belgeEkle(_ adresler: [URL]) {
+    func belgeEkle(_ adresler: [URL], alan: String = "") {
         let fm = FileManager.default
         var notlar: [String] = []
         for a in adresler {
@@ -198,6 +212,7 @@ final class UmayMotor: ObservableObject {
             try? fm.removeItem(at: hedef)
             do {
                 try fm.copyItem(at: a, to: hedef)
+                UmayMotor.adiKaydet(kisa: hedef.lastPathComponent, ozgun: a.lastPathComponent, alan: alan)
                 notlar.append("✓ \(a.lastPathComponent) alındı (\(boyut / 1024) KB)")
             } catch {
                 // Sessizce yutma: neden eklenemediğini kullanıcıya söyle.
