@@ -2,11 +2,33 @@ import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
 
-/// Okuyucu: yanıtı sistemin Türkçe sesiyle okur (Piper gerekmez).
+/// Okuyucu: yanıtı sistemin Türkçe sesiyle okur (Piper gerekmez), sonra Dede Korkut tınısına çevirir:
+/// perde ~3,4 yarım ton aşağı, %15 yavaş, çello gibi sıcak orta bas, çok hafif yankı.
 /// Okunan: yanıtın özü. "(Dayanağım…)", "Güven:" gibi künye satırları okunmaz, yazıda kalır.
 final class Okuyucu {
     static let ortak = Okuyucu()
     private let ses = AVSpeechSynthesizer()
+    private let motor = AVAudioEngine()
+    private let oynatici = AVAudioPlayerNode()
+    private let perde = AVAudioUnitTimePitch()
+    private let esitleyici = AVAudioUnitEQ(numberOfBands: 4)
+    private let yanki = AVAudioUnitReverb()
+    private var bagliBicim: AVAudioFormat?
+    private var konusuyor = false
+    private var nesil = 0   // eski konuşmanın geç gelen tamponlarını yok saymak için
+
+    init() {
+        perde.pitch = -343        // sent: yaklaşık -3,4 yarım ton
+        perde.rate = 0.85         // %15 yavaş
+        let b = esitleyici.bands
+        b[0].filterType = .highPass;  b[0].frequency = 70;   b[0].bypass = false
+        b[1].filterType = .parametric; b[1].frequency = 220;  b[1].bandwidth = 1.2; b[1].gain = 6; b[1].bypass = false
+        b[2].filterType = .parametric; b[2].frequency = 450;  b[2].bandwidth = 1.5; b[2].gain = 3; b[2].bypass = false
+        b[3].filterType = .highShelf;  b[3].frequency = 7000; b[3].gain = -4;       b[3].bypass = false
+        yanki.loadFactoryPreset(.smallRoom)
+        yanki.wetDryMix = 7       // çok az yankı
+        [oynatici, perde, esitleyici, yanki].forEach { motor.attach($0) }
+    }
 
     static func ozunuAyir(_ metin: String) -> String {
         let satirlar = metin.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
@@ -17,30 +39,66 @@ final class Okuyucu {
 
     private func soyleyici(_ metin: String) -> AVSpeechUtterance {
         let s = AVSpeechUtterance(string: metin)
-        // En kaliteli Türkçe sesi seç (varsa gelişmiş/premium), yoksa varsayılan.
+        // Erkek Türkçe ses (Cem) varsa o; yoksa en kaliteli Türkçe ses.
         let sesler = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == "tr-TR" }
-        // Dede Korkut erkek sesli olmalı: kurulu erkek Türkçe ses (Cem) varsa o, yoksa en kaliteli olan.
         let erkek = sesler.filter { $0.name.contains("Cem") }
         s.voice = erkek.max(by: { $0.quality.rawValue < $1.quality.rawValue })
             ?? sesler.max(by: { $0.quality.rawValue < $1.quality.rawValue })
             ?? AVSpeechSynthesisVoice(language: "tr-TR")
-        s.pitchMultiplier = 0.75          // daha kalın
-        s.rate = AVSpeechUtteranceDefaultSpeechRate * 0.85   // daha ağır
+        s.rate = AVSpeechUtteranceDefaultSpeechRate
         return s
+    }
+
+    private func zincirKur(_ bicim: AVAudioFormat) {
+        if let b = bagliBicim, b == bicim { return }
+        if motor.isRunning { motor.stop() }
+        motor.disconnectNodeOutput(oynatici); motor.disconnectNodeOutput(perde)
+        motor.disconnectNodeOutput(esitleyici); motor.disconnectNodeOutput(yanki)
+        motor.connect(oynatici, to: perde, format: bicim)
+        motor.connect(perde, to: esitleyici, format: bicim)
+        motor.connect(esitleyici, to: yanki, format: bicim)
+        motor.connect(yanki, to: motor.mainMixerNode, format: bicim)
+        bagliBicim = bicim
+    }
+
+    private func sustur() {
+        nesil += 1
+        ses.stopSpeaking(at: .immediate)
+        oynatici.stop()
+        konusuyor = false
+    }
+
+    private func konus(_ metin: String) {
+        sustur()
+        let benim = nesil
+        konusuyor = true
+        ses.write(soyleyici(metin)) { [weak self] tampon in
+            guard let self = self, self.nesil == benim,
+                  let pcm = tampon as? AVAudioPCMBuffer, pcm.frameLength > 0 else { return }
+            DispatchQueue.main.async {
+                guard self.nesil == benim else { return }
+                self.zincirKur(pcm.format)
+                if !self.motor.isRunning { try? self.motor.start() }
+                if !self.oynatici.isPlaying { self.oynatici.play() }
+                self.oynatici.scheduleBuffer(pcm, completionHandler: nil)
+            }
+        }
+        // Konuşma süresi kestirilemediğinden "konuşuyor" bayrağı yeni komutla ya da durdurmayla sıfırlanır.
     }
 
     /// Düğmeyle: konuşuyorsa susturur, susuyorsa okur.
     func oku(_ metin: String) {
-        if ses.isSpeaking { ses.stopSpeaking(at: .immediate); return }
-        ses.speak(soyleyici(Okuyucu.ozunuAyir(metin)))
+        if konusuyor && oynatici.isPlaying { sustur(); return }
+        let ozu = Okuyucu.ozunuAyir(metin)
+        guard !ozu.isEmpty else { return }
+        konus(ozu)
     }
 
     /// Yanıt gelince kendiliğinden: önceki konuşmayı keser, yenisini okur.
     func kendiliginden(_ metin: String) {
         let ozu = Okuyucu.ozunuAyir(metin)
         guard !ozu.isEmpty else { return }
-        if ses.isSpeaking { ses.stopSpeaking(at: .immediate) }
-        ses.speak(soyleyici(ozu))
+        konus(ozu)
     }
 }
 
