@@ -68,52 +68,65 @@ final class Okuyucu {
         konusuyor = false
     }
 
-    private var donusturucu: AVAudioConverter?
-    private var kaynakBicim: AVAudioFormat?
     private var efektBozuk = false   // zincir kurulamazsa düz sesle okunur; uygulama çökmez
 
-    /// Sentezleyicinin tamponu Int16 olabilir; zincir (perde/EQ) Float32 ister.
-    private func floatTampon(_ pcm: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-        guard let hedef = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: pcm.format.sampleRate,
-                                        channels: 1, interleaved: false) else { return nil }
-        if pcm.format.commonFormat == .pcmFormatFloat32 && pcm.format.channelCount == 1 { return pcm }
-        if kaynakBicim != pcm.format { donusturucu = AVAudioConverter(from: pcm.format, to: hedef); kaynakBicim = pcm.format }
-        guard let d = donusturucu, let cikis = AVAudioPCMBuffer(pcmFormat: hedef, frameCapacity: pcm.frameLength) else { return nil }
-        var verildi = false
-        var hata: NSError?
-        d.convert(to: cikis, error: &hata) { _, durum in
-            if verildi { durum.pointee = .noDataNow; return nil }
-            verildi = true; durum.pointee = .haveData; return pcm
-        }
-        return (hata == nil && cikis.frameLength > 0) ? cikis : nil
-    }
-
+    /// macOS: konuşmayı `say` ile DOSYAYA üretir, dosyayı zincirden geçirip çalar.
+    /// (AVSpeechSynthesizer.write macOS 12'de CoreAudio'da çöküyordu; dosya yolu kararlı.)
     private func konus(_ metin: String) {
         sustur()
         let benim = nesil
         let soz = soyleyici(metin)
+        #if os(macOS)
         if efektBozuk { ses.speak(soz); return }
-        konusuyor = true
-        ses.write(soz) { [weak self] tampon in
-            guard let self = self, self.nesil == benim,
-                  let pcm = tampon as? AVAudioPCMBuffer, pcm.frameLength > 0,
-                  let f = self.floatTampon(pcm) else { return }
+        let sesAdi = soz.voice?.name ?? ""
+        let dosya = FileManager.default.temporaryDirectory.appendingPathComponent("umay-ses-\(benim).aiff")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let ok = Okuyucu.sayUret(metin, ses: sesAdi, dosya: dosya)
             DispatchQueue.main.async {
-                guard self.nesil == benim, !self.efektBozuk else { return }
-                self.zincirKur(f.format)
+                guard let self = self, self.nesil == benim else { try? FileManager.default.removeItem(at: dosya); return }
+                guard ok, let f = try? AVAudioFile(forReading: dosya) else {
+                    self.ses.speak(soz); try? FileManager.default.removeItem(at: dosya); return
+                }
+                self.zincirKur(f.processingFormat)
                 if !self.motor.isRunning {
                     do { try self.motor.start() }
-                    catch { self.efektBozuk = true; self.konusuyor = false; self.ses.speak(self.soyleyici(metin)); return }
+                    catch { self.efektBozuk = true; self.ses.speak(soz); return }
                 }
-                if !self.oynatici.isPlaying { self.oynatici.play() }
-                self.oynatici.scheduleBuffer(f, completionHandler: nil)
+                self.konusuyor = true
+                self.oynatici.scheduleFile(f, at: nil) {
+                    DispatchQueue.main.async { if self.nesil == benim { self.konusuyor = false }; try? FileManager.default.removeItem(at: dosya) }
+                }
+                self.oynatici.play()
             }
         }
+        #else
+        ses.speak(soz)
+        #endif
     }
+
+    #if os(macOS)
+    /// `say -v <ses> -o <dosya> -f -` ile metni AIFF'e sentezler (metin standart girişten gider).
+    static func sayUret(_ metin: String, ses: String, dosya: URL) -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+        var arg = ["-o", dosya.path, "--data-format=LEF32@22050", "-f", "-"]
+        if !ses.isEmpty { arg = ["-v", ses] + arg }
+        p.arguments = arg
+        let giris = Pipe()
+        p.standardInput = giris
+        p.standardError = FileHandle.nullDevice
+        p.standardOutput = FileHandle.nullDevice
+        do { try p.run() } catch { return false }
+        giris.fileHandleForWriting.write(metin.data(using: .utf8) ?? Data())
+        try? giris.fileHandleForWriting.close()
+        p.waitUntilExit()
+        return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dosya.path)
+    }
+    #endif
 
     /// Düğmeyle: konuşuyorsa susturur, susuyorsa okur.
     func oku(_ metin: String) {
-        if konusuyor && oynatici.isPlaying { sustur(); return }
+        if konusuyor { sustur(); return }
         let ozu = Okuyucu.ozunuAyir(metin)
         guard !ozu.isEmpty else { return }
         konus(ozu)
