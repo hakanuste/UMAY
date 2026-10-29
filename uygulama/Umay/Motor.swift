@@ -145,6 +145,7 @@ final class UmayMotor: ObservableObject {
         guard adlar.contains(where: { !$0.hasPrefix("_") && !$0.hasPrefix(".") }) else { return }
         mesgul = true
         sira.async { [weak self] in
+            UmayMotor.taranmisPdfleriOku { m in DispatchQueue.main.async { self?.iletiler.append(Ileti(benMi: false, metin: m, sistemMi: true)) } }
             var rapor = [CChar](repeating: 0, count: 8192)
             let n = umay_gomulu_kabul(&rapor, UInt32(rapor.count))
             let metin = String(cString: rapor)
@@ -221,6 +222,7 @@ final class UmayMotor: ObservableObject {
         }
         mesgul = true
         sira.async { [weak self] in
+            UmayMotor.taranmisPdfleriOku { m in DispatchQueue.main.async { self?.iletiler.append(Ileti(benMi: false, metin: m, sistemMi: true)) } }
             var rapor = [CChar](repeating: 0, count: 8192)
             _ = umay_gomulu_kabul(&rapor, UInt32(rapor.count))
             let metin = String(cString: rapor)
