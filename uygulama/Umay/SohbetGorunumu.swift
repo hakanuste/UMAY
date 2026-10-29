@@ -49,6 +49,22 @@ struct SohbetGorunumu: View {
     @AppStorage("umay.belgeAlani") private var belgeAlani = "otomatik"
     @Environment(\.scenePhase) private var evre
 
+    static let belgeAlanlari: [(String, String)] = [
+        ("otomatik", "Otomatik (ajanlar karar verir)"),
+        ("yazit", "Yazıt — kültür, tarih, genel arşiv"),
+        ("yer-su", "Yer-Su — tarım, toprak, su"),
+        ("balbal", "Balbal — yapı, taş ev, mimari"),
+        ("kun", "Kün — güneş enerjisi"),
+        ("demir", "Demir — elektronik, donanım"),
+        ("tulga", "Tulga — araç, otomotiv"),
+        ("otaci", "Otacı — sağlık, tıp"),
+        ("yargu", "Yargu — hukuk"),
+        ("akca", "Akça — para, ekonomi"),
+        ("alpagu", "Alpagu — güvenlik, savunma"),
+        ("kopuz", "Kopuz — müzik"),
+        ("oyun", "Oyun — dans"),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             ustSerit
@@ -72,19 +88,7 @@ struct SohbetGorunumu: View {
                     .help("Belge ekle: ajanlar inceleyip yerleştirir")
                 Menu {
                     Picker("Eklenen belgenin alanı", selection: $belgeAlani) {
-                        Text("Otomatik (ajanlar karar verir)").tag("otomatik")
-                        Text("Yazıt — kültür, tarih, genel arşiv").tag("yazit")
-                        Text("Yer-Su — tarım, toprak, su").tag("yer-su")
-                        Text("Balbal — yapı, taş ev, mimari").tag("balbal")
-                        Text("Kün — güneş enerjisi").tag("kun")
-                        Text("Demir — elektronik, donanım").tag("demir")
-                        Text("Tulga — araç, otomotiv").tag("tulga")
-                        Text("Otacı — sağlık, tıp").tag("otaci")
-                        Text("Yargu — hukuk").tag("yargu")
-                        Text("Akça — para, ekonomi").tag("akca")
-                        Text("Alpagu — güvenlik, savunma").tag("alpagu")
-                        Text("Kopuz — müzik").tag("kopuz")
-                        Text("Oyun — dans").tag("oyun")
+                        ForEach(Self.belgeAlanlari, id: \.0) { Text($0.1).tag($0.0) }
                     }
                 } label: { Text(belgeAlani == "otomatik" ? "Alan: otomatik" : "Alan: \(belgeAlani)").font(.caption) }
                 .menuStyle(.borderlessButton).fixedSize()
