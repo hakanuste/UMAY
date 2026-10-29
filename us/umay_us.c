@@ -297,8 +297,25 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
         if (top >= 3 && yuzde < 50) {
             o->dayanak_disi = 1;
             if (o->guven > GUVEN_ZAYIF) o->guven = GUVEN_ZAYIF;
-            uyari_ekle(o, "Bu yanıtın özü dayanağımda yazmıyor; dil modelinin kendi bilgisi, doğrulanmadı. "
-                          "Aşağıdaki kaynaklar konuyu içeriyor ama bu yanıtı doğrulamıyor.");
+            /* Modelin sözü dayanakla uyuşmuyor: kaynağın kendi cümlesini ver (alıntı), modelin
+             * uydurmasını verme. Alıntı çıkmazsa modelin yanıtı kalır ve doğrulanmadığı söylenir. */
+            umay_us_t *yedek = us_stub_motor();
+            char *alinti = (char *)up_ayir(US_METIN_MAX);
+            int alindi = 0;
+            if (alinti && yedek && m != yedek) {
+                if (yedek->hazirla) yedek->hazirla(yedek, 0);
+                alinti[0] = 0;
+                if (yedek->uret(yedek, &motor_istem, alinti, US_METIN_MAX) == UM_OLDU && alinti[0]) {
+                    um_kopya(o->metin, sizeof o->metin, alinti);
+                    alindi = 1;
+                }
+            }
+            if (alinti) up_biraktir(alinti);
+            if (alindi)
+                uyari_ekle(o, "Dil modelinin yanıtı dayanağımla uyuşmadı; onun yerine kaynağın kendi cümlesini verdim.");
+            else
+                uyari_ekle(o, "Bu yanıtın özü dayanağımda yazmıyor; dil modelinin kendi bilgisi, doğrulanmadı. "
+                              "Aşağıdaki kaynaklar konuyu içeriyor ama bu yanıtı doğrulamıyor.");
         }
     }
     /* öncül çıktı işe karıştıysa güven ORTA'yı geçemez */

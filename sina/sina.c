@@ -37,8 +37,13 @@ static int g_gecti, g_kaldi, g_atlandi;
 static int g_cagri;
 static int sahte_uret(umay_us_t *u, const us_istem_t *i, char *c, uint32_t n) {
     (void)u; g_cagri++;
-    um_kopya(c, n, "Sahte motor konuştu: ");
+    um_kopya(c, n, i->baglam && i->baglam[0] ? "" : "Sahte motor konuştu: ");
     um_ekle(c, n, i->baglam && i->baglam[0] ? "bağlam geldi." : "bağlam yok.");
+    /* gerçek bir motor gibi dayanaktan söz etsin: yanıt dayanakla desteklensin */
+    if (i->baglam && i->baglam[0]) {
+        char kes[200]; um_kopya(kes, sizeof kes, i->baglam);
+        um_ekle(c, n, " "); um_ekle(c, n, kes);
+    }
     um_ekle(c, n, "\n");
     return UM_OLDU;
 }
@@ -673,7 +678,7 @@ int main(void) {
     us_cikti_t cg;
     us_cevap_uret(&dg, &cg);
     dene("BENGİ bağlamı tek başına yeter", cg.dayanaksiz == 0 && g_cagri == 1);
-    dene("motora bağlam gitti", um_icinde(cg.metin, "bağlam geldi") != 0);
+        dene("motora bağlam gitti", um_icinde(cg.metin, "bağlam geldi") != 0);
     dene("doğrulanmış KARAR bağlamda", um_icinde(bgb, "Betonarme") != 0);
     dene("doğrulanmamış SONUC bağlamda değil", um_icinde(bgb, "dogrulanmamis") == 0);
 
