@@ -8,11 +8,11 @@ import UniformTypeIdentifiers
 final class Okuyucu {
     static let ortak = Okuyucu()
     private let ses = AVSpeechSynthesizer()
-    private let motor = AVAudioEngine()
-    private let oynatici = AVAudioPlayerNode()
-    private let perde = AVAudioUnitTimePitch()
-    private let esitleyici = AVAudioUnitEQ(numberOfBands: 4)
-    private let yanki = AVAudioUnitReverb()
+    private lazy var motor = AVAudioEngine()
+    private lazy var oynatici = AVAudioPlayerNode()
+    private lazy var perde = AVAudioUnitTimePitch()
+    private lazy var esitleyici = AVAudioUnitEQ(numberOfBands: 4)
+    private lazy var yanki = AVAudioUnitReverb()
     private var bagliBicim: AVAudioFormat?
     private var konusuyor = false
     private var nesil = 0   // eski konuşmanın geç gelen tamponlarını yok saymak için
@@ -68,7 +68,7 @@ final class Okuyucu {
     private func sustur() {
         nesil += 1
         ses.stopSpeaking(at: .immediate)
-        oynatici.stop()
+        if hazir { oynatici.stop() }
         konusuyor = false
     }
 
