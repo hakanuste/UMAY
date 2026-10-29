@@ -3,14 +3,41 @@ import AVFoundation
 import UniformTypeIdentifiers
 
 /// Okuyucu: yanıtı sistemin Türkçe sesiyle okur (Piper gerekmez).
+/// Okunan: yanıtın özü. "(Dayanağım…)", "Güven:" gibi künye satırları okunmaz, yazıda kalır.
 final class Okuyucu {
     static let ortak = Okuyucu()
     private let ses = AVSpeechSynthesizer()
+
+    static func ozunuAyir(_ metin: String) -> String {
+        let satirlar = metin.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+        let ozu = satirlar.filter { !($0.hasPrefix("(Dayanağım") || $0.hasPrefix("Güven:")
+                                      || $0.hasPrefix("Dikkat:") || $0.hasPrefix("[")) }
+        return ozu.joined(separator: " ")
+    }
+
+    private func soyleyici(_ metin: String) -> AVSpeechUtterance {
+        let s = AVSpeechUtterance(string: metin)
+        // En kaliteli Türkçe sesi seç (varsa gelişmiş/premium), yoksa varsayılan.
+        let sesler = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == "tr-TR" }
+        s.voice = sesler.max(by: { $0.quality.rawValue < $1.quality.rawValue })
+            ?? AVSpeechSynthesisVoice(language: "tr-TR")
+        s.pitchMultiplier = 0.75          // daha kalın
+        s.rate = AVSpeechUtteranceDefaultSpeechRate * 0.85   // daha ağır
+        return s
+    }
+
+    /// Düğmeyle: konuşuyorsa susturur, susuyorsa okur.
     func oku(_ metin: String) {
         if ses.isSpeaking { ses.stopSpeaking(at: .immediate); return }
-        let s = AVSpeechUtterance(string: metin)
-        s.voice = AVSpeechSynthesisVoice(language: "tr-TR")
-        ses.speak(s)
+        ses.speak(soyleyici(Okuyucu.ozunuAyir(metin)))
+    }
+
+    /// Yanıt gelince kendiliğinden: önceki konuşmayı keser, yenisini okur.
+    func kendiliginden(_ metin: String) {
+        let ozu = Okuyucu.ozunuAyir(metin)
+        guard !ozu.isEmpty else { return }
+        if ses.isSpeaking { ses.stopSpeaking(at: .immediate) }
+        ses.speak(soyleyici(ozu))
     }
 }
 

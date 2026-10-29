@@ -65,6 +65,7 @@ struct AyarGorunumu: View {
     @StateObject private var indirici = Indirici()
     @AppStorage("umay.model") private var secili = ""
     @AppStorage("umay.ogren") private var internettenOgren = false
+    @AppStorage("umay.sesli") private var seslidenYanitla = true
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -89,6 +90,7 @@ struct AyarGorunumu: View {
                 }
             }
             if !indirici.hata.isEmpty { Text(indirici.hata).foregroundColor(.red).font(.caption) }
+            Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
             Toggle("İnternetten kendiliğinden öğren", isOn: $internettenOgren)
             Text("Model değişikliği ve öğrenme ayarı, uygulama kapatılıp yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
                 .font(.caption).foregroundColor(.secondary)

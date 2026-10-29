@@ -106,6 +106,10 @@ final class UmayMotor: ObservableObject {
                 self.iletiler.append(Ileti(benMi: false, metin: yanit))
                 self.motorAdi = ad
                 self.mesgul = false
+                // Hem yazılı hem sesli: ayar kapatılmadıkça yanıt okunur.
+                if (UserDefaults.standard.object(forKey: "umay.sesli") as? Bool) ?? true, n > 0 {
+                    Okuyucu.ortak.kendiliginden(yanit)
+                }
             }
         }
     }
