@@ -1,4 +1,5 @@
 /* BİLGE — kütüphaneden bağlam bulur, US motoruna verir, OZAN diliyle söyler. */
+#include "umay_ulak.h"
 #include "umay_alp.h"
 #include "umay_bilgi.h"
 #include "umay_ozan.h"
@@ -35,7 +36,10 @@ static alp_durum_t adim(alp_t *a) {
     if (ic->adim_no++ == 0) {
         int adet = (int)ayar_sayi("baglam_adet", 3);
         if (adet > 4) adet = 4;
-        ic->baglam_sayi = bilgi_baglam_bul(ic->gorev.istem, ic->baglam, adet);
+        ic->baglam_sayi = 0;
+        /* ULAK: anlık veri sorusuysa (kur, hava) canlı dayanak en başa konur. */
+        if (ic->gorev.tur == GT_SORU && ulak_canli(ic->gorev.istem, &ic->baglam[0]) > 0) ic->baglam_sayi = 1;
+        ic->baglam_sayi += bilgi_baglam_bul(ic->gorev.istem, ic->baglam + ic->baglam_sayi, adet - ic->baglam_sayi);
         /* Dayanak yoksa boşluğu kaydet ve (açıksa) web'den kapat. */
         if (ic->baglam_sayi == 0 &&
             (ic->gorev.tur == GT_SORU || ic->gorev.tur == GT_ARASTIR) &&

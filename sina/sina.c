@@ -11,6 +11,7 @@
 #include "umay_onay.h"
 #include "umay_us.h"
 #include "umay_ozturk.h"
+#include "umay_ulak.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -169,6 +170,25 @@ static int64_t cv_sahte(const char *url, char *cik, uint32_t n) {
 static int cv_motor(const char *kd, const char *hd, const char *m, char *c, uint32_t n) {
     (void)kd; (void)hd; (void)m;
     um_kopya(c, n, "MOTOR CEVIRISI"); return 14;
+}
+
+
+/* ULAK sınaması için sahte getirici */
+static int64_t ul_sahte(const char *url, char *cik, uint32_t n) {
+    const char *y = 0;
+    if (um_icinde(url, "today.xml") || um_icinde(url, "tcmb"))
+        y = "<Tarih_Date Tarih=\"29.10.2026\" Date=\"10/29/2026\"><Currency CrossOrder=\"0\" Kod=\"USD\" CurrencyCode=\"USD\">"
+            "<ForexBuying>43.1234</ForexBuying><ForexSelling>43.2345</ForexSelling></Currency>"
+            "<Currency Kod=\"EUR\"><ForexBuying>50.5000</ForexBuying><ForexSelling>50.6000</ForexSelling></Currency></Tarih_Date>";
+    else if (um_icinde(url, "geocod") || um_icinde(url, "sahte-geo"))
+        y = "{\"results\":[{\"id\":1,\"name\":\"Aydın\",\"latitude\":37.84,\"longitude\":27.84}]}";
+    else if (um_icinde(url, "sahte-hava") || um_icinde(url, "forecast"))
+        y = "{\"current_units\":{\"temperature_2m\":\"°C\"},\"current\":{\"time\":\"2026-10-29T22:00\",\"temperature_2m\":17.3,"
+            "\"relative_humidity_2m\":64,\"wind_speed_10m\":9.5,\"precipitation\":0.0,\"weather_code\":3}}";
+    if (!y) return -1;
+    uint32_t L = (uint32_t)um_uzun(y); if (L + 1 > n) L = n - 1;
+    um_bellek_kopya(cik, y, L); cik[L] = 0;
+    return L;
 }
 
 int main(void) {
@@ -2020,6 +2040,28 @@ int main(void) {
         dene("dayanakta olmayan ad/yanıt desteklenmez", us_dayanak_destegi("Kazakistanın başkenti Astanadır.", day, &top) < 50 && top >= 3);
         dene("uydurma sayı yakalanır", us_dayanak_destegi("Kiler 40 derece olur, sıcaklık 99 değişir.", day, &top) < 50);
         dene("boş yanıt: destek sayılır (denetlenecek şey yok)", us_dayanak_destegi("", day, &top) == 100 && top == 0);
+    }
+
+    /* --- 61. ULAK canlı veri --- */
+    {
+        printf("\n[61] ULAK canlı veri (kur, hava)\n");
+        uh_ortam_ata("UMAY_OGREN", "1");
+        uh_ortam_ata("UMAY_AG_TCMB", "http://sahte-tcmb/today.xml");
+        uh_ortam_ata("UMAY_AG_GEOKOD", "http://sahte-geo");
+        uh_ortam_ata("UMAY_AG_HAVA", "http://sahte-hava");
+        ogren_getirici_ata(ul_sahte);
+        baglam_t b;
+        dene("kur: dolar kaç TL bulunur", ulak_canli("Dolar kaç TL?", &b) == 1 && um_icinde(b.alinti, "43,1234") && um_icinde(b.alinti, "43,2345"));
+        dene("kur: tarih ve TCMB anılır", um_icinde(b.alinti, "29.10.2026") && um_icinde(b.kaynak, "TCMB"));
+        dene("kur: euro ayrı satırdan okunur", ulak_canli("euro ne kadar", &b) == 1 && um_icinde(b.alinti, "50,5000"));
+        dene("hava: aydın'da hava durumu", ulak_canli("Aydın'da hava durumu nasıl", &b) == 1 && um_icinde(b.alinti, "17,3") && um_icinde(b.alinti, "parçalı bulutlu"));
+        dene("hava: kaynak Open-Meteo", um_icinde(b.kaynak, "Open-Meteo") != 0);
+        dene("canlı soru değilse çekmez", ulak_canli("Yer altı kileri nasıl yapılır", &b) == 0);
+        dene("dolar sözü ipucusuz soruda çekmez", ulak_canli("dolar ağacı", &b) == 0);
+        uh_ortam_ata("UMAY_OGREN", "0");
+        dene("öğrenme kapalıyken ağa çıkmaz", ulak_canli("dolar kaç", &b) == 0);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        ogren_getirici_ata(0);
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
