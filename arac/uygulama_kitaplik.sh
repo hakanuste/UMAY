@@ -23,6 +23,7 @@ yap() {
   local arsivler
   arsivler=$(find "$dizin/cmake" -name '*.a' | sort)
   # shellcheck disable=SC2086
+  rm -f "$dizin/libumay_tum.a"
   libtool -static -o "$dizin/libumay_tum.a" $arsivler
   echo "  -> $dizin/libumay_tum.a ($(du -h "$dizin/libumay_tum.a" | cut -f1))"
 }
