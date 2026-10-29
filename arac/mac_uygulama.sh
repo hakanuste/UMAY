@@ -18,7 +18,7 @@ mkdir -p "$APP/Contents/Resources/kaynak"
 cp docs/kaynak/*.txt "$APP/Contents/Resources/kaynak/" 2>/dev/null || true
 swiftc -O -parse-as-library -target "$(uname -m)-apple-macos12.0" \
   -import-objc-header uygulama/Umay/UmayKopru.h -Xcc -Iinclude \
-  uygulama/Umay/UmayApp.swift uygulama/Umay/Motor.swift uygulama/Umay/SohbetGorunumu.swift uygulama/Umay/AyarGorunumu.swift \
+  uygulama/Umay/UmayApp.swift uygulama/Umay/Motor.swift uygulama/Umay/SohbetGorunumu.swift uygulama/Umay/AyarGorunumu.swift uygulama/Umay/BelgeGorunumu.swift \
   kov/uyg/macos/libumay_tum.a -lc++ -o "$APP/Contents/MacOS/Umay"
 cat > "$APP/Contents/Info.plist" <<'PL'
 <?xml version="1.0" encoding="UTF-8"?>

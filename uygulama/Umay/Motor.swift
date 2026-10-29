@@ -15,7 +15,7 @@ final class UmayMotor: ObservableObject {
     @Published var motorAdi = "…"
     @Published var modelDosyasi = ""
 
-    private let sira = DispatchQueue(label: "umay.motor")
+    let sira = DispatchQueue(label: "umay.motor")
     private var basladi = false
 
     /// Veri dizini: uygulamanın yazabildiği yer (BENGİ belleği ve kütüphane buradadır).
