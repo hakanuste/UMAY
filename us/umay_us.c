@@ -8,6 +8,15 @@
 #include "umay_port.h"
 #include "umay_ortak.h"
 
+/* Kaynak adındaki dizin yolunu atar: "/Users/x/…/kut/yazit/kabul-1.txt (Ad)" -> "kabul-1.txt (Ad)". */
+static void kaynak_kisalt(const char *k, char *c, uint32_t n) {
+    const char *bosluk = k;
+    while (*bosluk && *bosluk != ' ') bosluk++;
+    const char *son = k;
+    for (const char *p = k; p < bosluk; p++) if (*p == '/') son = p + 1;
+    um_kopya(c, n, son);
+}
+
 static umay_us_t *g_motor;
 
 const char *us_guven_adi(us_guven_t g) {
@@ -213,9 +222,12 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     /* çatışma: birleştirme yok, iki kaynak da adıyla anılır */
     if (i->catisma && i->catisma->var) {
         o->catisma = 1;
+        char ka_[192], kb_[192];
+        kaynak_kisalt(i->catisma->kaynak_a, ka_, sizeof ka_);
+        kaynak_kisalt(i->catisma->kaynak_b, kb_, sizeof kb_);
         um_bicim(o->catisma_notu, sizeof o->catisma_notu,
                  "%s alanında iki ayrı kaynak: %s ile %s",
-                 i->catisma->kategori, i->catisma->kaynak_a, i->catisma->kaynak_b);
+                 i->catisma->kategori, ka_, kb_);
     }
 
     /* Dayanak yoksa motor HİÇ çağrılmaz — uydurma kapısı burada kapanır.
@@ -366,8 +378,10 @@ uint32_t us_cikti_yaz(const us_cikti_t *o, char *c, uint32_t n) {
             um_bicim(dnot, sizeof dnot, ", %s'den çeviri", dil_adi(d->ozgun_dil));
         else if (!um_esit(d->dil, "tr"))
             um_bicim(dnot, sizeof dnot, ", %s", dil_adi(d->dil));
+        char ky[192];
+        kaynak_kisalt(d->kaynak, ky, sizeof ky);
         um_bicim(s, sizeof s, "(Dayanağım: %s / %s — %s [%s%s])\n",
-                 d->kategori, d->baslik, d->kaynak,
+                 d->kategori, d->baslik, ky,
                  kaynak_tur_adi(d->kaynak_tur), dnot);
         um_ekle(c, n, s);
     }

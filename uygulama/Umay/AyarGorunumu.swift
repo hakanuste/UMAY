@@ -89,6 +89,7 @@ struct AyarGorunumu: View {
                     }
                 }
             }
+            digerModeller
             if !indirici.hata.isEmpty { Text(indirici.hata).foregroundColor(.red).font(.caption) }
             Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
             Toggle("İnternetten kendiliğinden öğren", isOn: $internettenOgren)
@@ -98,8 +99,29 @@ struct AyarGorunumu: View {
         }
         .padding()
         #if os(macOS)
-        .frame(width: 460, height: 420)
+        .frame(width: 460, height: 480)
         #endif
+    }
+
+    /// Model klasöründeki, listede olmayan .gguf dosyaları (ör. ince ayarlı kendi modelin).
+    private var digerModeller: some View {
+        let bilinen = Set(ModelSecenegi.liste.map { $0.id })
+        let dosyalar = ((try? FileManager.default.contentsOfDirectory(atPath: UmayMotor.modelDizini.path)) ?? [])
+            .filter { $0.hasSuffix(".gguf") && !bilinen.contains($0) }.sorted()
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(dosyalar, id: \.self) { d in
+                HStack {
+                    VStack(alignment: .leading) { Text("Kendi modelin"); Text(d).font(.caption).foregroundColor(.secondary) }
+                    Spacer()
+                    Button(secili == d ? "Seçili" : "Seç") { secili = d }.disabled(secili == d)
+                }
+            }
+            #if os(macOS)
+            Button("Model klasörünü aç (kendi .gguf dosyanı buraya koy)") {
+                NSWorkspace.shared.open(UmayMotor.modelDizini)
+            }.font(.caption)
+            #endif
+        }
     }
 
     private func indiMi(_ m: ModelSecenegi) -> Bool {
