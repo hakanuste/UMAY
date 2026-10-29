@@ -17,7 +17,11 @@ final class Okuyucu {
     private var konusuyor = false
     private var nesil = 0   // eski konuşmanın geç gelen tamponlarını yok saymak için
 
-    init() {
+    private var hazir = false
+    /// Ses zinciri yalnız "Dede Korkut tınısı" açıkken ve ilk kullanımda kurulur (kapalıyken sese hiç dokunulmaz).
+    private func hazirla() {
+        if hazir { return }
+        hazir = true
         perde.pitch = -343        // sent: yaklaşık -3,4 yarım ton
         perde.rate = 0.85         // %15 yavaş
         let b = esitleyici.bands
@@ -77,7 +81,8 @@ final class Okuyucu {
         let benim = nesil
         let soz = soyleyici(metin)
         #if os(macOS)
-        if efektBozuk { ses.speak(soz); return }
+        if efektBozuk || !UserDefaults.standard.bool(forKey: "umay.tinli") { ses.speak(soz); return }
+        hazirla()
         let sesAdi = soz.voice?.name ?? ""
         let dosya = FileManager.default.temporaryDirectory.appendingPathComponent("umay-ses-\(benim).aiff")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
