@@ -19,7 +19,10 @@ final class Okuyucu {
         let s = AVSpeechUtterance(string: metin)
         // En kaliteli Türkçe sesi seç (varsa gelişmiş/premium), yoksa varsayılan.
         let sesler = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == "tr-TR" }
-        s.voice = sesler.max(by: { $0.quality.rawValue < $1.quality.rawValue })
+        // Dede Korkut erkek sesli olmalı: kurulu erkek Türkçe ses (Cem) varsa o, yoksa en kaliteli olan.
+        let erkek = sesler.filter { $0.name.contains("Cem") }
+        s.voice = erkek.max(by: { $0.quality.rawValue < $1.quality.rawValue })
+            ?? sesler.max(by: { $0.quality.rawValue < $1.quality.rawValue })
             ?? AVSpeechSynthesisVoice(language: "tr-TR")
         s.pitchMultiplier = 0.75          // daha kalın
         s.rate = AVSpeechUtteranceDefaultSpeechRate * 0.85   // daha ağır
@@ -148,7 +151,7 @@ struct SohbetGorunumu: View {
     private var akis: Text {
         var t = Text("")
         for (n, i) in motor.iletiler.enumerated() {
-            let ad = i.benMi ? "Sen" : (i.sistemMi ? "Sistem" : "UMAY")
+            let ad = i.benMi ? "Sen" : (i.sistemMi ? "UMAY" : "Dede Korkut")
             let renk: Color = i.benMi ? .accentColor : (i.sistemMi ? .orange : .secondary)
             if n > 0 { t = t + Text("\n\n") }
             t = t + Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin)
@@ -178,7 +181,7 @@ enum Panoya {
 extension UmayMotor {
     /// Bütün konuşma düz metin: "Sen: …" / "UMAY: …".
     func konusmaMetni() -> String {
-        iletiler.map { ($0.benMi ? "Sen: " : ($0.sistemMi ? "Sistem: " : "UMAY: ")) + $0.metin }
+        iletiler.map { ($0.benMi ? "Sen: " : ($0.sistemMi ? "UMAY: " : "Dede Korkut: ")) + $0.metin }
             .joined(separator: "\n\n")
     }
 }
