@@ -178,7 +178,7 @@ int kabul_calistir(const char *kok, kabul_sonuc_t *s, char *rapor, uint32_t n) {
         char yol[UMAY_YOL_MAX];
         um_bicim(yol, sizeof yol, "%s/%s", gd, g[i].ad);
         uint32_t boy = 0; char *m = oku_tum(yol, &boy);
-        if (!m) { um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " okunamadı ya da 2 MB'tan büyük\n"); continue; }
+        if (!m) { um_ekle(rapor, n, "  ! "); um_ekle(rapor, n, g[i].ad); um_ekle(rapor, n, " okunamadı ya da 64 MB'tan büyük\n"); continue; }
         uint32_t hd = fnv(m, boy);
         if (islendi_mi(liste, hd)) { s->tekrar++; up_biraktir(m); continue; }
         s->dosya++;

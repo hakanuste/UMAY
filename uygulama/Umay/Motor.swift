@@ -156,20 +156,29 @@ final class UmayMotor: ObservableObject {
 
     func belgeEkle(_ adresler: [URL]) {
         let fm = FileManager.default
+        var notlar: [String] = []
         for a in adresler {
             let erisim = a.startAccessingSecurityScopedResource()
             defer { if erisim { a.stopAccessingSecurityScopedResource() } }
             let hedef = UmayMotor.gelenDizini.appendingPathComponent(a.lastPathComponent)
+            let boyut = ((try? fm.attributesOfItem(atPath: a.path)[.size]) as? NSNumber)?.intValue ?? -1
             try? fm.removeItem(at: hedef)
-            try? fm.copyItem(at: a, to: hedef)
+            do {
+                try fm.copyItem(at: a, to: hedef)
+                notlar.append("✓ \(a.lastPathComponent) alındı (\(boyut / 1024) KB)")
+            } catch {
+                // Sessizce yutma: neden eklenemediğini kullanıcıya söyle.
+                notlar.append("✗ \(a.lastPathComponent) kopyalanamadı: \(error.localizedDescription)")
+            }
         }
         mesgul = true
         sira.async { [weak self] in
             var rapor = [CChar](repeating: 0, count: 8192)
             _ = umay_gomulu_kabul(&rapor, UInt32(rapor.count))
             let metin = String(cString: rapor)
+            let tam = (notlar + [metin.isEmpty ? "KABUL: rapor boş döndü (belge işlenemedi ya da dosya bulunamadı)." : metin]).joined(separator: "\n")
             DispatchQueue.main.async {
-                self?.iletiler.append(Ileti(benMi: false, metin: metin.isEmpty ? "Belge işlenemedi." : metin, sistemMi: true))
+                self?.iletiler.append(Ileti(benMi: false, metin: tam, sistemMi: true))
                 self?.mesgul = false
             }
         }
