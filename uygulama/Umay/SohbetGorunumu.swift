@@ -74,13 +74,14 @@ struct SohbetGorunumu: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
                         if motor.iletiler.isEmpty { karsilama }
-                        ForEach(motor.iletiler) { i in baloncuk(i).id(i.id) }
-                        if motor.mesgul { ProgressView("Düşünüyor…").padding(.leading) }
+                        if !motor.iletiler.isEmpty { akis.textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                        if motor.mesgul { ProgressView("Düşünüyor…") }
+                        Color.clear.frame(height: 1).id("son")
                     }
                     .padding()
                 }
                 .onChange(of: motor.iletiler.count) { _ in
-                    if let son = motor.iletiler.last { withAnimation { vekil.scrollTo(son.id, anchor: .bottom) } }
+                    withAnimation { vekil.scrollTo("son", anchor: .bottom) }
                 }
             }
             Divider()
@@ -123,6 +124,9 @@ struct SohbetGorunumu: View {
                     .font(.caption).foregroundColor(motor.gercekModel ? .secondary : .orange)
             }
             Spacer()
+            Button { if let y = motor.iletiler.last(where: { !$0.benMi && !$0.sistemMi }) { Okuyucu.ortak.oku(y.metin) } } label: { Image(systemName: "speaker.wave.2") }
+                .help("Son yanıtı dinle")
+                .disabled(!motor.iletiler.contains(where: { !$0.benMi && !$0.sistemMi }))
             Button { Panoya.kopyala(motor.konusmaMetni()) } label: { Image(systemName: "doc.on.doc") }
                 .help("Bütün konuşmayı kopyala")
                 .disabled(motor.iletiler.isEmpty)
@@ -140,24 +144,16 @@ struct SohbetGorunumu: View {
             .foregroundColor(.secondary).padding(.top, 20)
     }
 
-    private func baloncuk(_ i: UmayMotor.Ileti) -> some View {
-        HStack(alignment: .top) {
-            if i.benMi { Spacer(minLength: 40) }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(i.metin).textSelection(.enabled)
-                HStack(spacing: 12) {
-                    if !i.benMi && !i.sistemMi {
-                        Button { Okuyucu.ortak.oku(i.metin) } label: { Label("Dinle", systemImage: "speaker.wave.2") }
-                    }
-                    Button { Panoya.kopyala(i.metin) } label: { Label("Kopyala", systemImage: "doc.on.doc") }
-                }
-                .font(.caption).buttonStyle(.borderless)
-            }
-            .padding(10)
-            .background(i.benMi ? Color.accentColor.opacity(0.18) : Color.gray.opacity(0.15))
-            .cornerRadius(12)
-            if !i.benMi { Spacer(minLength: 40) }
+    /// Bütün konuşma tek akan metin: balon yok, baştan sona tek hamlede seçilip kopyalanabilir.
+    private var akis: Text {
+        var t = Text("")
+        for (n, i) in motor.iletiler.enumerated() {
+            let ad = i.benMi ? "Sen" : (i.sistemMi ? "Sistem" : "UMAY")
+            let renk: Color = i.benMi ? .accentColor : (i.sistemMi ? .orange : .secondary)
+            if n > 0 { t = t + Text("\n\n") }
+            t = t + Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin)
         }
+        return t
     }
 
     private func gonder() {
