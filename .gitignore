@@ -26,3 +26,4 @@ kut/b[0-9]*.txt
 # kontrol.npz 5 MB'lik Adam durumudur, her olcumde yeniden yazilir.
 egitim/
 *.npz
+ses/ornek/
