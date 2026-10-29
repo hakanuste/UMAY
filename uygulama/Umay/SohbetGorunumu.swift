@@ -123,6 +123,9 @@ struct SohbetGorunumu: View {
                     .font(.caption).foregroundColor(motor.gercekModel ? .secondary : .orange)
             }
             Spacer()
+            Button { Panoya.kopyala(motor.konusmaMetni()) } label: { Image(systemName: "doc.on.doc") }
+                .help("Bütün konuşmayı kopyala")
+                .disabled(motor.iletiler.isEmpty)
             Button { motor.temizle() } label: { Image(systemName: "trash") }
                 .disabled(motor.iletiler.isEmpty || motor.mesgul)
             Button { belgelerAcik = true } label: { Image(systemName: "books.vertical") }
@@ -142,10 +145,13 @@ struct SohbetGorunumu: View {
             if i.benMi { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 4) {
                 Text(i.metin).textSelection(.enabled)
-                if !i.benMi && !i.sistemMi {
-                    Button { Okuyucu.ortak.oku(i.metin) } label: { Label("Dinle", systemImage: "speaker.wave.2") }
-                        .font(.caption).buttonStyle(.borderless)
+                HStack(spacing: 12) {
+                    if !i.benMi && !i.sistemMi {
+                        Button { Okuyucu.ortak.oku(i.metin) } label: { Label("Dinle", systemImage: "speaker.wave.2") }
+                    }
+                    Button { Panoya.kopyala(i.metin) } label: { Label("Kopyala", systemImage: "doc.on.doc") }
                 }
+                .font(.caption).buttonStyle(.borderless)
             }
             .padding(10)
             .background(i.benMi ? Color.accentColor.opacity(0.18) : Color.gray.opacity(0.15))
@@ -158,5 +164,25 @@ struct SohbetGorunumu: View {
         let s = girdi
         girdi = ""
         motor.sor(s)
+    }
+}
+
+/// Panoya yazma (macOS ve iOS).
+enum Panoya {
+    static func kopyala(_ metin: String) {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(metin, forType: .string)
+        #else
+        UIPasteboard.general.string = metin
+        #endif
+    }
+}
+
+extension UmayMotor {
+    /// Bütün konuşma düz metin: "Sen: …" / "UMAY: …".
+    func konusmaMetni() -> String {
+        iletiler.map { ($0.benMi ? "Sen: " : ($0.sistemMi ? "Sistem: " : "UMAY: ")) + $0.metin }
+            .joined(separator: "\n\n")
     }
 }
