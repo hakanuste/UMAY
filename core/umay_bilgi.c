@@ -759,7 +759,7 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
             char son = kucuk[ce < uz ? ce : uz];
             kucuk[ce < uz ? ce : uz] = 0;
             int sk = 0;
-            for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk++;
+            for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk += agirlik[a];  /* seyrek sözcük ağır basar */
             kucuk[ce < uz ? ce : uz] = son;
             /* 5N1K: soru türünün ipucunu taşıyan cümle eşitlikte öne geçer
              * ("nasıl" → yapılır/önce/sonra, "ne zaman" → mevsim/ay/saat ...) */
