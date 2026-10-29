@@ -68,22 +68,47 @@ final class Okuyucu {
         konusuyor = false
     }
 
+    private var donusturucu: AVAudioConverter?
+    private var kaynakBicim: AVAudioFormat?
+    private var efektBozuk = false   // zincir kurulamazsa düz sesle okunur; uygulama çökmez
+
+    /// Sentezleyicinin tamponu Int16 olabilir; zincir (perde/EQ) Float32 ister.
+    private func floatTampon(_ pcm: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let hedef = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: pcm.format.sampleRate,
+                                        channels: 1, interleaved: false) else { return nil }
+        if pcm.format.commonFormat == .pcmFormatFloat32 && pcm.format.channelCount == 1 { return pcm }
+        if kaynakBicim != pcm.format { donusturucu = AVAudioConverter(from: pcm.format, to: hedef); kaynakBicim = pcm.format }
+        guard let d = donusturucu, let cikis = AVAudioPCMBuffer(pcmFormat: hedef, frameCapacity: pcm.frameLength) else { return nil }
+        var verildi = false
+        var hata: NSError?
+        d.convert(to: cikis, error: &hata) { _, durum in
+            if verildi { durum.pointee = .noDataNow; return nil }
+            verildi = true; durum.pointee = .haveData; return pcm
+        }
+        return (hata == nil && cikis.frameLength > 0) ? cikis : nil
+    }
+
     private func konus(_ metin: String) {
         sustur()
         let benim = nesil
+        let soz = soyleyici(metin)
+        if efektBozuk { ses.speak(soz); return }
         konusuyor = true
-        ses.write(soyleyici(metin)) { [weak self] tampon in
+        ses.write(soz) { [weak self] tampon in
             guard let self = self, self.nesil == benim,
-                  let pcm = tampon as? AVAudioPCMBuffer, pcm.frameLength > 0 else { return }
+                  let pcm = tampon as? AVAudioPCMBuffer, pcm.frameLength > 0,
+                  let f = self.floatTampon(pcm) else { return }
             DispatchQueue.main.async {
-                guard self.nesil == benim else { return }
-                self.zincirKur(pcm.format)
-                if !self.motor.isRunning { try? self.motor.start() }
+                guard self.nesil == benim, !self.efektBozuk else { return }
+                self.zincirKur(f.format)
+                if !self.motor.isRunning {
+                    do { try self.motor.start() }
+                    catch { self.efektBozuk = true; self.konusuyor = false; self.ses.speak(self.soyleyici(metin)); return }
+                }
                 if !self.oynatici.isPlaying { self.oynatici.play() }
-                self.oynatici.scheduleBuffer(pcm, completionHandler: nil)
+                self.oynatici.scheduleBuffer(f, completionHandler: nil)
             }
         }
-        // Konuşma süresi kestirilemediğinden "konuşuyor" bayrağı yeni komutla ya da durdurmayla sıfırlanır.
     }
 
     /// Düğmeyle: konuşuyorsa susturur, susuyorsa okur.
