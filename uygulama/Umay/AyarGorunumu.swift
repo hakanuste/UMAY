@@ -92,7 +92,7 @@ struct AyarGorunumu: View {
             if !indirici.hata.isEmpty { Text(indirici.hata).foregroundColor(.red).font(.caption) }
             Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
             Toggle("İnternetten kendiliğinden öğren", isOn: $internettenOgren)
-            Text("Model değişikliği ve öğrenme ayarı, uygulama kapatılıp yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
+            Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
                 .font(.caption).foregroundColor(.secondary)
             Spacer()
         }

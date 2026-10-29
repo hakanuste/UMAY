@@ -48,6 +48,12 @@ final class UmayMotor: ObservableObject {
 
     // MARK: başlatma
 
+    /// "İnternetten kendiliğinden öğren" ayarını ortama yazar (çekirdek her çağrıda okur).
+    static func agAyariniUygula() {
+        if UserDefaults.standard.bool(forKey: "umay.ogren") { unsetenv("UMAY_OGREN") }
+        else { setenv("UMAY_OGREN", "0", 1) }
+    }
+
     func baslat() {
         sira.async { [weak self] in
             guard let self = self else { return }
@@ -65,6 +71,17 @@ final class UmayMotor: ObservableObject {
                     }
                 }
             }
+            // Paketteki kaynak belgeleri (docs/kaynak) gelen/ klasörüne bırak; KABUL ajanı kendiliğinden
+            // içeri alır (işlenmiş belge ikinci kez alınmaz). Elle kopyalama gerekmez.
+            if let kaynak = Bundle.main.resourceURL?.appendingPathComponent("kaynak"),
+               let adlar = try? fm.contentsOfDirectory(atPath: kaynak.path) {
+                for ad in adlar where ad.hasSuffix(".txt") || ad.hasSuffix(".md") {
+                    let hedef = UmayMotor.gelenDizini.appendingPathComponent(ad)
+                    if !fm.fileExists(atPath: hedef.path) {
+                        try? fm.copyItem(at: kaynak.appendingPathComponent(ad), to: hedef)
+                    }
+                }
+            }
             // Model: kut/model içindeki ilk .gguf; seçilmişse o.
             let secili = UserDefaults.standard.string(forKey: "umay.model") ?? ""
             let dosyalar = (try? fm.contentsOfDirectory(atPath: UmayMotor.modelDizini.path)) ?? []
@@ -73,8 +90,12 @@ final class UmayMotor: ObservableObject {
             if model.isEmpty { unsetenv("UMAY_LLM") }
             else { setenv("UMAY_LLM", UmayMotor.modelDizini.appendingPathComponent(model).path, 1) }
             // İnternetten öğrenme: varsayılan KAPALI (telefonda sessizce ağ kullanılmasın).
-            if UserDefaults.standard.bool(forKey: "umay.ogren") { unsetenv("UMAY_OGREN") }
-            else { setenv("UMAY_OGREN", "0", 1) }
+            UmayMotor.agAyariniUygula()
+            // Ayarlardan değişince yeniden başlatmaya gerek kalmadan hemen işler.
+            NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification,
+                                                   object: nil, queue: nil) { _ in
+                UmayMotor.agAyariniUygula()
+            }
 
             umay_gomulu_ag_ata(agGetirici)
             let kod = umay_gomulu_baslat(kut.path)

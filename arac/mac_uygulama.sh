@@ -13,6 +13,9 @@ for f in kut/*; do
   case "$(basename "$f")" in model|gelen|_ogren) continue ;; esac
   cp -R "$f" "$APP/Contents/Resources/kut/"
 done
+# kaynak belgeleri (docs/kaynak): ilk açılışta gelen/ klasörüne bırakılıp kendiliğinden içeri alınır
+mkdir -p "$APP/Contents/Resources/kaynak"
+cp docs/kaynak/*.txt "$APP/Contents/Resources/kaynak/" 2>/dev/null || true
 swiftc -O -parse-as-library -target "$(uname -m)-apple-macos12.0" \
   -import-objc-header uygulama/Umay/UmayKopru.h -Xcc -Iinclude \
   uygulama/Umay/UmayApp.swift uygulama/Umay/Motor.swift uygulama/Umay/SohbetGorunumu.swift uygulama/Umay/AyarGorunumu.swift \
