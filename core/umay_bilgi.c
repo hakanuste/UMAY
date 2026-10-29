@@ -26,7 +26,8 @@ static int     g_sayi;
 
 static const char *DURAK[] = {
     "ve","ile","için","bir","bu","da","de","mi","ne","ki","ya","çok","daha",
-    "ama","gibi","olarak","göre","kadar","the","and","for","that","with", 0
+    "ama","gibi","olarak","göre","kadar","the","and","for","that","with",
+    "kimdir","nedir","kimdi","nedi","demek","hakkında","anlat","söyle", 0
 };
 
 static int durak_mi(const char *k) {
@@ -700,6 +701,18 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
         for (int n = g_sayi / (df + 1); n > 1; n >>= 1) w++;
         agirlik[a] = w;
     }
+    /* ÖZNE SÖZCÜĞÜ: "… ülgen kimdir / … nedir" sorusunda konu, soru
+     * ekinden hemen önceki son sözcüktür; öncesindekiler çerçevedir
+     * ("Türk mitolojisinde"). Alıntı cümlesi seçilirken özne ağır basar. */
+    int ozne = -1;
+    {
+        static char sk_[256];
+        um_kopya(sk_, sizeof sk_, soru);
+        um_kucult_esbicim(sk_);
+        if (um_icinde(sk_, "kimdir") || um_icinde(sk_, "nedir") || um_icinde(sk_, "kimdi")
+            || um_icinde(sk_, "ne demek") || um_icinde(sk_, "nedi"))
+            ozne = kws - 1;
+    }
 
     int skor[BILGI_KAYIT_MAX], sira[BILGI_KAYIT_MAX], es = 0;
     for (int i = 0; i < g_sayi; i++) {
@@ -759,7 +772,7 @@ int bilgi_baglam_bul_suzgec(const char *soru, const bilgi_suzgec_t *sz,
             char son = kucuk[ce < uz ? ce : uz];
             kucuk[ce < uz ? ce : uz] = 0;
             int sk = 0;
-            for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk += agirlik[a];  /* seyrek sözcük ağır basar */
+            for (int a = 0; a < kws; a++) if (um_icinde(kucuk + cs, kw[a])) sk += agirlik[a] * agirlik[a] + (a == ozne ? 1000 : 0);  /* seyrek sözcük ve özne ağır basar */
             kucuk[ce < uz ? ce : uz] = son;
             /* 5N1K: soru türünün ipucunu taşıyan cümle eşitlikte öne geçer
              * ("nasıl" → yapılır/önce/sonra, "ne zaman" → mevsim/ay/saat ...) */
