@@ -75,9 +75,9 @@ struct SohbetGorunumu: View {
             Divider()
             ScrollViewReader { vekil in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
+                    LazyVStack(alignment: .leading, spacing: 14) {
                         if motor.iletiler.isEmpty { karsilama }
-                        if !motor.iletiler.isEmpty { akis.textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                        ForEach(motor.iletiler) { i in ileti(i).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                         if motor.mesgul { ProgressView("Düşünüyor…") }
                         Color.clear.frame(height: 1).id("son")
                     }
@@ -147,17 +147,12 @@ struct SohbetGorunumu: View {
             .foregroundColor(.secondary).padding(.top, 20)
     }
 
-    /// Bütün konuşma tek akan metin: balon yok, baştan sona tek hamlede seçilip kopyalanabilir.
-    private var akis: Text {
-        var t = Text("")
-        for (n, i) in motor.iletiler.enumerated() {
-            let ad = i.benMi ? "" : (i.sistemMi ? "UMAY" : "Dede Korkut")
-            let renk: Color = i.benMi ? .accentColor : (i.sistemMi ? .orange : .secondary)
-            if n > 0 { t = t + Text("\n\n") }
-            if i.benMi { t = t + Text(i.metin).foregroundColor(renk) }
-            else { t = t + Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin) }
-        }
-        return t
+    /// Balonsuz ileti: adı renkli, altında metin. (Tek dev metin kaydırmayı bozduğu için iletiler ayrı.)
+    private func ileti(_ i: UmayMotor.Ileti) -> Text {
+        if i.benMi { return Text(i.metin).foregroundColor(.accentColor) }
+        let ad = i.sistemMi ? "UMAY" : "Dede Korkut"
+        let renk: Color = i.sistemMi ? .orange : .secondary
+        return Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin)
     }
 
     private func gonder() {
