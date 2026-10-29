@@ -140,6 +140,7 @@ final class UmayMotor: ObservableObject {
     /// gelen/ klasöründe işlenmemiş belge varsa ajanlara inceletir (açılışta ve uygulama öne gelince).
     func gelenYokla() {
         guard basladi, !mesgul else { return }
+        gelenAdlariniKisalt()
         let adlar = (try? FileManager.default.contentsOfDirectory(atPath: UmayMotor.gelenDizini.path)) ?? []
         guard adlar.contains(where: { !$0.hasPrefix("_") && !$0.hasPrefix(".") }) else { return }
         mesgul = true
@@ -154,13 +155,45 @@ final class UmayMotor: ObservableObject {
         }
     }
 
+    /// Çekirdek dizin girdisi adını 32 bayta sığdırır (ÖTÜKEN ABI'si); daha uzun adlar görünmez olur.
+    /// Ad: sadeleştirilmiş baş + 8 haneli özet + uzantı. Aynı dosya hep aynı kısa adı alır.
+    static func kisaAd(_ ad: String) -> String {
+        if ad.utf8.count < 32 { return ad }
+        let u = (ad as NSString).pathExtension.lowercased()
+        let govde = (ad as NSString).deletingPathExtension
+        var h: UInt32 = 2166136261
+        for b in govde.utf8 { h = (h ^ UInt32(b)) &* 16777619 }
+        let harita: [Character: Character] = ["ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u","â":"a","î":"i","û":"u"]
+        var kok = ""
+        for c in govde.lowercased() {
+            if kok.count >= 14 { break }
+            if let k = harita[c] { kok.append(k) }
+            else if c.isASCII && (c.isLetter || c.isNumber) { kok.append(c) }
+            else if c == " " || c == "-" || c == "_" { if !kok.hasSuffix("-") { kok.append("-") } }
+        }
+        let son = String(format: "%08x", h)
+        return u.isEmpty ? "\(kok)-\(son)" : "\(kok)-\(son).\(u)"
+    }
+
+    /// gelen/ içindeki fazla uzun adlı dosyaları kısa adla yeniden adlandırır (aksi halde hiç görülmezler).
+    func gelenAdlariniKisalt() {
+        let fm = FileManager.default
+        let adlar = (try? fm.contentsOfDirectory(atPath: UmayMotor.gelenDizini.path)) ?? []
+        for ad in adlar where !ad.hasPrefix(".") && ad.utf8.count >= 32 {
+            let kaynak = UmayMotor.gelenDizini.appendingPathComponent(ad)
+            let hedef = UmayMotor.gelenDizini.appendingPathComponent(UmayMotor.kisaAd(ad))
+            try? fm.removeItem(at: hedef)
+            try? fm.moveItem(at: kaynak, to: hedef)
+        }
+    }
+
     func belgeEkle(_ adresler: [URL]) {
         let fm = FileManager.default
         var notlar: [String] = []
         for a in adresler {
             let erisim = a.startAccessingSecurityScopedResource()
             defer { if erisim { a.stopAccessingSecurityScopedResource() } }
-            let hedef = UmayMotor.gelenDizini.appendingPathComponent(a.lastPathComponent)
+            let hedef = UmayMotor.gelenDizini.appendingPathComponent(UmayMotor.kisaAd(a.lastPathComponent))
             let boyut = ((try? fm.attributesOfItem(atPath: a.path)[.size]) as? NSNumber)?.intValue ?? -1
             try? fm.removeItem(at: hedef)
             do {
