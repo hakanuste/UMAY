@@ -151,10 +151,11 @@ struct SohbetGorunumu: View {
     private var akis: Text {
         var t = Text("")
         for (n, i) in motor.iletiler.enumerated() {
-            let ad = i.benMi ? "Sen" : (i.sistemMi ? "UMAY" : "Dede Korkut")
+            let ad = i.benMi ? "" : (i.sistemMi ? "UMAY" : "Dede Korkut")
             let renk: Color = i.benMi ? .accentColor : (i.sistemMi ? .orange : .secondary)
             if n > 0 { t = t + Text("\n\n") }
-            t = t + Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin)
+            if i.benMi { t = t + Text(i.metin).foregroundColor(renk) }
+            else { t = t + Text(ad + "\n").bold().foregroundColor(renk) + Text(i.metin) }
         }
         return t
     }
@@ -181,7 +182,7 @@ enum Panoya {
 extension UmayMotor {
     /// Bütün konuşma düz metin: "Sen: …" / "UMAY: …".
     func konusmaMetni() -> String {
-        iletiler.map { ($0.benMi ? "Sen: " : ($0.sistemMi ? "UMAY: " : "Dede Korkut: ")) + $0.metin }
+        iletiler.map { ($0.benMi ? "Hakan: " : ($0.sistemMi ? "UMAY: " : "Dede Korkut: ")) + $0.metin }
             .joined(separator: "\n\n")
     }
 }
