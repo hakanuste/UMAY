@@ -85,7 +85,7 @@ static void varsayilan_ses_yolu(char *c, size_t n)
 {
     const char *ev = uh_ev();
     if (!ev) ev = ".";
-    snprintf(c, n, "%s/.local/share/umay/ses/tr_TR-fahrettin-medium.onnx", ev);
+    snprintf(c, n, "%s/.local/share/umay/ses/tr_TR-dfki-medium.onnx", ev);
 }
 
 /* soylet.py aranir: ayar, kurulum oneki, kaynak agaci. */

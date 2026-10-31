@@ -10,7 +10,7 @@
 # =====================================================================
 set -u
 SES_DIZIN="${UMAY_SES_DIZIN:-$HOME/.local/share/umay/ses}"
-SES_ADI="${UMAY_SES_ADI:-tr_TR-fahrettin-medium}"
+SES_ADI="${UMAY_SES_ADI:-tr_TR-dfki-medium}"
 KAYNAK="https://huggingface.co/rhasspy/piper-voices/resolve/main/tr/tr_TR"
 
 yaz(){ printf '  %s\n' "$1"; }
@@ -66,7 +66,7 @@ mkdir -p "$SES_DIZIN"
 if [ -f "$SES_DIZIN/$SES_ADI.onnx" ]; then
   yaz "ses modeli zaten var: $SES_DIZIN/$SES_ADI.onnx"
 else
-  # tr_TR-fahrettin-medium -> fahrettin/medium
+  # tr_TR-dfki-medium -> dfki/medium
   KISI=$(echo "$SES_ADI" | sed 's/^tr_TR-//; s/-[a-z]*$//')
   KALITE=$(echo "$SES_ADI" | sed 's/.*-//')
   yaz "ses modeli iniyor: $SES_ADI"

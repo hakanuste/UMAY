@@ -135,6 +135,9 @@ static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
             "{\"query\":{\"pages\":[{\"title\":\"Zeolit\",\"extract\":"
             "\"Zeolit g\\u00f6zenekli bir mineraldir.\\n\\nTar\\u0131mda toprak d\\u00fczenleyici olarak "
             "kullan\\u0131l\\u0131r. \\ud83d\\ude00\"}]}}";
+    } else if (um_icinde(url, "gsrsearch=eyfel")) {
+        y = "{\"query\":{\"pages\":[{\"title\":\"Eyfel Kulesi\",\"extract\":"
+            "\"Eyfel Kulesi Paris'te demir bir kuledir. Y\\u00fcksekli\\u011fi 330 metredir.\"}]}}";
     } else if (um_icinde(url, "gsrsearch=bazalt")) {
         y = "{\"query\":{\"pages\":[{\"title\":\"Bazalt\",\"extract\":"
             "\"Bazalt volkanik bir kay\\u00e7t\\u0131r. De\\u011firmen ta\\u015f\\u0131 olarak kullan\\u0131l\\u0131r.\"}]}}";
@@ -1695,6 +1698,21 @@ int main(void) {
              (bn >= 1 && um_icinde(bg[0].kaynak, "doğrulanmamış")));
         dene("kaynakta 'dogrulanmamis' yazar", bn >= 1 && um_icinde(bg[0].kaynak, "doğrulanmamış"));
         dene("dil Turkce isaretli", bn >= 1 && um_esit(bg[0].dil, "tr"));
+        /* EYFEL: kütüphanede ilgisiz bir kayıt ("TRT kulesi") var ama "eyfel" hiç geçmiyor -> web'den öğrenmeli */
+        for (int tur = 0; tur < 2; tur++) {
+            bilgi_kayit_kat("demir", "TRT Kulesi anten", "/kut/demir/trt.txt", "anten",
+                            "TRT Kulesindeki anten calismasi 20 metrelik anten kurulumu");
+            otag_t oe; otag_kur(&oe);
+            otag_alp_kat(&oe, tur == 0 ? alp_bilge() : alp_uzman(ALAN_TULGA));
+            gorev_t ge; gorev_hazirla(&ge, GT_SORU, "Eyfel kulesi kaç metre?");
+            ge.alan = ALAN_TULGA;
+            int once = g_og_cagri;
+            otag_gorev_ver(&oe, &ge);
+            sonuc_t se[UMAY_ALP_MAX]; int te = 0;
+            while (otag_mesgul(&oe) && te++ < 60) otag_dondur(&oe, se, UMAY_ALP_MAX);
+            dene(tur == 0 ? "EYFEL (BİLGE): ilgisiz kayıt varken web'e çıkıldı" : "EYFEL (UZMAN): ilgisiz kayıt varken web'e çıkıldı",
+                 g_og_cagri > once);
+        }
         int onceki = g_og_cagri;
         dene("ayni konu tekrar agdan istenmez", ogren_hemen("yer-su", "zeolit nedir") == 0 && g_og_cagri == onceki);
 
