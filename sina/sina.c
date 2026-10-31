@@ -282,7 +282,7 @@ int main(void) {
     printf("\n2) Ayarlar\n");
     ayar_kur(0);
     dene("varsayılan kullanıcı", um_esit(ayar_metin("kullanici", ""), "Hakan"));
-    dene("sayı ayarı", ayar_sayi("baglam_adet", 0) == 3);
+    dene("sayı ayarı", ayar_sayi("baglam_adet", 0) == 2);
 
     printf("\n3) Bilgi (kütüphane/RAG)\n");
     int d = bilgi_doktrin_yukle();

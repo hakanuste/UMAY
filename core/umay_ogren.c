@@ -20,7 +20,7 @@
 #define OG_YOL         384
 #define OG_BOSLUK_MAX  16384u
 #define OG_ANAHTAR_MAX 5
-#define OG_ARALIK_MS   4000u           /* iki ağ çağrısı arası en az */
+#define OG_ARALIK_MS   1500u           /* iki ağ çağrısı arası en az */
 #define OG_OTURUM_AG   40              /* bir oturumda en çok anlık araştırma */
 #define OG_BOSTA_MS    120000u         /* boşta öğrenme aralığı */
 

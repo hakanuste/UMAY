@@ -17,7 +17,7 @@ static const struct { const char *a; const char *d; } VARSAYILAN[] = {
     { "bengi",         "kut/bengi.txt" },
     { "model",         "kut/umay.us1" },
     { "sozluk",        "kut/sozluk.txt" },
-    { "baglam_adet",   "3" },
+    { "baglam_adet",   "2" },
     { "dil",           "oz-turkce" },
     { "ses",           "kapali" },
     { "onay_omur_ms",  "600000" },
