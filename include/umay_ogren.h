@@ -78,4 +78,8 @@ int  ogren_parcala(const char *metin, uint32_t en_cok, uint32_t *bas, uint32_t *
 uint32_t ogren_url_kodla(const char *s, char *cik, uint32_t n);
 /* Basit dil kestirimi: "tr" ya da "en". */
 const char *ogren_dil_kestir(const char *metin);
+#include "umay_bilgi.h"
+/* Sorunun anahtar sözcüklerinin yüzde kaçı metinde geçer (0..100). */
+int  ogren_bilinmeyen(const char *soru);   /* soruda kütüphanede hiç geçmeyen özel sözcük var mı */
+int  ogren_kapsam(const char *soru, const char *metin);
 #endif

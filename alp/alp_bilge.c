@@ -40,6 +40,10 @@ static alp_durum_t adim(alp_t *a) {
         /* ULAK: anlık veri sorusuysa (kur, hava) canlı dayanak en başa konur. */
         if (ic->gorev.tur == GT_SORU && ulak_canli(ic->gorev.istem, &ic->baglam[0]) > 0) ic->baglam_sayi = 1;
         ic->baglam_sayi += bilgi_baglam_bul(ic->gorev.istem, ic->baglam + ic->baglam_sayi, adet - ic->baglam_sayi);
+        /* Kayıt var ama soruda kütüphanenin hiç bilmediği bir ad var: web'den destekle. */
+        if (ic->baglam_sayi > 0 && (ic->gorev.tur == GT_SORU || ic->gorev.tur == GT_ARASTIR) &&
+            ogren_bilinmeyen(ic->gorev.istem) && ogren_hemen("ortak", ic->gorev.istem) > 0)
+            ic->baglam_sayi = bilgi_baglam_bul(ic->gorev.istem, ic->baglam, adet);
         /* Dayanak yoksa boşluğu kaydet ve (açıksa) web'den kapat. */
         if (ic->baglam_sayi == 0 &&
             (ic->gorev.tur == GT_SORU || ic->gorev.tur == GT_ARASTIR) &&

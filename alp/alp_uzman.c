@@ -141,14 +141,21 @@ static alp_durum_t uzman_adim(alp_t *a) {
                 for (int q = 1; q < 3 && t->kategori[q] && on < 2; q++) ortak[on++] = t->kategori[q];
                 if (on > 0) {
                     u->baglam_sayi = bilgi_baglam_bul_kat(u->gorev.istem, ortak, on, u->baglam, 3);
-                    if (u->baglam_sayi > 0) u->nereden = 1;
+                            if (u->baglam_sayi > 0) u->nereden = 1;
                 }
             }
             if (u->baglam_sayi == 0) {
                 u->baglam_sayi = bilgi_baglam_bul(u->gorev.istem, u->baglam, 2);
-                if (u->baglam_sayi > 0) u->nereden = 2;
+                    if (u->baglam_sayi > 0) u->nereden = 2;
             }
 
+            /* Kayıt var ama soruda kütüphanenin hiç bilmediği bir ad geçiyor ("eyfel"): ilgisiz kayıtla yetinme,
+             * web'den öğren; öğrenilen belge genel dizinde en üstte çıkar. */
+            if (u->baglam_sayi > 0 && !deneme && ogren_bilinmeyen(u->gorev.istem) &&
+                ogren_hemen(bilgi_alan_kategorisi(t->alan), u->gorev.istem) > 0) {
+                u->baglam_sayi = bilgi_baglam_bul(u->gorev.istem, u->baglam, 3);
+                if (u->baglam_sayi > 0) { u->nereden = 2; break; }
+            }
             if (u->baglam_sayi > 0 || deneme) break;
             /* DAYANAK YOK: boşluk kaydedilir ve (açıksa) web'den kapatılır.
              * Öğrenilen parçalar dizine hemen girer, ikinci denemede görünür. */

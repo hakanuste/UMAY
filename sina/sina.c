@@ -753,6 +753,7 @@ int main(void) {
     dene("motor HİÇ çağrılmadı", g_cagri == 0);
     {   char yz_[1024]; us_cikti_yaz(&cb, yz_, sizeof yz_);
         dene("susma yanıtında 'Güven: yok' yazılmaz", um_icinde(yz_, "Güven:") == 0); }
+    dene("kütüphanede hiç geçmeyen ad bilinmeyen sayılır", ogren_bilinmeyen("eyfel kulesi kaç metre") == 1 || bilgi_sayi() == 0);
     /* model istem iskeletini yankılarsa yalnız "CEVAP:" sonrası kalır */
     {   us_cikti_t ci; us_derle_t di; um_bellek_doldur(&di, 0, sizeof di);
         char yank[] = "DAYANAK: Proje araci Musso.\n\nCEVAP:\nMotor Mercedes M104 motorudur.";

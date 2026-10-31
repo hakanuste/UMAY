@@ -119,6 +119,45 @@ static int anahtar_kur(const char *soru, char *cik, uint32_t n) {
     return k;
 }
 
+static int ci_icinde(const char *saman, const char *igne) {   /* ASCII harf duyarsız arama */
+    uint32_t n = um_uzun(igne);
+    for (; *saman; saman++) {
+        uint32_t i = 0;
+        for (; i < n; i++) {
+            char a = saman[i], b = igne[i];
+            if (!a) return 0;
+            if (a >= 'A' && a <= 'Z') a = (char)(a + 32);
+            if (a != b) break;
+        }
+        if (i == n) return 1;
+    }
+    return 0;
+}
+
+/* Soruda, kütüphanenin HİÇBİR kaydında geçmeyen özel bir sözcük (marka, yer, ad…) var mı?
+ * "eyfel kulesi kaç metre": "eyfel" hiçbir kayıtta yok → kütüphane bu konuyu bilmiyor, "kulesi" ile eşleşen
+ * ilgisiz kayıt (TRT kulesi) yeterli sayılmaz. Yalnız ASCII sözcükler denenir (Türkçe ek/harf yüzünden yanlış alarm olmasın). */
+int ogren_bilinmeyen(const char *soru) {
+    char kel[OG_ANAHTAR_MAX + 4][24];
+    int h = soru ? bilgi_kelime_ayikla(soru, kel, OG_ANAHTAR_MAX + 4) : 0, say = bilgi_sayi();
+    for (int i = 0; i < h; i++) {
+        if (ogren_komut_sozcugu(kel[i]) || soru_kalibi(kel[i]) || um_uzun(kel[i]) < 5) continue;
+        int ascii = 1;
+        for (const char *c = kel[i]; *c; c++) if ((uint8_t)*c >= 0x80u || !((*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9'))) ascii = 0;
+        if (!ascii) continue;
+        char kok[24]; um_kopya(kok, sizeof kok, kel[i]);
+        if (um_uzun(kok) > 6) kok[6] = 0;
+        int bulundu = 0;
+        for (int r = 0; r < say && !bulundu; r++) {
+            bilgi_ham_t k;
+            if (bilgi_kayit_oku(r, &k) != UM_OLDU) continue;
+            if (ci_icinde(k.baslik, kok) || ci_icinde(k.icerik, kok)) bulundu = 1;
+        }
+        if (!bulundu) return 1;
+    }
+    return 0;
+}
+
 static void kok_yolu(char *cik, uint32_t n, const char *alt, const char *ad) {
     const char *kok = ayar_metin("kutuphane", "kut");
     if (alt && ad) um_bicim(cik, n, "%s/%s/%s", kok, alt, ad);
