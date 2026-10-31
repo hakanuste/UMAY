@@ -35,12 +35,27 @@ enum BulutSes {
         return d
     }
 
+    /// Bekleyişi kısaltmak için: ilk cümle(ler) hemen istenip çalınır, kalanı arkada hazırlanır.
+    static func bol(_ metin: String) -> (String, String) {
+        let t = metin.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count > 120 else { return (t, "") }
+        let bitis: Set<Character> = [".", "!", "?", "…", "\n"]
+        var ilk = ""
+        for (i, c) in t.enumerated() {
+            ilk.append(c)
+            if i >= 40 && bitis.contains(c) { break }
+        }
+        let kalan = String(t.dropFirst(ilk.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        return (ilk.trimmingCharacters(in: .whitespacesAndNewlines), kalan)
+    }
+
     /// Metni mp3'e çevirir (ağ çağrısı: arka kuyrukta çağır). Başarılıysa dosya adresini döner.
     static func uret(_ metin: String) -> URL? {
         guard let anahtar = anahtar() else { return nil }
         let ses = (UserDefaults.standard.string(forKey: "umay.bulutSesNo") ?? "").trimmingCharacters(in: .whitespaces)
         let sesNo = ses.isEmpty ? varsayilanSes : ses
-        let ozet = SHA256.hash(data: Data((sesNo + "|" + metin).utf8)).map { String(format: "%02x", $0) }.joined().prefix(24)
+        let hiz = max(0.7, min(1.2, UserDefaults.standard.object(forKey: "umay.bulutHiz") as? Double ?? 1.0))
+        let ozet = SHA256.hash(data: Data((sesNo + "|" + String(format: "%.2f", hiz) + "|" + metin).utf8)).map { String(format: "%02x", $0) }.joined().prefix(24)
         let dosya = onbellekDizini.appendingPathComponent("\(ozet).mp3")
         if FileManager.default.fileExists(atPath: dosya.path) { return dosya }
         guard let adres = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(sesNo)?output_format=mp3_44100_128") else { return nil }
@@ -49,7 +64,8 @@ enum BulutSes {
         istek.setValue(anahtar, forHTTPHeaderField: "xi-api-key")
         istek.setValue("application/json", forHTTPHeaderField: "Content-Type")
         istek.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
-        let govde: [String: Any] = ["text": metin, "model_id": "eleven_flash_v2_5", "language_code": "tr"]
+        let govde: [String: Any] = ["text": metin, "model_id": "eleven_flash_v2_5", "language_code": "tr",
+                                     "voice_settings": ["speed": hiz, "stability": 0.6, "similarity_boost": 0.8]]
         istek.httpBody = try? JSONSerialization.data(withJSONObject: govde)
         var sonuc: URL? = nil
         let bekle = DispatchSemaphore(value: 0)
@@ -62,3 +78,6 @@ enum BulutSes {
         return sonuc
     }
 }
+
+/// Arka kuyruktan ana kuyruğa sonuç taşımak için basit kutu.
+final class SonucKutusu { var adres: URL? }

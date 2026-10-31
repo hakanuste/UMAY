@@ -74,6 +74,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.piperGurultu") private var piperGurultu = 0.6
     @AppStorage("umay.bulutSes") private var bulutSes = false
     @AppStorage("umay.bulutSesNo") private var bulutSesNo = ""
+    @AppStorage("umay.bulutHiz") private var bulutHiz = 1.0
     @State private var bulutAnahtar = ""
     @State private var bulutKayitli = BulutSes.anahtar() != nil
     @Environment(\.presentationMode) private var kapat
@@ -139,6 +140,8 @@ struct AyarGorunumu: View {
                                 BulutSes.anahtarKaydet(bulutAnahtar); bulutAnahtar = ""; bulutKayitli = BulutSes.anahtar() != nil
                             }.disabled(bulutAnahtar.trimmingCharacters(in: .whitespaces).isEmpty)
                         }
+                        Text("Bulut ses hızı: \(String(format: "%.2f", bulutHiz))").font(.caption)
+                        Slider(value: $bulutHiz, in: 0.7...1.2, step: 0.05)
                         TextField("Ses numarası (boşsa: \(BulutSes.varsayilanSes))", text: $bulutSesNo).textFieldStyle(.roundedBorder)
                     }
                 }

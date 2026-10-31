@@ -62,15 +62,31 @@ final class Okuyucu {
         if BulutSes.acik {
             sustur()
             let benim = nesil
+            let (ilk, kalan) = BulutSes.bol(metin)
+            let ikinci = SonucKutusu()
+            let grup = DispatchGroup()
+            if !kalan.isEmpty {
+                grup.enter()
+                DispatchQueue.global(qos: .userInitiated).async { ikinci.adres = BulutSes.uret(kalan); grup.leave() }
+            }
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                let dosya = BulutSes.uret(metin)
+                let birinci = BulutSes.uret(ilk)
                 DispatchQueue.main.async {
                     guard let self = self, self.nesil == benim else { return }
-                    if let d = dosya, let o = try? AVAudioPlayer(contentsOf: d) {
-                        self.calar = o
-                        o.prepareToPlay(); o.play()
-                    } else {
-                        self.konusYerel(metin)
+                    guard let d = birinci, let o = try? AVAudioPlayer(contentsOf: d) else { self.konusYerel(metin); return }
+                    self.calar = o
+                    o.prepareToPlay(); o.play()
+                    if kalan.isEmpty { return }
+                    let bitis = Date().addingTimeInterval(o.duration)
+                    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                        grup.wait()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + max(0, bitis.timeIntervalSinceNow)) {
+                            guard let self = self, self.nesil == benim else { return }
+                            if let d2 = ikinci.adres, let o2 = try? AVAudioPlayer(contentsOf: d2) {
+                                self.calar = o2
+                                o2.prepareToPlay(); o2.play()
+                            }
+                        }
                     }
                 }
             }
