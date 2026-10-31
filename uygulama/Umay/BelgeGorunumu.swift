@@ -94,12 +94,13 @@ extension UmayMotor {
 
 struct BelgeGorunumu: View {
     @ObservedObject var motor: UmayMotor
+    var kapatEylemi: (() -> Void)? = nil
     @State private var liste: [BelgeKaydi] = []
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack { Text("Belgelerim").font(.title2).bold(); Spacer(); Button("Kapat") { kapat.wrappedValue.dismiss() } }
+            HStack { Text("Belgelerim").font(.title2).bold(); Spacer(); Button("Kapat") { if let k = kapatEylemi { k() } else { kapat.wrappedValue.dismiss() } } }
             Text("Yanlış alana giren belgeyi buradan başka alana taşıyabilir ya da kaldırabilirsin.")
                 .font(.caption).foregroundColor(.secondary)
             if liste.isEmpty { Text("Henüz belge yok.").foregroundColor(.secondary) }
@@ -113,7 +114,7 @@ struct BelgeGorunumu: View {
         .onAppear { liste = UmayMotor.belgeleriListele() }
         .onChange(of: motor.mesgul) { _ in liste = UmayMotor.belgeleriListele() }
         #if os(macOS)
-        .frame(width: 520, height: 440)
+        .frame(minWidth: kapatEylemi == nil ? 520 : 300, minHeight: kapatEylemi == nil ? 440 : 300)
         #endif
     }
 

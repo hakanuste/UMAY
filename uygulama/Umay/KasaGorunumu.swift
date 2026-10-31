@@ -124,6 +124,7 @@ final class KasaDurumu: ObservableObject {
 
 struct KasaGorunumu: View {
     @StateObject private var d = KasaDurumu()
+    var kapatEylemi: (() -> Void)? = nil
     @Environment(\.dismiss) private var kapat
     @State private var parola = ""
     @State private var parola2 = ""
@@ -139,7 +140,7 @@ struct KasaGorunumu: View {
                 Text("Kasa").font(.title2.bold())
                 Spacer()
                 if d.acik { Button("Kilitle") { d.kilitle() } }
-                Button("Kapat") { d.kilitle(); kapat() }
+                Button("Kapat") { d.kilitle(); if let k = kapatEylemi { k() } else { kapat() } }
             }
             Text("Parolalar, sağlık ve arazi kütükleri burada şifreli durur. Ana parola yalnız bu pencereye yazılır; sohbete, modele ve ağa hiç gitmez.")
                 .font(.caption).foregroundColor(.secondary)
@@ -152,7 +153,7 @@ struct KasaGorunumu: View {
         }
         .padding()
         #if os(macOS)
-        .frame(minWidth: 480, minHeight: 520)
+        .frame(minWidth: kapatEylemi == nil ? 480 : 300, minHeight: kapatEylemi == nil ? 520 : 300)
         #endif
         .fileImporter(isPresented: $dosyaSec, allowedContentTypes: [.data], allowsMultipleSelection: false) { sonuc in
             guard case .success(let adresler) = sonuc, let a = adresler.first else { return }

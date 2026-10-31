@@ -244,7 +244,8 @@ final class Okuyucu {
 }
 
 struct SohbetGorunumu: View {
-    @StateObject private var motor = UmayMotor()
+    @ObservedObject var motor: UmayMotor
+    @Binding var sag: SagPano
     @State private var girdi = ""
     @State private var ayarAcik = false
     @State private var belgelerAcik = false
@@ -374,9 +375,21 @@ struct SohbetGorunumu: View {
                 .disabled(motor.iletiler.isEmpty)
             Button { motor.temizle() } label: { Image(systemName: "trash") }
                 .disabled(motor.iletiler.isEmpty || motor.mesgul)
-            Button { kasaAcik = true } label: { Image(systemName: "lock.shield") }
+            Button {
+                #if os(macOS)
+                sag = (sag == .kasa) ? .yok : .kasa
+                #else
+                kasaAcik = true
+                #endif
+            } label: { Image(systemName: "lock.shield") }
                 .help("Kasa: parolalar, sağlık ve arazi kütükleri (şifreli)")
-            Button { belgelerAcik = true } label: { Image(systemName: "books.vertical") }
+            Button {
+                #if os(macOS)
+                sag = (sag == .belgeler) ? .yok : .belgeler
+                #else
+                belgelerAcik = true
+                #endif
+            } label: { Image(systemName: "books.vertical") }
                 .help("Belgelerim: alanını değiştir ya da kaldır")
             Button { ayarAcik = true } label: { Image(systemName: "gearshape") }
         }
