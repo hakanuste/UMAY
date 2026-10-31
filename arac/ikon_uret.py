@@ -58,6 +58,34 @@ tuv = Image.new("RGBA", (kare, kare), (0, 0, 0, 0))
 tuv.alpha_composite(am, ((kare - am.width) // 2, (kare - am.height) // 2))
 tuv.resize((512, 512), Image.LANCZOS).save(os.path.join(CIKTI, "umay-amblem.png"), optimize=True)
 
+# ---- Xcode varlık kataloğu (iOS + macOS): AppIcon ----
+# iOS: 1024x1024, SAYDAMLIK YOK, köşeler yuvarlatılmaz (iOS kendisi yuvarlar) -> tam kapsayan turkuaz zemin
+import json
+KAT = os.path.join(CIKTI, "Assets.xcassets", "AppIcon.appiconset")
+os.makedirs(KAT, exist_ok=True)
+tam = Image.new("RGB", (1024, 1024))
+tp = tam.load()
+ust_, alt_ = (47, 196, 200), (6, 112, 138)
+for y in range(1024):
+    t = y / 1023
+    c = tuple(int(ust_[i] + (alt_[i] - ust_[i]) * t) for i in range(3))
+    for x in range(1024): tp[x, y] = c
+am_ios = am.copy()
+hedef_ios = int(1024 * 0.80)
+oran_ios = min(hedef_ios / am_ios.width, hedef_ios / am_ios.height)
+am_ios = am_ios.resize((int(am_ios.width * oran_ios), int(am_ios.height * oran_ios)), Image.LANCZOS)
+tam_rgba = tam.convert("RGBA")
+tam_rgba.alpha_composite(am_ios, ((1024 - am_ios.width) // 2, (1024 - am_ios.height) // 2))
+tam_rgba.convert("RGB").save(os.path.join(KAT, "ios-1024.png"), optimize=True)
+gorseller = [{"filename": "ios-1024.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}]
+for boy in (16, 32, 128, 256, 512):
+    for kat in (1, 2):
+        ad = f"mac-{boy}@{kat}x.png"
+        b1024.resize((boy * kat, boy * kat), Image.LANCZOS).save(os.path.join(KAT, ad), optimize=True)
+        gorseller.append({"filename": ad, "idiom": "mac", "scale": f"{kat}x", "size": f"{boy}x{boy}"})
+json.dump({"images": gorseller, "info": {"author": "xcode", "version": 1}}, open(os.path.join(KAT, "Contents.json"), "w"), indent=2)
+json.dump({"info": {"author": "xcode", "version": 1}}, open(os.path.join(CIKTI, "Assets.xcassets", "Contents.json"), "w"), indent=2)
+
 # .icns (PNG parçaları; macOS 10.7+)
 parcalar = [("icp4", 16), ("icp5", 32), ("icp6", 64), ("ic07", 128), ("ic08", 256), ("ic09", 512), ("ic10", 1024),
             ("ic11", 32), ("ic12", 64), ("ic13", 256), ("ic14", 512)]   # son dördü @2x

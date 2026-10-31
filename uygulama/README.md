@@ -19,11 +19,14 @@ open kov/Umay.app
 Gerekli: Xcode komut satırı araçları (`swiftc`), `cmake`. İlk motor derlemesi birkaç dakika.
 `Umay.app` yerel imzalıdır; ilk açışta "tanımlanamayan geliştirici" uyarısı çıkarsa: sağ tık → Aç.
 
+**Kurulum (Launchpad/Applications, simgesiyle):** `./arac/mac_kur.sh` → `/Applications/Umay.app` (Dock'ta tut: simgeye sağ tık).
+
 ## iOS (iPhone) — tam Xcode GEREKİR, yeni bir Mac ister
 ```
 ./arac/uygulama_kitaplik.sh xcframework   # kov/uyg/Umay.xcframework
 brew install xcodegen && cd uygulama && xcodegen generate && open Umay.xcodeproj
 ```
+Uygulama simgesi `Umay/Assets.xcassets/AppIcon` içinde hazırdır (`python3 arac/ikon_uret.py` yeniden üretir; iOS için saydamsız, tam kapsayan turkuaz zemin).
 Xcode'da takımınızı (ücretsiz Apple kimliği yeter, uygulama 7 gün çalışır) seçip iPhone'a yükleyin. iPhone'da 1,7B model (1,8 GB) önerilir; iOS bir uygulamaya kabaca 3 GB bellek verir, 4B bu sınıra yaklaştığı için sunulmaz.
 Çekirdekte iOS'ta yasak olan alt süreç çağrıları (`popen`, `system`) `port/umay_host_uyum.c` içinde kapatıldı; ağı uygulama getirir.
 
