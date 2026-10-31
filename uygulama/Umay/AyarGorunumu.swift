@@ -104,7 +104,7 @@ struct AyarGorunumu: View {
                      ?? "Ses: macOS sistem sesi (Piper kurulu değil)")
                     .font(.caption).foregroundColor(.secondary)
                 #endif
-                Toggle("Kayıt yoksa internetten ara ve öğren (yalnız soru anahtar sözcükleri çıkar)", isOn: $internettenOgren)
+                Toggle("Kayıt yoksa internetten ara ve öğren", isOn: $internettenOgren)
             }
             Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
                 .font(.caption).foregroundColor(.secondary)
