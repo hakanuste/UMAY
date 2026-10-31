@@ -6,6 +6,7 @@
  * ağ olmadığı için hiçbir şey yapmaz.
  * ===================================================================== */
 #include "umay_ogren.h"
+#include "umay_gizli.h"
 #include "umay_bilgi.h"
 #include "umay_ortak.h"
 #include "umay_port.h"
@@ -423,12 +424,14 @@ int ogren_bekleyen(void) {
 /* ağ ve ayrıştırma                                                     */
 /* ------------------------------------------------------------------ */
 static int64_t getir(const char *url, char *cik) {
+    if (gizli_adres_mi(url)) return -1;      /* GİZLİLİK DUVARI */
     if (g_getir) return g_getir(url, cik, OG_YANIT_MAX);
     return up_ag_getir(url, cik, OG_YANIT_MAX, 10);
 }
 
 int64_t ogren_ag_getir(const char *url, char *cik, uint32_t n) {
     if (!ogren_acik()) return -1;
+    if (gizli_adres_mi(url)) return -1;      /* GİZLİLİK DUVARI: kişisel sözcük geçen istek gitmez */
     if (g_getir) return g_getir(url, cik, n);
     return up_ag_getir(url, cik, n, 12);
 }

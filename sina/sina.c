@@ -12,6 +12,7 @@
 #include "umay_us.h"
 #include "umay_ozturk.h"
 #include "umay_ulak.h"
+#include "umay_gizli.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -2056,12 +2057,45 @@ int main(void) {
         dene("kur: euro ayrı satırdan okunur", ulak_canli("euro ne kadar", &b) == 1 && um_icinde(b.alinti, "50,5000"));
         dene("hava: aydın'da hava durumu", ulak_canli("Aydın'da hava durumu nasıl", &b) == 1 && um_icinde(b.alinti, "17,3") && um_icinde(b.alinti, "parçalı bulutlu"));
         dene("hava: kaynak Open-Meteo", um_icinde(b.kaynak, "Open-Meteo") != 0);
+        dene("hava: yer adı yoksa kendiliğinden konum yollanmaz", ulak_canli("hava durumu nasıl", &b) == 0);
         dene("canlı soru değilse çekmez", ulak_canli("Yer altı kileri nasıl yapılır", &b) == 0);
         dene("dolar sözü ipucusuz soruda çekmez", ulak_canli("dolar ağacı", &b) == 0);
         uh_ortam_ata("UMAY_OGREN", "0");
         dene("öğrenme kapalıyken ağa çıkmaz", ulak_canli("dolar kaç", &b) == 0);
         uh_ortam_ata("UMAY_OGREN", "1");
         ogren_getirici_ata(0);
+    }
+
+    /* --- 62. Gizlilik duvarı --- */
+    {
+        printf("\n[62] gizlilik duvarı\n");
+        gizli_yukle("/yok/yok");
+        dene("gömülü: tapu kaydı gizli", gizli_mi("Tapu kaydım nerede") == 1);
+        dene("gömülü: şifre gizli (büyük harf)", gizli_mi("ŞİFRE değiştir") == 1);
+        dene("sıradan soru gizli değil", gizli_mi("dolar kaç TL") == 0);
+        dene("adres çözülür: %C5%9Fifre", gizli_adres_mi("http://x/?q=%C5%9Fifre+nedir") == 1);
+        dene("adres: sıradan istek geçer", gizli_adres_mi("http://x/?q=kantaron") == 0);
+        char kd[300]; snprintf(kd, sizeof kd, "%s/gz%ld", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", (long)time(0));
+        up_dizin_yarat(kd);
+        char dy[340]; snprintf(dy, sizeof dy, "%s/gizli.txt", kd);
+        const char *ek = "# deneme\nKoçarlı\nbostancı\nab\n";
+        up_yaz_yola(dy, ek, um_uzun(ek));
+        const char *eski_kut = ayar_metin("kutuphane", "kut");
+        char eski[300]; snprintf(eski, sizeof eski, "%s", eski_kut);
+        ayar_yaz("kutuphane", kd);
+        dene("kullanıcı listesi: 2 sözcük (kısa 'ab' atlanır)", gizli_yukle(kd) == 2);
+        dene("kullanıcı sözcüğü yakalanır (ek alır)", gizli_mi("koçarlıda zeytin") == 1);
+        dene("kullanıcı sözcüğü: büyük harfli yazım", gizli_mi("Bostancı garajı") == 1);
+        dene("liste dışı yer geçer", gizli_mi("Kars hava durumu") == 0);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        ogren_getirici_ata(ul_sahte);
+        uh_ortam_ata("UMAY_AG_TCMB", "http://sahte-tcmb/today.xml");
+        char cik[256];
+        dene("ağ kapısı: gizli adres gitmez", ogren_ag_getir("http://sahte-tcmb/?q=tapu%20kaydi", cik, sizeof cik) < 0);
+        dene("ağ kapısı: sıradan adres gider", ogren_ag_getir("http://sahte-tcmb/today.xml", cik, sizeof cik) > 0);
+        ogren_getirici_ata(0);
+        ayar_yaz("kutuphane", eski);
+        gizli_yukle(eski);
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

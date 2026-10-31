@@ -1,6 +1,7 @@
 /* ULAK canlı veri — bkz. umay_ulak.h */
 #include "umay_ulak.h"
 #include "umay_ogren.h"
+#include "umay_gizli.h"
 #include "umay_str.h"
 #include "umay_port.h"
 #include "umay_ortak.h"
@@ -92,7 +93,9 @@ static int hava_sorusu(const char *k) {
 
 /* "aydın'da hava durumu" / "aydında hava nasıl" -> "aydın" ; bulunamazsa ayar/varsayılan */
 static void konum_ayikla(const char *k, char *cik, uint32_t n) {
-    um_kopya(cik, n, ayar_metin("ulak_konum", "Aydın"));
+    /* Varsayılan konum YOK: yer adı soruda açıkça yoksa hava durumu sorulmaz
+     * (kullanıcının evi gibi bir yeri kendiliğinden dışarı yollamamak için). */
+    cik[0] = 0;
     const char *h = um_icinde(k, "hava");
     if (!h) h = um_icinde(k, "kaç derece");
     if (!h || h == k) return;
@@ -182,6 +185,10 @@ int ulak_canli(const char *soru, baglam_t *b) {
     b->skor = 99;
     const char *kod, *ad;
     if (kur_sorusu(k, &kod, &ad)) return kur_getir(kod, ad, b);
-    if (hava_sorusu(k)) { char yer[64]; konum_ayikla(k, yer, sizeof yer); return hava_getir(yer, b); }
+    if (hava_sorusu(k)) {
+        char yer[64]; konum_ayikla(k, yer, sizeof yer);
+        if (!yer[0] || gizli_mi(yer)) return 0;
+        return hava_getir(yer, b);
+    }
     return 0;
 }
