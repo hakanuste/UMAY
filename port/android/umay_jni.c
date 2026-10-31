@@ -40,7 +40,7 @@ JNIEXPORT jstring JNICALL
 Java_tr_umay_Umay_animYokla(JNIEnv *env, jclass cls)
 {
     (void)cls;
-    char c[2048];
+    static char c[12288];
     if (umay_gomulu_anim_yokla(c, sizeof c) <= 0) return 0;
     return (*env)->NewStringUTF(env, c);
 }

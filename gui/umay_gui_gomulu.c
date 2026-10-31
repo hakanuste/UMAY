@@ -16,6 +16,7 @@
 #include "umay_kabul.h"
 #include "umay_ortak.h"
 #include "umay_anim.h"
+#include "umay_sabah.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -133,6 +134,13 @@ int umay_gomulu_anim_yokla(char *cikti, uint32_t n)
     if (simdi < 0) return -1;
     static char satir[6][ANIM_SATIR];
     int k = anim_yokla(simdi, satir, 6);
-    for (int i = 0; i < k; i++) { if (i) um_ekle(cikti, n, "\n"); um_ekle(cikti, n, satir[i]); }
+    for (int i = 0; i < k; i++) {
+        if (i) um_ekle(cikti, n, "\x1e");
+        if (um_esit(satir[i], ANIM_SABAH_IMI)) {
+            static char b[7600];
+            sabah_bildirisi(b, sizeof b);
+            um_ekle(cikti, n, b);
+        } else um_ekle(cikti, n, satir[i]);
+    }
     return k;
 }

@@ -27,3 +27,6 @@ kut/b[0-9]*.txt
 egitim/
 *.npz
 ses/ornek/
+
+# kişisel (varlık listesi, gizli sözcükler, kişilik)
+kut/portfoy.txt

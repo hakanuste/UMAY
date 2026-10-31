@@ -1,0 +1,42 @@
+# UMAY sabah bildirisi kaynakları. Bu kütüğü <kütüphane>/haberler.txt olarak kopyalayıp düzenle;
+# varsa dahili listenin yerine geçer. Satırın başına # koyarsan kaynak kapanır.
+# Kurum bültenlerini (ör. yatırım kuruluşlarının PDF'leri) RSS yerine pencereye sürükleyip bırak: 'bülten ne diyor' diye sorabilirsin.
+# SABAH BİLDİRİSİ KAYNAKLARI — satır: haber|bölüm|ad (tür)|dil|adres|adet|süzgeç
+# süzgeç (isteğe bağlı): virgülle ayrılmış sözcükler; yalnız başlığında geçenler alınır.
+# kur|KOD,KOD,…   stooq|SEMBOL|ad   yahoo|SEMBOL|ad
+kur|USD,EUR,GBP,RUB,CNY
+# yahoo|SEMBOL|ad|BÖLÜM[|gram]  — gün/hafta/ay/yıl değişimi. ^ işareti otomatik kodlanır. gram: ons fiyatından gram TL hesaplar.
+yahoo|GC=F|Altın (ons, ABD doları, vadeli)|ALTIN, GÜMÜŞ VE ENERJİ|gram
+yahoo|SI=F|Gümüş (ons, ABD doları, vadeli)|ALTIN, GÜMÜŞ VE ENERJİ|gram
+yahoo|BZ=F|Brent petrol (varil, ABD doları)|ALTIN, GÜMÜŞ VE ENERJİ
+yahoo|CL=F|WTI petrol (varil, ABD doları)|ALTIN, GÜMÜŞ VE ENERJİ
+yahoo|NG=F|Doğal gaz (ABD doları)|ALTIN, GÜMÜŞ VE ENERJİ
+yahoo|HG=F|Bakır (libre, ABD doları)|ALTIN, GÜMÜŞ VE ENERJİ
+yahoo|XU100.IS|Borsa İstanbul BIST 100|DÜNYA BORSALARI
+yahoo|^GSPC|ABD S&P 500|DÜNYA BORSALARI
+yahoo|^IXIC|ABD Nasdaq|DÜNYA BORSALARI
+yahoo|^DJI|ABD Dow Jones|DÜNYA BORSALARI
+yahoo|^GDAXI|Almanya DAX|DÜNYA BORSALARI
+yahoo|^FCHI|Fransa CAC 40|DÜNYA BORSALARI
+yahoo|^FTSE|İngiltere FTSE 100|DÜNYA BORSALARI
+yahoo|^N225|Japonya Nikkei 225|DÜNYA BORSALARI
+yahoo|^HSI|Hong Kong Hang Seng|DÜNYA BORSALARI
+yahoo|000001.SS|Çin Şanghay Bileşik|DÜNYA BORSALARI
+haber|Piyasalar (yabancı finans basını)|CNBC (ABD, ticari yayıncı)|en|https://www.cnbc.com/id/100003114/device/rss/rss.html|4
+haber|Piyasalar (yabancı finans basını)|Bloomberg Piyasalar (ABD, ticari yayıncı)|en|https://feeds.bloomberg.com/markets/news.rss|4
+haber|Piyasalar (yabancı finans basını)|Investing.com Haberler|en|https://www.investing.com/rss/news.rss|4
+haber|Emtia haberleri ve analiz başlıkları|CNBC (emtia süzgeci)|en|https://www.cnbc.com/id/100003114/device/rss/rss.html|3|gold,silver,oil,crude,brent,copper,gas,commodit,metal
+haber|Emtia haberleri ve analiz başlıkları|Bloomberg (emtia süzgeci)|en|https://feeds.bloomberg.com/markets/news.rss|3|gold,silver,oil,crude,brent,copper,gas,commodit,metal
+haber|Türkiye ekonomisi (yabancı basın)|BBC İş Dünyası (kamu yayıncısı)|en|http://feeds.bbci.co.uk/news/business/rss.xml|3|turk,lira,istanbul,erdogan,erdoğan,ankara
+haber|Türkiye ekonomisi (yabancı basın)|The Guardian İş Dünyası (bağımsız)|en|https://www.theguardian.com/business/rss|3|turk,lira,istanbul,erdogan,erdoğan,ankara
+haber|Almanya|Tagesschau (kamu yayıncısı)|de|https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml|4
+haber|Almanya|Der Spiegel (bağımsız)|de|https://www.spiegel.de/schlagzeilen/index.rss|3
+haber|Fransa|Le Monde (bağımsız)|fr|https://www.lemonde.fr/rss/une.xml|4
+haber|Fransa|France 24 (kamu fonlu)|fr|https://www.france24.com/fr/rss|3
+haber|İngiltere|BBC Dünya (kamu yayıncısı)|en|http://feeds.bbci.co.uk/news/world/rss.xml|4
+haber|İngiltere|The Guardian Dünya (bağımsız)|en|https://www.theguardian.com/world/rss|3
+haber|Japonya|NHK Dış Haberler (kamu yayıncısı)|ja|https://www3.nhk.or.jp/rss/news/cat6.xml|4
+haber|Japonya|The Japan Times (bağımsız)|en|https://www.japantimes.co.jp/feed/|3
+haber|Rusya|TASS (devlet ajansı)|ru|https://tass.ru/rss/v2.xml|3
+haber|Rusya|Meduza (bağımsız, yurt dışından)|ru|https://meduza.io/rss/all|3
+haber|Sağlık (Dünya Sağlık Örgütü)|DSÖ salgın bildirimleri|en|https://www.who.int/feeds/entity/csr/don/en/rss.xml|3

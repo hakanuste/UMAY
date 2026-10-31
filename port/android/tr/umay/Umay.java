@@ -9,7 +9,7 @@ public final class Umay {
     public static native int baslat(String veriDizini);
     /** Yanit metnini dondurur; hata/bos soruda null. */
     public static native String sor(String soru);
-    /** Vakti gelen anımsatıcı/ilaç satırları ('\n' ayraçlı) ya da null. Yaklaşık 20 sn'de bir çağırın;
+    /** Vakti gelen anımsatıcı/ilaç satırları (0x1E ayraçlı; bir satırın içinde '\n' olabilir: sabah bildirisi) ya da null. Yaklaşık 20 sn'de bir çağırın;
      *  dönen her satırı NotificationManager ile gösterin. "İçtim" onayı sor("içtim") ile gider. */
     public static native String animYokla();
     public static native void kapat();

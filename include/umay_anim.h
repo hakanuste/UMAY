@@ -53,6 +53,9 @@ const anim_t *anim_al(int i);                                                /* 
 /* Vakti gelenleri döner ve durumlarını ilerletir. Her satır gösterilecek bildirim metnidir.
  * satir[k] ANIM_METIN+48 bayt. Dönen: satır sayısı. */
 #define ANIM_SATIR 176
+/* 'B' türü (günlük sabah bildirisi) vakti gelince satır olarak bu işaret döner; tüketici (uygulama/ana döngü)
+ * sabah_bildirisi() ile içeriği üretir. İşaretle başlayan satır bildirim metni DEĞİLDİR. */
+#define ANIM_SABAH_IMI "\x01SABAH"
 int     anim_yokla(int64_t simdi, char satir[][ANIM_SATIR], int en_cok);
 
 /* Çalan ilaçları onaylar ("içtim"); dönen: onaylanan sayısı. Sonraki gün aynı saate kurulur. */
@@ -62,6 +65,9 @@ int     anim_ertele(int64_t simdi, int dk);
 
 /* Sohbet: cümle bir anımsatıcı isteğiyse yanıtı yazar ve 1 döner; değilse 0 (ajanlara gider). */
 int     anim_konus(const char *soz, char *yanit, uint32_t n);
+
+/* küçült + Türkçe harfleri ASCII'ye indir (eşleştirme için); çıktı girdiden uzun olmaz. */
+void    anim_katla(char *c, uint32_t n, const char *s);
 
 /* Okunur dizelge ("Anımsatıcılarım"). */
 void    anim_dizelge(char *cik, uint32_t n);

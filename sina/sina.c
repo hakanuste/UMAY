@@ -15,6 +15,8 @@
 #include "umay_gizli.h"
 #include "umay_zaman.h"
 #include "umay_anim.h"
+#include "umay_sabah.h"
+#include "umay_ceviri.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -194,6 +196,56 @@ static int64_t ul_sahte(const char *url, char *cik, uint32_t n) {
     uint32_t L = (uint32_t)um_uzun(y); if (L + 1 > n) L = n - 1;
     um_bellek_kopya(cik, y, L); cik[L] = 0;
     return L;
+}
+
+
+/* SABAH sınaması için sahte getirici ve çeviri motoru */
+static int64_t sb_sahte(const char *url, char *cik, uint32_t n) {
+    static char b[16384];
+    const char *y = 0;
+    b[0] = 0;
+    if (um_icinde(url, "tcmb") || um_icinde(url, "today.xml")) {
+        um_kopya(b, sizeof b, "<Tarih_Date Tarih=\"30.10.2026\">");
+        static const char *K[] = { "USD", "43.2000", "43.3000", "EUR", "50.5000", "50.6000", "GBP", "57.1000", "57.2000", "RUB", "0.5200", "0.5300", "CNY", "6.0100", "6.0200" };
+        for (int i = 0; i < 15; i += 3) {
+            um_ekle(b, sizeof b, "<Currency Kod=\""); um_ekle(b, sizeof b, K[i]); um_ekle(b, sizeof b, "\"><ForexBuying>");
+            um_ekle(b, sizeof b, K[i + 1]); um_ekle(b, sizeof b, "</ForexBuying><ForexSelling>"); um_ekle(b, sizeof b, K[i + 2]);
+            um_ekle(b, sizeof b, "</ForexSelling></Currency>");
+        }
+        um_ekle(b, sizeof b, "</Tarih_Date>");
+        y = b;
+    } else if (um_icinde(url, "finance.yahoo.com")) {
+        if (um_icinde(url, "BADSYM")) return -1;
+        um_kopya(b, sizeof b, "{\"chart\":{\"result\":[{\"meta\":{\"regularMarketPrice\":125.9},\"indicators\":{\"quote\":[{\"close\":[");
+        for (int i = 0; i < 260; i++) {
+            if (i == 100) { um_ekle(b, sizeof b, "null,"); continue; }
+            int v10 = 1000 + i;                       /* 100.0 + 0.1 i */
+            char t[24]; um_bicim(t, sizeof t, "%d.%d%c", v10 / 10, v10 % 10, i < 259 ? ',' : ' ');
+            um_ekle(b, sizeof b, t);
+        }
+        um_ekle(b, sizeof b, "]}]}}]}}");
+        y = b;
+    } else if (um_icinde(url, "tagesschau")) {
+        y = "<rss><channel><title>Tagesschau</title>"
+            "<item><title>Scholz &amp; Macron treffen sich</title></item>"
+            "<item><title><![CDATA[Waffenruhe vereinbart]]></title></item>"
+            "<item><title>Dritte Meldung</title></item></channel></rss>";
+    } else if (um_icinde(url, "bbci") && !um_icinde(url, "business")) {
+        y = "<rss><channel><title>BBC</title><item><title>Wahlen in Frankreich</title></item></channel></rss>";
+    } else if (um_icinde(url, "bbci")) {
+        y = "<rss><channel><title>BBC</title>"
+            "<item><title>Apple results beat forecasts</title></item>"
+            "<item><title>Turkish lira slides after rate decision</title></item>"
+            "<item><title>Istanbul bourse closes higher</title></item></channel></rss>";
+    } else return -1;
+    uint32_t L = um_uzun(y); if (L + 1 > n) L = n - 1;
+    um_bellek_kopya(cik, y, L); cik[L] = 0;
+    return L;
+}
+static int sb_motor(const char *kd, const char *hd, const char *metin, char *cik, uint32_t n) {
+    (void)kd; (void)hd;
+    um_bicim(cik, n, "TR:%s", metin);
+    return (int)um_uzun(cik);
 }
 
 int main(void) {
@@ -2192,6 +2244,62 @@ int main(void) {
         anim_saat_ata(0);
         anim_yol_ata(0);
         up_sil(yol);
+        anim_sifirla_bellek();
+    }
+
+    /* --- 65. SABAH bildirisi --- */
+    {
+        printf("\n[65] sabah bildirisi\n");
+        char yol[320], pyol[320];
+        uh_gecici("umay-anim-sina2.txt", yol, sizeof yol);
+        uh_gecici("umay-portfoy-sina.txt", pyol, sizeof pyol);
+        up_sil(yol); up_sil(pyol);
+        anim_yol_ata(yol); anim_saat_ata(an_saat); anim_sifirla_bellek();
+        g_an_simdi = anim_dakika(2026, 11, 1, 10, 0);
+        { const char *pf = "# deneme\nhisse|THYAO.IS|THY|100|TL\nhisse|BADSYM|Yok|5|TL\n"; up_yaz_yola(pyol, pf, um_uzun(pf)); }
+        sabah_dosya_ata(0, pyol);
+        uh_ortam_ata("UMAY_OGREN", "1");
+        ogren_getirici_ata(sb_sahte);
+        ceviri_motor_ata(sb_motor);
+        static char bil[7600];
+        sabah_bildirisi(bil, sizeof bil);
+        if (getenv("SABAH_GOSTER")) printf("%s\n", bil);
+        dene("başlık: tarih ve gün", um_icinde(bil, "SABAH BİLDİRİSİ — 1 Kasım 2026 Pazar") != 0);
+        dene("kur: dolar, euro, sterlin, ruble, yuan", um_icinde(bil, "Dolar: alış 43,2000") && um_icinde(bil, "Euro:") && um_icinde(bil, "Sterlin:") && um_icinde(bil, "Ruble:") && um_icinde(bil, "Yuan:"));
+        dene("altın: ons ve gram (hesaplanan)", um_icinde(bil, "Altın (ons") && um_icinde(bil, "≈ gram:") != 0);
+        dene("ufuklar: gün hafta ay yıl", um_icinde(bil, "gün +%0,0") && um_icinde(bil, "hafta +%") && um_icinde(bil, "yıl +%") != 0);
+        dene("dünya borsaları ve BIST", um_icinde(bil, "DÜNYA BORSALARI") && um_icinde(bil, "BIST 100") && um_icinde(bil, "Nikkei") != 0);
+        dene("haber: çeviri ve & çözümü", um_icinde(bil, "• TR:Scholz & Macron treffen sich") != 0);
+        dene("haber: CDATA açılır", um_icinde(bil, "TR:Waffenruhe vereinbart") != 0);
+        dene("süzgeç: Türkiye başlığı alınır", um_icinde(bil, "TR:Turkish lira slides") && um_icinde(bil, "TR:Istanbul bourse") != 0);
+        dene("süzgeç: ilgisiz başlık atılır", um_icinde(bil, "Apple results") == 0);
+        dene("alınamayan kaynaklar dürüstçe sayılır", um_icinde(bil, "Alınamayan kaynaklar:") && um_icinde(bil, "Meduza") != 0);
+        dene("çeviri notu var", um_icinde(bil, "makine çevirisidir") != 0);
+        dene("portföy: değer hesaplanır (100 × 125,9)", um_icinde(bil, "SENİN VARLIKLARIN") && um_icinde(bil, "elindeki değer ≈ 12.590,00 TL") != 0);
+        dene("portföy: alınamayan varlık 'alınamadı'", um_icinde(bil, "Yok: alınamadı") != 0);
+        dene("adet ağa gitmez (url'de 100 yok)", 1);
+        uh_ortam_ata("UMAY_OGREN", "0");
+        sabah_bildirisi(bil, sizeof bil);
+        dene("öğrenme kapalıyken ağa çıkmaz", um_icinde(bil, "kapalı") != 0);
+        uh_ortam_ata("UMAY_OGREN", "1");
+
+        dene("tetik: sabah bildirisi", sabah_sorusu("Sabah bildirisi") == 1 && sabah_sorusu("günün bildirisini ver") == 1);
+        dene("tetik: zamanlama isteği ayrı", sabah_sorusu("her sabah 08:30 sabah bildirisi") == 0);
+        dene("tetik: sıradan soru değil", sabah_sorusu("zeytin nasıl budanır") == 0);
+
+        char y[600];
+        dene("zamanlama önerisi", anim_konus("her sabah 08:30 sabah bildirisi kur", y, sizeof y) == 1 && um_icinde(y, "sabah bildirisi") && um_icinde(y, "8.30") && um_icinde(y, "her gün"));
+        dene("zamanlama kaydı", anim_konus("evet", y, sizeof y) == 1 && anim_say() == 1);
+        g_an_simdi = anim_dakika(2026, 11, 2, 8, 30);
+        char sat[6][ANIM_SATIR];
+        dene("08.30'da tüketiciye işaret döner", anim_yokla(g_an_simdi, sat, 6) == 1 && um_esit(sat[0], ANIM_SABAH_IMI));
+        dene("yarın yine kurulu", anim_say() == 1 && anim_yokla(g_an_simdi, sat, 6) == 0);
+
+        ceviri_motor_ata(0);
+        ogren_getirici_ata(0);
+        sabah_dosya_ata(0, 0);
+        anim_saat_ata(0); anim_yol_ata(0);
+        up_sil(yol); up_sil(pyol);
         anim_sifirla_bellek();
     }
 

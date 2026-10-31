@@ -101,7 +101,7 @@ static void yukle(void) {
         a->calma = (int)say_oku(&p);  if (*p++ != '|') goto bozuk;
         a->zil = say_oku(&p);       if (*p++ != '|') goto bozuk;
         { uint32_t o = 0; while (*p && *p != '\n' && o + 1 < ANIM_METIN) a->metin[o++] = *p++; a->metin[o] = 0; }
-        if (a->id > 0 && (a->tur == 'O' || a->tur == 'I')) { a->dolu = 1; s++; }
+        if (a->id > 0 && (a->tur == 'O' || a->tur == 'I' || a->tur == 'B')) { a->dolu = 1; s++; }
         else um_bellek_doldur(a, 0, sizeof *a);
     bozuk:
         while (*p && *p != '\n') p++;
@@ -144,7 +144,7 @@ int anim_ekle(char tur, int64_t vakit, int tekrar, const char *metin) {
     if (bos < 0) return -1;
     anim_t *a = &g_k[bos];
     um_bellek_doldur(a, 0, sizeof *a);
-    a->dolu = 1; a->id = enbuyuk + 1; a->tur = tur == 'I' ? 'I' : 'O';
+    a->dolu = 1; a->id = enbuyuk + 1; a->tur = tur == 'I' ? 'I' : tur == 'B' ? 'B' : 'O';
     a->vakit = vakit; a->tekrar = tekrar;
     uint32_t o = 0;
     for (const char *p = metin ? metin : ""; *p && o + 1 < ANIM_METIN; p++)
@@ -174,7 +174,12 @@ int anim_yokla(int64_t simdi, char satir[][ANIM_SATIR], int en_cok) {
         anim_t *a = &g_k[i];
         if (!a->dolu) continue;
         char sa[24];
-        if (a->tur == 'O') {
+        if (a->tur == 'B') {
+            if (a->durum != 0 || a->vakit > simdi) continue;
+            um_kopya(satir[say], ANIM_SATIR, ANIM_SABAH_IMI);     /* tüketici bildiriyi kendisi üretir */
+            say++; degisti = 1;
+            ilerlet(a, simdi);
+        } else if (a->tur == 'O') {
             if (a->durum != 0 || a->vakit > simdi) continue;
             saat_yaz(a->vakit, sa, sizeof sa);
             if (simdi - a->vakit > 120) um_bicim(satir[say], ANIM_SATIR, "Kaçırılan anımsatma (%s): %s", sa, a->metin);
@@ -249,7 +254,7 @@ void anim_dizelge(char *cik, uint32_t n) {
 /* ---------- sohbet ---------- */
 
 /* küçült + Türkçe harfleri ASCII'ye indir (yazım kolaylığı: "içtim" = "ictim"). Boy artmaz. */
-static void katla(char *c, uint32_t n, const char *s) {
+void anim_katla(char *c, uint32_t n, const char *s) {
     uint32_t o = 0;
     for (; *s && o + 1 < n; s++) {
         unsigned char b = (unsigned char)*s;
@@ -373,7 +378,7 @@ static int saatleri_ayikla(char *m, char *lk, int64_t gun0, int64_t *vakit, int 
 int anim_konus(const char *soz, char *yanit, uint32_t n) {
     if (!soz || !*soz || !yanit || n < 8) return 0;
     char f[260], m[260], lk[260];
-    katla(f, sizeof f, soz);
+    anim_katla(f, sizeof f, soz);
     uint32_t sozn = um_uzun(f);
 
     /* 1) bekleyen öneriye evet/hayır */
@@ -444,6 +449,22 @@ int anim_konus(const char *soz, char *yanit, uint32_t n) {
             return 1;
         }
         return 0;
+    }
+
+    /* 4b) günlük sabah bildirisi zamanlama: "her sabah 08:30 sabah bildirisi" */
+    if ((ic(f, "sabah bildiri") || ic(f, "gunun bildiri") || ic(f, "sabah rapor")) &&
+        (ic(f, "her sabah") || ic(f, "her gun") || ic(f, "animsat") || ic(f, "ekle") || ic(f, " kur"))) {
+        um_kopya(m, sizeof m, soz);
+        um_kopya(lk, sizeof lk, m); um_kucult_esbicim(lk);
+        int64_t v[1];
+        int adet = saatleri_ayikla(m, lk, gun_bol(simdi), v, 1, simdi);
+        int varsayilan = 0;
+        if (!adet) { v[0] = gun_bol(simdi) * 1440 + 8 * 60; if (v[0] <= simdi) v[0] += 1440; varsayilan = 1; }
+        g_oneri.var = 1; g_oneri.tur = 'B'; g_oneri.adet = 1; g_oneri.vakit[0] = v[0]; g_oneri.tekrar = 1440;
+        um_kopya(g_oneri.metin, sizeof g_oneri.metin, "sabah bildirisi (kur, altın, borsa, yabancı basın)");
+        oneri_kur_yanit(yanit, n);
+        if (varsayilan) um_ekle(yanit, n, " (Saat söylemediğin için 8.00 aldım.)");
+        return 1;
     }
 
     /* 5) ilaç alarmı: "ilaç ... her gün 08:00 20:00" */

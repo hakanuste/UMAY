@@ -1,0 +1,8 @@
+# UMAY — senin varlıkların (yerel; <kütüphane>/portfoy.txt olarak kaydet).
+# satır: varlık|SEMBOL|ad|adet|para
+# YALNIZ SEMBOL ağa gider (veri sağlayıcı hangi varlıklara baktığını görür); ADET cihazdan çıkmaz.
+# Sembol örnekleri (Yahoo biçimi): Borsa İstanbul hissesi THYAO.IS · altın vadeli GC=F · euro/dolar paritesi EURUSD=X · dolar/TL USDTRY=X
+# ^ ile başlayan endeksler (örn. ^GSPC) otomatik kodlanır.
+hisse|THYAO.IS|Örnek hisse|100|TL
+emtia|GC=F|Örnek altın (ons)|2|USD
+doviz|USDTRY=X|Dolar/TL||TL

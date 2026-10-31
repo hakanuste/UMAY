@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 import AVFoundation
 import UniformTypeIdentifiers
 
@@ -182,6 +185,7 @@ struct SohbetGorunumu: View {
     @State private var ayarAcik = false
     @State private var belgelerAcik = false
     @State private var belgeSec = false
+    @State private var birakiyor = false
     @AppStorage("umay.belgeAlani") private var belgeAlani = "otomatik"
     @Environment(\.scenePhase) private var evre
 
@@ -222,7 +226,15 @@ struct SohbetGorunumu: View {
             Divider()
             HStack {
                 Button { belgeSec = true } label: { Image(systemName: "doc.badge.plus") }
-                    .help("Belge ekle: ajanlar inceleyip yerleştirir")
+                    .help("Belge ekle: ajanlar inceleyip yerleştirir (pencereye sürükleyip bırakabilirsin)")
+                Button {
+                    #if os(macOS)
+                    if let m = NSPasteboard.general.string(forType: .string), !m.isEmpty {
+                        motor.metinBelgesiEkle(m, alan: belgeAlani == "otomatik" ? "" : belgeAlani)
+                    }
+                    #endif
+                } label: { Image(systemName: "doc.on.clipboard") }
+                    .help("Panodaki metni (örneğin kopyaladığın bir sohbeti) belge olarak ekle")
                 Menu {
                     Picker("Eklenen belgenin alanı", selection: $belgeAlani) {
                         ForEach(Self.belgeAlanlari, id: \.0) { Text($0.1).tag($0.0) }
@@ -236,6 +248,20 @@ struct SohbetGorunumu: View {
                     .disabled(girdi.trimmingCharacters(in: .whitespaces).isEmpty || motor.mesgul)
             }
             .padding()
+        }
+        .onDrop(of: ["public.file-url", "public.utf8-plain-text"], isTargeted: $birakiyor) { saglayicilar in
+            motor.birakilanlariAl(saglayicilar, alan: belgeAlani == "otomatik" ? "" : belgeAlani)
+            return true
+        }
+        .overlay {
+            if birakiyor {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [9]))
+                    .background(Color.accentColor.opacity(0.08))
+                    .overlay(Text("Belgeyi buraya bırak (.txt, .md, .pdf ya da düz metin)").font(.title3))
+                    .padding(8)
+                    .allowsHitTesting(false)
+            }
         }
         .onChange(of: evre) { yeni in if yeni == .active { motor.gelenYokla() } }
         .sheet(isPresented: $ayarAcik) { AyarGorunumu(motor: motor) }

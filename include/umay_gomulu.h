@@ -46,7 +46,7 @@ const char *umay_gomulu_motor(void);
 int         umay_gomulu_kabul(char *rapor, uint32_t n);
 
 /* ANIMSATICI / ILAC ALARMI: uygulama ~20 sn'de bir cagirir, donen satirlari kendi bildirimiyle gosterir
- * (satirlar '\n' ile ayrilir). Donen: vakti gelen satir sayisi; negatif = saat okunamiyor/hazir degil.
+ * (satirlar 0x1E karakteriyle ayrilir; satirin icinde '\n' olabilir — sabah bildirisi cok satirlidir; tampon en az 12288 bayt). Donen: vakti gelen satir sayisi; negatif = saat okunamiyor/hazir degil.
  * Kayit yalniz cihazdaki <veri>/animsa.txt dosyasindadir. Onay ("icitim") sohbetten gelir: umay_gomulu_sor. */
 int         umay_gomulu_anim_yokla(char *cikti, uint32_t n);
 

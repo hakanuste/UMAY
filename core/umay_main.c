@@ -20,6 +20,7 @@
 #include "umay_gui.h"
 #include "umay_ses.h"
 #include "umay_anim.h"
+#include "umay_sabah.h"
 
 static otag_t        g_otag;
 static umay_kanal_t *g_kanal[4];
@@ -94,6 +95,7 @@ static void ileti_isle(const umay_ileti_t *i) {
 
     if (onay_buyrugu(i->govde)) return;
     { char ay[512]; if (anim_konus(i->govde, ay, sizeof ay)) { yanit_yaz(ay); return; } }
+    if (sabah_sorusu(i->govde)) { static char b[7600]; sabah_bildirisi(b, sizeof b); yanit_yaz(b); return; }
 
     coz_t c = ozan_coz(i->govde);
 
@@ -267,7 +269,13 @@ static void anim_dongusu(void) {
     if (simdi < 0) return;
     static char satir[4][ANIM_SATIR];
     int k = anim_yokla(simdi, satir, 4);
-    for (int i = 0; i < k; i++) { yanit_yaz(satir[i]); up_bildir("UMAY", satir[i]); }
+    for (int i = 0; i < k; i++) {
+        if (um_esit(satir[i], ANIM_SABAH_IMI)) {
+            static char b[7600];
+            sabah_bildirisi(b, sizeof b);
+            yanit_yaz(b); up_bildir("UMAY", "Sabah bildirisi hazır; sohbete yazdım.");
+        } else { yanit_yaz(satir[i]); up_bildir("UMAY", satir[i]); }
+    }
 }
 
 void umay_tur(void) {

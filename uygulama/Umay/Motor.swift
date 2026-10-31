@@ -124,16 +124,18 @@ final class UmayMotor: ObservableObject {
         animZamanlayici = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             guard let self = self, self.basladi else { return }
             self.sira.async {
-                var tampon = [CChar](repeating: 0, count: 2048)
+                var tampon = [CChar](repeating: 0, count: 16384)
                 let k = umay_gomulu_anim_yokla(&tampon, UInt32(tampon.count))
                 guard k > 0 else { return }
-                let satirlar = String(cString: tampon).split(separator: "\n").map(String.init)
+                let satirlar = String(cString: tampon).split(separator: "\u{1e}").map(String.init)
                 DispatchQueue.main.async {
                     for satir in satirlar {
                         self.iletiler.append(Ileti(benMi: false, metin: satir))
                         let icerik = UNMutableNotificationContent()
-                        icerik.title = "UMAY"
-                        icerik.body = satir
+                        // Çok satırlı metin sabah bildirisidir: bildirimde yalnız kısa haber, tamamı sohbette.
+                        let bildiri = satir.contains("\n")
+                        icerik.title = bildiri ? "UMAY — Sabah bildirisi" : "UMAY"
+                        icerik.body = bildiri ? "Hazır; sohbete yazdım." : String(satir.prefix(180))
                         icerik.sound = .default
                         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: icerik, trigger: nil))
                         NSSound(named: NSSound.Name("Glass"))?.play()
@@ -264,6 +266,59 @@ final class UmayMotor: ObservableObject {
                 self?.iletiler.append(Ileti(benMi: false, metin: tam, sistemMi: true))
                 self?.mesgul = false
             }
+        }
+    }
+
+    // MARK: sürükle-bırak ve pano
+
+    /// Pencereye bırakılan dosyaları (txt, md, pdf) ve düz metni belge olarak alır. Sohbet dökümünü seçip bırakmak yeter.
+    func birakilanlariAl(_ saglayicilar: [NSItemProvider], alan: String) {
+        let kilit = NSLock()
+        var adresler: [URL] = []
+        var metinler: [String] = []
+        let grup = DispatchGroup()
+        for s in saglayicilar {
+            if s.hasItemConformingToTypeIdentifier("public.file-url") {
+                grup.enter()
+                s.loadItem(forTypeIdentifier: "public.file-url", options: nil) { oge, _ in
+                    var adres: URL? = nil
+                    if let d = oge as? Data { adres = URL(dataRepresentation: d, relativeTo: nil) }
+                    else if let u = oge as? URL { adres = u }
+                    if let a = adres { kilit.lock(); adresler.append(a); kilit.unlock() }
+                    grup.leave()
+                }
+            } else if s.canLoadObject(ofClass: NSString.self) {
+                grup.enter()
+                _ = s.loadObject(ofClass: NSString.self) { nesne, _ in
+                    if let m = nesne as? NSString { kilit.lock(); metinler.append(m as String); kilit.unlock() }
+                    grup.leave()
+                }
+            }
+        }
+        grup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            let desteklenen = Set(["txt", "md", "pdf"])
+            let uygun = adresler.filter { desteklenen.contains($0.pathExtension.lowercased()) }
+            let atilan = adresler.filter { !desteklenen.contains($0.pathExtension.lowercased()) }
+            if !atilan.isEmpty {
+                let adlar = atilan.map { $0.lastPathComponent }.joined(separator: ", ")
+                self.iletiler.append(Ileti(benMi: false, metin: "Şunları okuyamam (yalnız .txt, .md, .pdf): \(adlar)", sistemMi: true))
+            }
+            if !uygun.isEmpty { self.belgeEkle(uygun, alan: alan) }
+            for m in metinler where m.trimmingCharacters(in: .whitespacesAndNewlines).count > 40 { self.metinBelgesiEkle(m, alan: alan) }
+        }
+    }
+
+    /// Metni (örneğin panodaki bir sohbet dökümünü) belge olarak ekler.
+    func metinBelgesiEkle(_ metin: String, alan: String = "") {
+        let bicim = DateFormatter(); bicim.dateFormat = "yyyyMMdd-HHmmss"
+        let ad = "yapistirilan-\(bicim.string(from: Date())).txt"
+        let gecici = FileManager.default.temporaryDirectory.appendingPathComponent(ad)
+        do {
+            try metin.write(to: gecici, atomically: true, encoding: .utf8)
+            belgeEkle([gecici], alan: alan)
+        } catch {
+            iletiler.append(Ileti(benMi: false, metin: "Metin belge olarak yazılamadı: \(error.localizedDescription)", sistemMi: true))
         }
     }
 
