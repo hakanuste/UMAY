@@ -294,7 +294,7 @@ struct SohbetGorunumu: View {
 
     private var ustSerit: some View {
         HStack {
-            if let a = amblem { a.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 44, height: 44) }
+            if let a = Self.resim("umay-yuz") { a.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 44, height: 44) }
             VStack(alignment: .leading, spacing: 2) {
                 Text("UMAY").font(.headline)
                 // Dürüst durum: yedek motor gerçek dil modeli DEĞİLDİR.
