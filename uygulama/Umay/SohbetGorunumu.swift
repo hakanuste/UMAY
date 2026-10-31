@@ -48,13 +48,21 @@ final class Okuyucu {
         let benim = nesil
         let soz = soyleyici(metin)
         #if os(macOS)
-        if !UserDefaults.standard.bool(forKey: "umay.tinli") { ses.speak(soz); return }
+        let tinli = UserDefaults.standard.bool(forKey: "umay.tinli")
+        let piper = Okuyucu.piperBul()      // varsa sinir agi sesi (macOS sesi değil)
+        if !tinli && piper == nil { ses.speak(soz); return }
         let sesAdi = soz.voice?.name ?? ""
         let gecici = FileManager.default.temporaryDirectory
-        let ham = gecici.appendingPathComponent("umay-ham-\(benim).aiff")
+        let ham = gecici.appendingPathComponent("umay-ham-\(benim).\(piper != nil ? "wav" : "aiff")")
         let son = gecici.appendingPathComponent("umay-tin-\(benim).wav")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let ok = Okuyucu.sayUret(metin, ses: sesAdi, dosya: ham) && Okuyucu.tinla(ham, son)
+            var ok = false
+            if let (ikili, model) = piper {
+                ok = Okuyucu.piperUret(metin, ikili: ikili, model: model, dosya: ham)
+                if ok && tinli { ok = Okuyucu.tinla(ham, son) }
+                else if ok { try? FileManager.default.removeItem(at: son); ok = (try? FileManager.default.moveItem(at: ham, to: son)) != nil }
+            }
+            if !ok && tinli { ok = Okuyucu.sayUret(metin, ses: sesAdi, dosya: ham) && Okuyucu.tinla(ham, son) }
             try? FileManager.default.removeItem(at: ham)
             DispatchQueue.main.async {
                 guard let self = self, self.nesil == benim else { try? FileManager.default.removeItem(at: son); return }
@@ -72,6 +80,34 @@ final class Okuyucu {
     }
 
     #if os(macOS)
+    /// Piper (çevrim dışı sinir ağı sesi) ve modeli varsa yollarını döner. Yoksa nil → sistem sesi.
+    static func piperBul() -> (String, String)? {
+        let fm = FileManager.default, ev = NSHomeDirectory()
+        var adaylar = ["/usr/local/bin/piper", "/opt/homebrew/bin/piper", ev + "/.local/bin/piper"]
+        if let s = try? fm.contentsOfDirectory(atPath: ev + "/Library/Python") {
+            for v in s { adaylar.append(ev + "/Library/Python/" + v + "/bin/piper") }
+        }
+        guard let ikili = adaylar.first(where: { fm.isExecutableFile(atPath: $0) }) else { return nil }
+        let dizin = ev + "/.local/share/umay/ses"
+        guard let m = (try? fm.contentsOfDirectory(atPath: dizin))?.sorted().first(where: { $0.hasSuffix(".onnx") }) else { return nil }
+        return (ikili, dizin + "/" + m)
+    }
+
+    static func piperUret(_ metin: String, ikili: String, model: String, dosya: URL) -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: ikili)
+        p.arguments = ["--model", model, "--output_file", dosya.path, "--length_scale", "1.1"]
+        let giris = Pipe()
+        p.standardInput = giris
+        p.standardError = FileHandle.nullDevice
+        p.standardOutput = FileHandle.nullDevice
+        do { try p.run() } catch { return false }
+        giris.fileHandleForWriting.write((metin + "\n").data(using: .utf8) ?? Data())
+        try? giris.fileHandleForWriting.close()
+        p.waitUntilExit()
+        return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dosya.path)
+    }
+
     /// `say -v <ses> -o <dosya> -f -` ile metni AIFF'e sentezler (metin standart girişten gider).
     static func sayUret(_ metin: String, ses: String, dosya: URL) -> Bool {
         let p = Process()
