@@ -13,6 +13,7 @@
 #include "umay_ozturk.h"
 #include "umay_ulak.h"
 #include "umay_gizli.h"
+#include "umay_zaman.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -2098,6 +2099,23 @@ int main(void) {
         ogren_getirici_ata(0);
         ayar_yaz("kutuphane", eski);
         gizli_yukle(eski);
+    }
+
+    /* --- 63. Zaman ayıklama (hatırlatıcı) --- */
+    {
+        printf("\n[63] zaman ayıklama\n");
+        zaman_t z;
+        dene("pazartesi: gün 1, iş metni kalır", zaman_ayikla("Pazartesi hortum değişimi için Kadosan'a gidilecek", &z) == 1
+             && z.haftagunu == 1 && z.saat == -1 && um_esit(z.is, "hortum değişimi için Kadosan'a gidilecek"));
+        dene("yarın saat 14:30: ofset 1, 14:30", zaman_ayikla("Yarın saat 14:30 dişçi", &z) == 1
+             && z.gun_ofset == 1 && z.saat == 14 && z.dakika == 30 && um_esit(z.is, "dişçi"));
+        dene("çarşamba + 'koruyucu botlar'", zaman_ayikla("Çarşamba koruyucu botlar teslim alınacak", &z) == 1
+             && z.haftagunu == 3 && um_icinde(z.is, "koruyucu botlar teslim alınacak") != 0);
+        dene("cumartesi cumadan ayrılır", zaman_ayikla("cumartesi pazar yeri", &z) == 1 && z.haftagunu == 6);
+        dene("akşam saat 8: 20:00", zaman_ayikla("bugün akşam saat 8 ilaç", &z) == 1 && z.gun_ofset == 0 && z.saat == 20 && z.dakika == 0);
+        dene("saat 10.15 (nokta)", zaman_ayikla("yarın 10.15 toplantı", &z) == 1 && z.saat == 10 && z.dakika == 15);
+        dene("zaman yoksa 0", zaman_ayikla("Yer altı kileri nasıl yapılır", &z) == 0 && z.var == 0);
+        dene("öbür gün: ofset 2", zaman_ayikla("öbür gün hortum al", &z) == 1 && z.gun_ofset == 2);
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
