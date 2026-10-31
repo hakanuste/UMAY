@@ -117,9 +117,9 @@ final class Okuyucu {
 
     static func piperUret(_ metin: String, ikili: String, model: String, dosya: URL) -> Bool {
         // Daha canlı konuşma: biraz yavaş, değişken tonlama. Bu bayrakları tanımayan sürümde yalın çağrıya dönülür.
-        // Konuşma hızı: Ayarlar'daki kaydırıcı (0 = otomatik). Kendi sesimiz hızlı konuştuğu için "hakan" modeli daha yavaş başlar.
+        // Konuşma hızı: Ayarlar'daki kaydırıcı (0 = otomatik).
         let ozel = UserDefaults.standard.double(forKey: "umay.piperHiz")
-        let yavaslik = ozel > 0 ? ozel : (model.contains("hakan") ? 1.35 : 1.1)
+        let yavaslik = ozel > 0 ? ozel : 1.1
         let ls = String(format: "%.2f", yavaslik)
         let ns = String(format: "%.2f", UserDefaults.standard.object(forKey: "umay.piperGurultu") as? Double ?? 0.6)
         // Piper sürümleri bayrak adlarında ayrışır: yenisi "--noise-w-scale", eskisi "--noise_w". Sırayla denenir.

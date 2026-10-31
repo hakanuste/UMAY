@@ -113,7 +113,7 @@ struct AyarGorunumu: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    let gosterilen = piperHiz > 0 ? piperHiz : (piperModel.contains("hakan") ? 1.35 : 1.1)
+                    let gosterilen = piperHiz > 0 ? piperHiz : 1.1
                     HStack {
                         Text("Konuşma yavaşlığı: \(String(format: "%.2f", gosterilen))").font(.caption)
                         Spacer()
