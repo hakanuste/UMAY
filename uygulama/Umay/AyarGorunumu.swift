@@ -69,6 +69,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.alarmSesli") private var alarmSesli = true
     @AppStorage("umay.tinli") private var tinli = false
     @AppStorage("umay.kunye") private var kunye = false
+    @AppStorage("umay.piperModel") private var piperModel = ""
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -100,6 +101,11 @@ struct AyarGorunumu: View {
                 Toggle("Dede Korkut tınısı (deneysel: kalın, yavaş, yankılı)", isOn: $tinli)
                 Toggle("Kaynak ve güven satırlarını göster", isOn: $kunye)
                 #if os(macOS)
+                if Okuyucu.piperModelleri().count > 1 {
+                    Picker("Ses modeli", selection: $piperModel) {
+                        ForEach(Okuyucu.piperModelleri(), id: \.self) { Text($0.replacingOccurrences(of: ".onnx", with: "")).tag($0) }
+                    }
+                }
                 Text(Okuyucu.piperBul().map { "Ses: Piper — " + URL(fileURLWithPath: $0.1).lastPathComponent }
                      ?? "Ses: macOS sistem sesi (Piper kurulu değil)")
                     .font(.caption).foregroundColor(.secondary)

@@ -102,23 +102,38 @@ final class Okuyucu {
         }
         guard let ikili = adaylar.first(where: { fm.isExecutableFile(atPath: $0) }) else { return nil }
         let dizin = ev + "/.local/share/umay/ses"
-        guard let m = (try? fm.contentsOfDirectory(atPath: dizin))?.sorted().first(where: { $0.hasSuffix(".onnx") }) else { return nil }
+        let modeller = piperModelleri()
+        let secili = UserDefaults.standard.string(forKey: "umay.piperModel") ?? ""
+        guard let m = modeller.contains(secili) ? secili : modeller.first else { return nil }
         return (ikili, dizin + "/" + m)
     }
 
+    /// ~/.local/share/umay/ses içindeki .onnx ses modelleri (yanında .onnx.json olanlar).
+    static func piperModelleri() -> [String] {
+        let dizin = NSHomeDirectory() + "/.local/share/umay/ses", fm = FileManager.default
+        return ((try? fm.contentsOfDirectory(atPath: dizin)) ?? []).sorted()
+            .filter { $0.hasSuffix(".onnx") && fm.fileExists(atPath: dizin + "/" + $0 + ".json") }
+    }
+
     static func piperUret(_ metin: String, ikili: String, model: String, dosya: URL) -> Bool {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: ikili)
-        p.arguments = ["--model", model, "--output_file", dosya.path, "--length_scale", "1.1"]
-        let giris = Pipe()
-        p.standardInput = giris
-        p.standardError = FileHandle.nullDevice
-        p.standardOutput = FileHandle.nullDevice
-        do { try p.run() } catch { return false }
-        giris.fileHandleForWriting.write((metin + "\n").data(using: .utf8) ?? Data())
-        try? giris.fileHandleForWriting.close()
-        p.waitUntilExit()
-        return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dosya.path)
+        // Daha canlı konuşma: biraz yavaş, değişken tonlama. Bu bayrakları tanımayan sürümde yalın çağrıya dönülür.
+        let genis = ["--model", model, "--output_file", dosya.path, "--length_scale", "1.1", "--noise_scale", "0.8", "--noise_w", "0.9"]
+        let yalin = ["--model", model, "--output_file", dosya.path]
+        for arg in [genis, yalin] {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: ikili)
+            p.arguments = arg
+            let giris = Pipe()
+            p.standardInput = giris
+            p.standardError = FileHandle.nullDevice
+            p.standardOutput = FileHandle.nullDevice
+            do { try p.run() } catch { return false }
+            giris.fileHandleForWriting.write((metin + "\n").data(using: .utf8) ?? Data())
+            try? giris.fileHandleForWriting.close()
+            p.waitUntilExit()
+            if p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dosya.path) { return true }
+        }
+        return false
     }
 
     /// `say -v <ses> -o <dosya> -f -` ile metni AIFF'e sentezler (metin standart girişten gider).
