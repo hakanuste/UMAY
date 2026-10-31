@@ -204,6 +204,30 @@ int us_dayanak_destegi(const char *yanit, const char *dayanak, int *toplam) {
     return top ? bulunan * 100 / top : 100;
 }
 
+/* Küçük modellerin bozuk çıktıları: (1) istem iskeletini yankılar ("DAYANAK: … CEVAP: …") -> yalnız son "CEVAP:"
+ * sonrası kalır; yalnız "DAYANAK:" ile başlayıp bitiyorsa çıktı geçersizdir (boşaltılır, yedek yola düşülür);
+ * (2) takılıp aynı öbeği tekrarlar -> ilk tekrarda kesilir. */
+static void model_cikti_temizle(char *m) {
+    char *son = 0;
+    for (char *c = m; *c; c++) if (um_bas_mi(c, "CEVAP:")) son = c;
+    if (son) {
+        son += 6;
+        while (*son == ' ' || *son == '\n' || *son == '\r' || *son == '\t') son++;
+        static char gecici[US_METIN_MAX];
+        um_kopya(gecici, sizeof gecici, son);
+        um_kopya(m, US_METIN_MAX, gecici);
+    }
+    { char *b = m; while (*b == ' ' || *b == '\n' || *b == '\t') b++;
+      if (um_bas_mi(b, "DAYANAK:")) { m[0] = 0; return; } }
+    uint32_t n = um_uzun(m);
+    for (uint32_t i = 0; i + 60 < n; i++)
+        for (uint32_t P = 8; P <= 200 && i + 3 * P <= n; P++) {
+            int es = 1;
+            for (uint32_t k = 0; k < 2 * P && es; k++) if (m[i + k] != m[i + P + k]) es = 0;
+            if (es) { m[i + P] = 0; return; }
+        }
+}
+
 int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     if (!i || !o) return UM_YANLIS;
     um_bellek_doldur(o, 0, sizeof *o);
@@ -297,6 +321,8 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     int sonuc = UM_YANLIS;
     if (m && m->uret) sonuc = m->uret(m, &motor_istem, o->metin, sizeof o->metin);
 
+    if (sonuc == UM_OLDU) model_cikti_temizle(o->metin);
+
     /* motor düşerse ya da boş dönerse güvenli yedeğe in */
     if (sonuc != UM_OLDU || !o->metin[0]) {
         umay_us_t *yedek = us_stub_motor();
@@ -314,21 +340,6 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
             um_kopya(o->metin, sizeof o->metin,
                      "Dayanağım vardı ama sözü kuramadım; boş konuşmaktansa susarım.\n");
             return UM_OLDU;
-        }
-    }
-
-    /* Küçük modeller istem iskeletini yankılar ("DAYANAK: … CEVAP: …"): yalnız son "CEVAP:" sonrası kalır. */
-    {
-        char *son = 0;
-        for (char *c = o->metin; *c; c++) if (um_bas_mi(c, "CEVAP:")) son = c;
-        if (son) {
-            son += 6;
-            while (*son == ' ' || *son == '\n' || *son == '\r' || *son == '\t') son++;
-            if (*son) {
-                static char gecici[US_METIN_MAX];            /* örtüşen kopya olmasın */
-                um_kopya(gecici, sizeof gecici, son);
-                um_kopya(o->metin, sizeof o->metin, gecici);
-            }
         }
     }
 

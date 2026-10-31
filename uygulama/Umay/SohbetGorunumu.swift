@@ -22,7 +22,7 @@ final class Okuyucu {
         if s.hasPrefix("(Dayanağım") || s.hasPrefix("Dayanağım ") || s.hasPrefix("Güven:") || s.hasPrefix("Dikkat:") || s.hasPrefix("[") { return true }
         if s.hasSuffix("söyler:") { return true }
         if s.hasPrefix("(") && s.hasSuffix(")") { return true }                     // "(Kütüphanemde kayıt yok…)" gibi notlar
-        for ön in ["Kendi alanımda kayıt", "Bu soru benim alanıma", "Katılan uzmanlar", "Otağın ortak güveni", "Uzmanlar arasında"] {
+        for ön in ["Bu iş birden çok uzmanı", "Kendi alanımda kayıt", "Bu soru benim alanıma", "Katılan uzmanlar", "Otağın ortak güveni", "Uzmanlar arasında"] {
             if s.hasPrefix(ön) { return true }
         }
         return false

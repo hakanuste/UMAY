@@ -202,17 +202,14 @@ static int ci_icinde(const char *saman, const char *igne) {   /* ASCII harf duya
 
 /* Soruda, kütüphanenin HİÇBİR kaydında geçmeyen özel bir sözcük (marka, yer, ad…) var mı?
  * "eyfel kulesi kaç metre": "eyfel" hiçbir kayıtta yok → kütüphane bu konuyu bilmiyor, "kulesi" ile eşleşen
- * ilgisiz kayıt (TRT kulesi) yeterli sayılmaz. Yalnız ASCII sözcükler denenir (Türkçe ek/harf yüzünden yanlış alarm olmasın). */
+ * ilgisiz kayıt (TRT kulesi) yeterli sayılmaz. Büyük harfli Türkçe metinde yanlış alarm olabilir; zararı yalnız fazladan bir web araması. */
 int ogren_bilinmeyen(const char *soru) {
     char kel[OG_ANAHTAR_MAX + 4][24];
     int h = soru ? bilgi_kelime_ayikla(soru, kel, OG_ANAHTAR_MAX + 4) : 0, say = bilgi_sayi();
     for (int i = 0; i < h; i++) {
         if (ogren_komut_sozcugu(kel[i]) || soru_kalibi(kel[i]) || um_uzun(kel[i]) < 5) continue;
-        int ascii = 1;
-        for (const char *c = kel[i]; *c; c++) if ((uint8_t)*c >= 0x80u || !((*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9'))) ascii = 0;
-        if (!ascii) continue;
         char kok[24]; um_kopya(kok, sizeof kok, kel[i]);
-        if (um_uzun(kok) > 6) kok[6] = 0;
+        if (um_uzun(kok) > 6) { uint32_t kes = 6; while (kes > 0 && ((uint8_t)kok[kes] & 0xC0u) == 0x80u) kes--; kok[kes] = 0; }
         int bulundu = 0;
         for (int r = 0; r < say && !bulundu; r++) {
             bilgi_ham_t k;

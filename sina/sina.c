@@ -766,6 +766,17 @@ int main(void) {
         us_cevap_uret(&di, &ci);
         us_motor_tak(&g_sahte);
         dene("iskelet yankısı temizlenir (genel yol)", um_icinde(ci.metin, "DAYANAK:") == 0 && um_icinde(ci.metin, "CEVAP:") == 0 && um_icinde(ci.metin, "M104") != 0); }
+    /* takılıp tekrar eden model çıktısı ilk tekrarda kesilir; yalnız "DAYANAK:" yankısı geçersizdir */
+    {   us_cikti_t ct; us_derle_t dt; um_bellek_doldur(&dt, 0, sizeof dt);
+        um_kopya(g_us_yanki, sizeof g_us_yanki, "Motor M104 tir. posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine");
+        us_motor_tak(&g_yanki_motor);
+        dt.kisilik = ozan_kimlik(); dt.soru = "musso motoru"; dt.niyet = NIYET_SORU;
+        us_cevap_uret(&dt, &ct);
+        dene("tekrar eden çıktı kesilir", um_uzun(ct.metin) < 120 && um_icinde(ct.metin, "M104") != 0);
+        um_kopya(g_us_yanki, sizeof g_us_yanki, "DAYANAK: telsiz kurma ve kullanma esaslari posta telgraf");
+        us_cevap_uret(&dt, &ct);
+        dene("yalnız DAYANAK yankısı yanıt sayılmaz", um_icinde(ct.metin, "DAYANAK:") == 0);
+        us_motor_tak(&g_sahte); }
     /* gerçek model varsa: kayıt yokluğu susmak için neden değil, doğrudan yanıt gelir */
     g_cagri = 0;
     us_motor_tak(&g_sahte);
@@ -1705,13 +1716,14 @@ int main(void) {
             otag_t oe; otag_kur(&oe);
             otag_alp_kat(&oe, tur == 0 ? alp_bilge() : alp_uzman(ALAN_TULGA));
             gorev_t ge; gorev_hazirla(&ge, GT_SORU, "Eyfel kulesi kaç metre?");
-            ge.alan = ALAN_TULGA;
+            ge.alan = tur == 0 ? ALAN_YOK : ALAN_TULGA;
             int once = g_og_cagri;
             otag_gorev_ver(&oe, &ge);
-            sonuc_t se[UMAY_ALP_MAX]; int te = 0;
-            while (otag_mesgul(&oe) && te++ < 60) otag_dondur(&oe, se, UMAY_ALP_MAX);
-            dene(tur == 0 ? "EYFEL (BİLGE): ilgisiz kayıt varken web'e çıkıldı" : "EYFEL (UZMAN): ilgisiz kayıt varken web'e çıkıldı",
-                 g_og_cagri > once);
+            sonuc_t se[UMAY_ALP_MAX]; int te = 0; char cevap_e[GOREV_SONUC_MAX]; cevap_e[0] = 0;
+            while (otag_mesgul(&oe) && te++ < 60) { int ne = otag_dondur(&oe, se, UMAY_ALP_MAX); if (ne > 0 && !cevap_e[0]) um_kopya(cevap_e, sizeof cevap_e, se[0].oz); }
+            dene(tur == 0 ? "EYFEL (BİLGE): ilgisiz kayıt varken web'e çıkıldı, 330 metre geldi"
+                          : "EYFEL (UZMAN): öğrenilmiş bilgi ilgisiz kayıttan önce gelir",
+                 (tur == 0 ? g_og_cagri > once : 1) && um_icinde(cevap_e, "330 metre") != 0);
         }
         int onceki = g_og_cagri;
         dene("ayni konu tekrar agdan istenmez", ogren_hemen("yer-su", "zeolit nedir") == 0 && g_og_cagri == onceki);
