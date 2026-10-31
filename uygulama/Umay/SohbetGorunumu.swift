@@ -280,6 +280,7 @@ struct SohbetGorunumu: View {
 
     private var ustSerit: some View {
         HStack {
+            if let a = amblem { a.resizable().scaledToFit().frame(width: 36, height: 36) }
             VStack(alignment: .leading, spacing: 2) {
                 Text("UMAY").font(.headline)
                 // Dürüst durum: yedek motor gerçek dil modeli DEĞİLDİR.
@@ -304,9 +305,27 @@ struct SohbetGorunumu: View {
         .padding(.horizontal).padding(.vertical, 8)
     }
 
+    /// UMAY amblemi (pakette umay-amblem.png). Yoksa gösterilmez.
+    private var amblem: Image? {
+        #if os(macOS)
+        if let u = Bundle.main.url(forResource: "umay-amblem", withExtension: "png"), let g = NSImage(contentsOf: u) {
+            return Image(nsImage: g)
+        }
+        #endif
+        return nil
+    }
+
     private var karsilama: some View {
-        Text("Merhaba, ben Dede Korkut. Yer altı kileri, permakültür, güneş enerjisi, kerpiç yapı… ne merak ediyorsan sor.")
-            .foregroundColor(.secondary).padding(.top, 20)
+        VStack(spacing: 14) {
+            if let a = amblem { a.resizable().scaledToFit().frame(width: 220, height: 220) }
+            Text("Merhaba, ben Dede Korkut. Yer altı kileri, permakültür, güneş enerjisi, kerpiç yapı… ne merak ediyorsan sor.")
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            Text("Anımsatıcı için: \"yarın 15.00 diş randevusu anımsat\"  ·  Piyasa özeti için: \"sabah bildirisi\"")
+                .font(.caption).foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
     }
 
     /// Balonsuz ileti: adı renkli, altında metin. (Tek dev metin kaydırmayı bozduğu için iletiler ayrı.)
