@@ -209,7 +209,7 @@ int us_dayanak_destegi(const char *yanit, const char *dayanak, int *toplam) {
  * (2) takılıp aynı öbeği tekrarlar -> ilk tekrarda kesilir. */
 static void model_cikti_temizle(char *m) {
     char *son = 0;
-    for (char *c = m; *c; c++) if (um_bas_mi(c, "CEVAP:")) son = c;
+    for (char *c = m; *c; c++) if (um_bas_mi(c, "CEVAP:") || um_bas_mi(c, "Cevap:") || um_bas_mi(c, "cevap:")) son = c;
     if (son) {
         son += 6;
         while (*son == ' ' || *son == '\n' || *son == '\r' || *son == '\t') son++;

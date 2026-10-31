@@ -96,6 +96,17 @@ static void ileti_isle(const umay_ileti_t *i) {
     { char oy[200]; if (ogren_onay_konus(i->govde, oy, sizeof oy)) { yanit_yaz(oy); return; } }
     if (onay_buyrugu(i->govde)) return;
     { char ay[512]; if (anim_konus(i->govde, ay, sizeof ay)) { yanit_yaz(ay); return; } }
+    {   /* "internet sına": ağ çıkışı çalışıyor mu? (terminalsiz tanı) */
+        char k[96]; anim_katla(k, sizeof k, i->govde);
+        if (um_esit(k, "internet sina") || um_esit(k, "ag sina") || um_esit(k, "internet denemesi")) {
+            static char r[2048], g[300];
+            int64_t b = ogren_ag_getir("https://tr.wikipedia.org/w/api.php?action=query&list=search&srsearch=eyfel&format=json", r, sizeof r);
+            if (b > 0) um_bicim(g, sizeof g, "İnternet: tamam (%l bayt geldi). İnternetten arama çalışıyor.", b);
+            else um_bicim(g, sizeof g, "İnternet: çıkış yapılamadı. Ayarlar'da \"Kayıt yoksa internetten ara ve öğren\" açık mı, "
+                                       "ağa bağlı mısın, curl var mı? (açıkken ogren_acik=%d)", ogren_acik());
+            yanit_yaz(g); return;
+        }
+    }
     if (sabah_sorusu(i->govde)) { static char b[7600]; sabah_bildirisi(b, sizeof b); yanit_yaz(b); return; }
 
     coz_t c = ozan_coz(i->govde);

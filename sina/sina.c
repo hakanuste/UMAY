@@ -772,6 +772,11 @@ int main(void) {
         us_motor_tak(&g_yanki_motor);
         dt.kisilik = ozan_kimlik(); dt.soru = "musso motoru"; dt.niyet = NIYET_SORU;
         us_cevap_uret(&dt, &ct);
+        um_kopya(g_us_yanki, sizeof g_us_yanki, "DAYANAK: x\n\nSORU: eyfel kulesi kaç metre\n\nCevap:\nEyfel Kulesi 330 metredir.");
+        us_cevap_uret(&dt, &ct);
+        dene("'Cevap:' (küçük harfli) iskelet de temizlenir", um_icinde(ct.metin, "SORU:") == 0 && um_icinde(ct.metin, "330 metredir") != 0);
+        um_kopya(g_us_yanki, sizeof g_us_yanki, "Motor M104 tir. posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine, posta telgraf ve telefon uretimlerine");
+        us_cevap_uret(&dt, &ct);
         dene("tekrar eden çıktı kesilir", um_uzun(ct.metin) < 120 && um_icinde(ct.metin, "M104") != 0);
         um_kopya(g_us_yanki, sizeof g_us_yanki, "DAYANAK: telsiz kurma ve kullanma esaslari posta telgraf");
         us_cevap_uret(&dt, &ct);
