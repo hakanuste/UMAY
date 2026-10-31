@@ -216,8 +216,8 @@ struct SohbetGorunumu: View {
                         if motor.iletiler.isEmpty { karsilama }
                         ForEach(motor.iletiler) { i in
                             HStack(alignment: .top, spacing: 10) {
-                                if !i.benMi && !i.sistemMi, let d = Self.resim("dede-korkut-simge") {
-                                    d.resizable().scaledToFit().frame(width: 34, height: 34)
+                                if !i.benMi && !i.sistemMi, let d = Self.resim("dede-korkut-yuz") {
+                                    d.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 44, height: 44)
                                 }
                                 ileti(i).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -233,8 +233,8 @@ struct SohbetGorunumu: View {
                 // Arka plan: saydam Dede Korkut damgası (yazıyı bozmaz, tıklamayı engellemez)
                 .background(alignment: .center) {
                     if let d = Self.resim("dede-korkut-amblem") {
-                        d.resizable().scaledToFit().frame(maxWidth: 420, maxHeight: 420)
-                            .opacity(0.10).allowsHitTesting(false)
+                        d.resizable().interpolation(.high).scaledToFit().frame(maxWidth: 460, maxHeight: 460)
+                            .opacity(0.16).allowsHitTesting(false)
                     }
                 }
             }
@@ -294,7 +294,7 @@ struct SohbetGorunumu: View {
 
     private var ustSerit: some View {
         HStack {
-            if let a = amblem { a.resizable().scaledToFit().frame(width: 36, height: 36) }
+            if let a = amblem { a.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 44, height: 44) }
             VStack(alignment: .leading, spacing: 2) {
                 Text("UMAY").font(.headline)
                 // Dürüst durum: yedek motor gerçek dil modeli DEĞİLDİR.
@@ -339,7 +339,7 @@ struct SohbetGorunumu: View {
 
     private var karsilama: some View {
         VStack(spacing: 14) {
-            if let a = amblem { a.resizable().scaledToFit().frame(width: 220, height: 220) }
+            if let a = amblem { a.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 220, height: 220) }
             Text("Merhaba, ben Dede Korkut. Yer altı kileri, permakültür, güneş enerjisi, kerpiç yapı… ne merak ediyorsan sor.")
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
