@@ -135,7 +135,44 @@ int up_bildir(const char *baslik, const char *metin) {
     uh_tirnak(b, tb, sizeof tb); uh_tirnak(m, tm, sizeof tm);
     snprintf(komut, sizeof komut, "notify-send -u critical -a UMAY %s %s %s", tb, tm, uh_sessiz());
 #endif
-    return uh_komut(komut) == 0 ? 0 : -1;
+    int r = uh_komut(komut) == 0 ? 0 : -1;
+
+    /* SES: bildirimle birlikte uyarı sesi çalar ve metin sesli okunur (UMAY_ALARM_SES=0 ile kapanır).
+     * Arka planda koşar (bildirimi bekletmez). m yukarıda temizlendi; yine de kabuğa tırnaklı verilir. */
+    const char *ses = getenv("UMAY_ALARM_SES");
+    if (!(ses && ses[0] == '0')) {
+        char ses_komut[1300];
+#ifdef _WIN32
+        snprintf(ses_komut, sizeof ses_komut,
+            "start /B powershell -NoProfile -WindowStyle Hidden -Command \"Add-Type -AssemblyName System.Speech;"
+            "[System.Media.SystemSounds]::Exclamation.Play();Start-Sleep -Milliseconds 700;"
+            "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;$s.Speak('%s')\" %s", m, uh_sessiz());
+        uh_komut(ses_komut);
+#elif defined(__APPLE__)
+        char tm2[460];
+        uh_tirnak(m, tm2, sizeof tm2);
+        snprintf(ses_komut, sizeof ses_komut,
+            "( afplay /System/Library/Sounds/Glass.aiff; say -v Yelda %s || say %s ) %s &", tm2, tm2, uh_sessiz());
+        uh_komut(ses_komut);
+#else
+        char yol2[320], tm2[460];
+        uh_tirnak(m, tm2, sizeof tm2);
+        int ses_var = 0;
+        if (uh_yol_ara("canberra-gtk-play", yol2, sizeof yol2)) {
+            snprintf(ses_komut, sizeof ses_komut, "canberra-gtk-play -i alarm-clock-elapsed %s &", uh_sessiz());
+            uh_komut(ses_komut); ses_var = 1;
+        }
+        if (uh_yol_ara("spd-say", yol2, sizeof yol2)) {
+            snprintf(ses_komut, sizeof ses_komut, "spd-say -l tr -w %s %s &", tm2, uh_sessiz());
+            uh_komut(ses_komut); ses_var = 1;
+        } else if (uh_yol_ara("espeak-ng", yol2, sizeof yol2)) {
+            snprintf(ses_komut, sizeof ses_komut, "espeak-ng -v tr %s %s &", tm2, uh_sessiz());
+            uh_komut(ses_komut); ses_var = 1;
+        }
+        if (!ses_var) { fputs("\a\a\a", stderr); fflush(stderr); }       /* hiçbir ses aracı yoksa uçbirim zili */
+#endif
+    }
+    return r;
 }
 
 void up_uyu(uint32_t ms)

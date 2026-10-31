@@ -138,7 +138,11 @@ final class UmayMotor: ObservableObject {
                         icerik.body = bildiri ? "Hazır; sohbete yazdım." : String(satir.prefix(180))
                         icerik.sound = .default
                         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: icerik, trigger: nil))
+                        // SESLİ: uyarı sesi, sonra Dede Korkut sesiyle okunur (Ayarlar'dan kapatılabilir).
                         NSSound(named: NSSound.Name("Glass"))?.play()
+                        if (UserDefaults.standard.object(forKey: "umay.alarmSesli") as? Bool) ?? true {
+                            Okuyucu.ortak.oku(bildiri ? "Sabah bildirisi hazır." : satir)
+                        }
                     }
                 }
             }
