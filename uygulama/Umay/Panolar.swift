@@ -52,10 +52,10 @@ struct KenarSeridi: View {
                 Text("UMAY").font(.headline)
             }
             .padding(.bottom, 10)
-            satir("Sohbet", "bubble.left.and.bubble.right", .yok)
-            satir("Ajanlar", "person.3", .ajanlar)
-            satir("Belgelerim", "books.vertical", .belgeler)
-            satir("Kasa", "lock.shield", .kasa)
+            satir("Sohbet", "bubble.left.and.bubble.right", "dede-korkut-yuz", .yok)
+            satir("Ajanlar", "person.3", "umay-yuz", .ajanlar)
+            satir("Belgelerim", "books.vertical", "amblem-bitig", .belgeler)
+            satir("Kasa", "lock.shield", "amblem-tamga", .kasa)
             Spacer()
             Text(motor.mesgul ? "Düşünüyor…" : motor.durum)
                 .font(.caption2).foregroundColor(.secondary).lineLimit(2)
@@ -64,10 +64,14 @@ struct KenarSeridi: View {
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    private func satir(_ ad: String, _ simge: String, _ p: SagPano) -> some View {
+    private func satir(_ ad: String, _ simge: String, _ resim: String, _ p: SagPano) -> some View {
         Button { sag = (sag == p && p != .yok) ? .yok : p } label: {
             HStack(spacing: 8) {
-                Image(systemName: simge).frame(width: 20)
+                if let r = SohbetGorunumu.resim(resim) {
+                    r.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: 28, height: 28)
+                } else {
+                    Image(systemName: simge).frame(width: 28)
+                }
                 Text(ad)
                 Spacer()
             }
@@ -77,6 +81,23 @@ struct KenarSeridi: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Ajan → amblem dosyası (paketteki PNG adı).
+enum AjanResmi {
+    static let alan: [String: String] = [
+        "bilge": "dede-korkut-amblem", "kabul": "amblem-kervan",
+        "yazit": "amblem-bitig", "yer-su": "amblem-ergenekon", "balbal": "amblem-orkun", "kun": "amblem-ulgen",
+        "demir": "amblem-ulak", "tulga": "amblem-tulpar", "otaci": "amblem-asena", "yargu": "amblem-tore",
+        "akca": "amblem-kut", "alpagu": "amblem-timur", "kopuz": "dede-korkut-yuz", "oyun": "umay-amblem",
+    ]
+    @ViewBuilder static func goster(_ anahtar: String, boy: CGFloat = 44) -> some View {
+        if let ad = alan[anahtar], let r = SohbetGorunumu.resim(ad) {
+            r.resizable().interpolation(.high).antialiased(true).scaledToFit().frame(width: boy, height: boy)
+        } else {
+            Image(systemName: "person.crop.circle").font(.title2).frame(width: boy, height: boy)
+        }
     }
 }
 
@@ -98,8 +119,8 @@ struct AjanlarGorunumu: View {
                 .font(.caption).foregroundColor(.secondary)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    cekirdek("BİLGE", "Bilgi bulma ve öğüt. Kütüphanede kayıt yoksa internetten arar; sen \"doğru, ekle\" dersen kaydeder.")
-                    cekirdek("KABUL", "Eklenen belgeyi inceler, alanını bulur ve kütüphaneye yerleştirir.")
+                    cekirdek("bilge", "BİLGE", "Bilgi bulma ve öğüt. Kütüphanede kayıt yoksa internetten arar; sen \"doğru, ekle\" dersen kaydeder.")
+                    cekirdek("kabul", "KABUL", "Eklenen belgeyi inceler, alanını bulur ve kütüphaneye yerleştirir.")
                     Divider()
                     ForEach(SohbetGorunumu.belgeAlanlari.filter { $0.0 != "otomatik" }, id: \.0) { a in uzman(a) }
                 }
@@ -116,10 +137,13 @@ struct AjanlarGorunumu: View {
         sayilar = s
     }
 
-    private func cekirdek(_ ad: String, _ nitelik: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(ad).bold()
-            Text(nitelik).font(.caption).foregroundColor(.secondary)
+    private func cekirdek(_ anahtar: String, _ ad: String, _ nitelik: String) -> some View {
+        HStack(spacing: 10) {
+            AjanResmi.goster(anahtar)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ad).bold()
+                Text(nitelik).font(.caption).foregroundColor(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
@@ -131,7 +155,8 @@ struct AjanlarGorunumu: View {
         let ad = parca.first ?? a.1
         let alan = parca.count > 1 ? parca[1] : ""
         let secili = belgeAlani == a.0
-        return HStack {
+        return HStack(spacing: 10) {
+            AjanResmi.goster(a.0)
             VStack(alignment: .leading, spacing: 2) {
                 Text(ad).bold()
                 Text(alan).font(.caption).foregroundColor(.secondary)
