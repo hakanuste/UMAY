@@ -117,7 +117,10 @@ final class Okuyucu {
 
     static func piperUret(_ metin: String, ikili: String, model: String, dosya: URL) -> Bool {
         // Daha canlı konuşma: biraz yavaş, değişken tonlama. Bu bayrakları tanımayan sürümde yalın çağrıya dönülür.
-        let genis = ["--model", model, "--output_file", dosya.path, "--length_scale", "1.1", "--noise_scale", "0.8", "--noise_w", "0.9"]
+        // Konuşma hızı: Ayarlar'daki kaydırıcı (0 = otomatik). Kendi sesimiz hızlı konuştuğu için "hakan" modeli daha yavaş başlar.
+        let ozel = UserDefaults.standard.double(forKey: "umay.piperHiz")
+        let yavaslik = ozel > 0 ? ozel : (model.contains("hakan") ? 1.35 : 1.1)
+        let genis = ["--model", model, "--output_file", dosya.path, "--length_scale", String(format: "%.2f", yavaslik), "--noise_scale", "0.8", "--noise_w", "0.9"]
         let yalin = ["--model", model, "--output_file", dosya.path]
         for arg in [genis, yalin] {
             let p = Process()

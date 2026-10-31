@@ -70,6 +70,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.tinli") private var tinli = false
     @AppStorage("umay.kunye") private var kunye = false
     @AppStorage("umay.piperModel") private var piperModel = ""
+    @AppStorage("umay.piperHiz") private var piperHiz = 0.0
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -109,6 +110,15 @@ struct AyarGorunumu: View {
                     Picker("Ses modeli", selection: $piperModel) {
                         ForEach(Okuyucu.piperModelleri(), id: \.self) { Text($0.replacingOccurrences(of: ".onnx", with: "")).tag($0) }
                     }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    let gosterilen = piperHiz > 0 ? piperHiz : (piperModel.contains("hakan") ? 1.35 : 1.1)
+                    HStack {
+                        Text("Konuşma yavaşlığı: \(String(format: "%.2f", gosterilen))").font(.caption)
+                        Spacer()
+                        Button("Otomatik") { piperHiz = 0 }.font(.caption)
+                    }
+                    Slider(value: Binding(get: { gosterilen }, set: { piperHiz = $0 }), in: 1.0...2.0, step: 0.05)
                 }
                 Text(Okuyucu.piperBul().map { "Ses: Piper — " + URL(fileURLWithPath: $0.1).lastPathComponent }
                      ?? "Ses: macOS sistem sesi (Piper kurulu değil)")
