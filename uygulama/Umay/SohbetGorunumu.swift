@@ -19,7 +19,7 @@ final class Okuyucu {
     /// Künye/üst bilgi satırı mı? ("X söyler:", "(Dayanağım…)", "Güven:", kaynak notları…) Hem ekranda hem okumada elenir.
     static func kunyeSatiri(_ s0: String) -> Bool {
         let s = s0.trimmingCharacters(in: .whitespaces)
-        if s.hasPrefix("(Dayanağım") || s.hasPrefix("Güven:") || s.hasPrefix("Dikkat:") || s.hasPrefix("[") { return true }
+        if s.hasPrefix("(Dayanağım") || s.hasPrefix("Dayanağım ") || s.hasPrefix("Güven:") || s.hasPrefix("Dikkat:") || s.hasPrefix("[") { return true }
         if s.hasSuffix("söyler:") { return true }
         if s.hasPrefix("(") && s.hasSuffix(")") { return true }                     // "(Kütüphanemde kayıt yok…)" gibi notlar
         for ön in ["Kendi alanımda kayıt", "Bu soru benim alanıma", "Katılan uzmanlar", "Otağın ortak güveni", "Uzmanlar arasında"] {

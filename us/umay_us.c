@@ -317,9 +317,24 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
         }
     }
 
+    /* Küçük modeller istem iskeletini yankılar ("DAYANAK: … CEVAP: …"): yalnız son "CEVAP:" sonrası kalır. */
+    {
+        char *son = 0;
+        for (char *c = o->metin; *c; c++) if (um_bas_mi(c, "CEVAP:")) son = c;
+        if (son) {
+            son += 6;
+            while (*son == ' ' || *son == '\n' || *son == '\r' || *son == '\t') son++;
+            if (*son) {
+                static char gecici[US_METIN_MAX];            /* örtüşen kopya olmasın */
+                um_kopya(gecici, sizeof gecici, son);
+                um_kopya(o->metin, sizeof o->metin, gecici);
+            }
+        }
+    }
+
     o->guven = guven_hesapla(i);
     /* Yanıtın özü dayanakta yoksa (model kendi bilgisiyle konuşmuş): güven ZAYIF, açıkça söylenir. */
-    if (!o->yedege_dustu && um_icinde(baglam_metni, "") && o->metin[0]) {
+    if (!genel && !o->yedege_dustu && um_icinde(baglam_metni, "") && o->metin[0]) {   /* genel yolda dayanak yok: karşılaştırılacak şey yok */
         int top = 0, yuzde = us_dayanak_destegi(o->metin, baglam_metni, &top);
         if (top >= 3 && yuzde < 50) {
             o->dayanak_disi = 1;

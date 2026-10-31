@@ -52,6 +52,11 @@ final class UmayMotor: ObservableObject {
     /// Ayarlar'da "Kaynak ve güven satırlarını göster" açıksa olduğu gibi bırakır. Yanıtın ham hâli çekirdekte durur.
     static func sade(_ yanit: String) -> String {
         if UserDefaults.standard.bool(forKey: "umay.kunye") { return yanit }
+        var yanit = yanit
+        if let r = yanit.range(of: "CEVAP:", options: .backwards) {       // modelin yankıladığı istem iskeleti
+            let son = yanit[r.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !son.isEmpty { yanit = son }
+        }
         let satirlar = yanit.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let kalan = satirlar.filter { !Okuyucu.kunyeSatiri($0) }
         let metin = kalan.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)

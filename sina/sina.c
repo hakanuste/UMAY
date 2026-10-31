@@ -57,6 +57,12 @@ static int sahte_uret(umay_us_t *u, const us_istem_t *i, char *c, uint32_t n) {
 static int sahte_hazir(umay_us_t *u, const char *y) { (void)u; (void)y; return UM_OLDU; }
 static umay_us_t g_sahte = { .ad = "sahte", .hazirla = sahte_hazir, .uret = sahte_uret };
 
+static char g_us_yanki[256];
+static int yanki_uret(umay_us_t *u, const us_istem_t *i, char *c, uint32_t n) {
+    (void)u; (void)i; um_kopya(c, n, g_us_yanki); return UM_OLDU;
+}
+static umay_us_t g_yanki_motor = { .ad = "yanki", .hazirla = sahte_hazir, .uret = yanki_uret };
+
 static int cokan_uret(umay_us_t *u, const us_istem_t *i, char *c, uint32_t n) {
     (void)u; (void)i; (void)c; (void)n; g_cagri++; return UM_YANLIS;   /* hep düşer */
 }
@@ -747,6 +753,15 @@ int main(void) {
     dene("motor HİÇ çağrılmadı", g_cagri == 0);
     {   char yz_[1024]; us_cikti_yaz(&cb, yz_, sizeof yz_);
         dene("susma yanıtında 'Güven: yok' yazılmaz", um_icinde(yz_, "Güven:") == 0); }
+    /* model istem iskeletini yankılarsa yalnız "CEVAP:" sonrası kalır */
+    {   us_cikti_t ci; us_derle_t di; um_bellek_doldur(&di, 0, sizeof di);
+        char yank[] = "DAYANAK: Proje araci Musso.\n\nCEVAP:\nMotor Mercedes M104 motorudur.";
+        um_kopya(g_us_yanki, sizeof g_us_yanki, yank);
+        us_motor_tak(&g_yanki_motor);
+        di.kisilik = ozan_kimlik(); di.soru = "musso motoru"; di.niyet = NIYET_SORU;
+        us_cevap_uret(&di, &ci);
+        us_motor_tak(&g_sahte);
+        dene("iskelet yankısı temizlenir (genel yol)", um_icinde(ci.metin, "DAYANAK:") == 0 && um_icinde(ci.metin, "CEVAP:") == 0 && um_icinde(ci.metin, "M104") != 0); }
     /* gerçek model varsa: kayıt yokluğu susmak için neden değil, doğrudan yanıt gelir */
     g_cagri = 0;
     us_motor_tak(&g_sahte);
