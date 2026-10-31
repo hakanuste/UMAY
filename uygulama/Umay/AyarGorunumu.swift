@@ -73,8 +73,12 @@ struct AyarGorunumu: View {
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack { Text("Ayarlar").font(.title2).bold(); Spacer(); Button("Kapat") { kapat.wrappedValue.dismiss() } }
+        VStack(alignment: .leading, spacing: 10) {
+            // Başlık ve Kapat sabit kalır; içerik taşarsa kayar (Kapat düğmesi görünmez olmasın)
+            HStack { Text("Ayarlar").font(.title2).bold(); Spacer(); Button("Kapat") { kapat.wrappedValue.dismiss() }.keyboardShortcut(.cancelAction) }
+            Divider()
+            ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
             Text("Dil modeli").font(.headline)
             ForEach(ModelSecenegi.liste) { m in
                 HStack {
@@ -114,11 +118,13 @@ struct AyarGorunumu: View {
             }
             Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
                 .font(.caption).foregroundColor(.secondary)
-            Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding()
         #if os(macOS)
-        .frame(width: 460, height: 480)
+        .frame(width: 480, height: 560)
         #endif
     }
 
