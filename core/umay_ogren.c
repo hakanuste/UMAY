@@ -6,6 +6,7 @@
  * ağ olmadığı için hiçbir şey yapmaz.
  * ===================================================================== */
 #include "umay_ogren.h"
+#include "umay_anim.h"
 #include "umay_gizli.h"
 #include "umay_bilgi.h"
 #include "umay_ortak.h"
@@ -43,6 +44,71 @@ int ogren_yazilan(int i, char *yol, uint32_t n) {
     const char *kok = ayar_metin("kutuphane", "kut");
     um_bicim(yol, n, "%s/%s/%s", kok, g_yazilan[i].alan, ad);
     return UM_OLDU;
+}
+
+/* ONAY BEKLEYEN: son öğrenmede yazılan parçalar. Kullanıcı "doğru, ekle" derse doğrulanmış sayılır,
+ * "yanlış" derse silinir. Hiçbiri denmezse "doğrulanmamış web" olarak kalır (eskisi gibi). */
+static int64_t dosya_oku(const char *yol, char *t, uint32_t n);
+#define OG_BEKLE_MAX 6
+static char g_bekle[OG_BEKLE_MAX][320];
+static int  g_bekle_n, g_bekle_say, g_bekle_bilgi0, g_bekle_duyuru;
+
+int ogren_bekleyen_onay(void) { return g_bekle_n; }
+
+int ogren_duyuru(char *cik, uint32_t n) {
+    if (!g_bekle_duyuru || g_bekle_n == 0) return 0;
+    g_bekle_duyuru = 0;
+    um_kopya(cik, n, "İnternetten bulundu (doğrulanmadı). Doğruysa «doğru, ekle», yanlışsa «yanlış» yaz.");
+    return 1;
+}
+
+int ogren_onayla(void) {
+    static char t[OG_PARCA_BOY + 900], y[OG_PARCA_BOY + 900];
+    int tamam = 0;
+    for (int i = 0; i < g_bekle_n; i++) {
+        if (dosya_oku(g_bekle[i], t, sizeof t) <= 0) continue;
+        const char *k = um_icinde(t, "(doğrulanmamış)");
+        if (k) {
+            uint32_t on = (uint32_t)(k - t);
+            um_bellek_kopya(y, t, on); y[on] = 0;
+            um_ekle(y, sizeof y, "(kullanıcı doğruladı)");
+            um_ekle(y, sizeof y, k + um_uzun("(doğrulanmamış)"));
+            if (up_yaz_yola(g_bekle[i], y, um_uzun(y)) >= 0) tamam++;
+        } else tamam++;
+    }
+    g_bekle_n = 0; g_bekle_duyuru = 0;
+    return tamam;
+}
+
+int ogren_reddet(void) {
+    int n = g_bekle_n;
+    for (int i = 0; i < g_bekle_n; i++) up_sil(g_bekle[i]);
+    if (g_bekle_say > 0 && bilgi_sayi() == g_bekle_bilgi0 + g_bekle_say) bilgi_kirp(g_bekle_say);
+    g_bekle_n = 0; g_bekle_duyuru = 0;
+    return n;
+}
+
+/* Sohbet: "doğru, ekle" / "yanlış" (yalnız onay bekleyen bilgi varken). */
+int ogren_onay_konus(const char *soz, char *yanit, uint32_t n) {
+    if (g_bekle_n == 0 || !soz) return 0;
+    char k[160], d[160]; uint32_t o = 0;
+    anim_katla(k, sizeof k, soz);
+    for (const char *c = k; *c && o + 1 < sizeof d; c++) if (*c != ',' && *c != '.' && *c != '!' ) d[o++] = *c;
+    while (o && d[o - 1] == ' ') o--;
+    d[o] = 0;
+    const char *tamam[] = { "dogru", "dogru ekle", "dogru bu bilgiyi ekle", "bunu ekle", "ekle", "bilgiyi ekle", "kaydet", "dogru kaydet", 0 };
+    const char *red[]   = { "yanlis", "yanlis sil", "sil", "ekleme", "yanlis bilgi", "bunu sil", 0 };
+    for (int i = 0; tamam[i]; i++) if (um_esit(d, tamam[i])) {
+        ogren_onayla();
+        um_kopya(yanit, n, "Eklendi: bu bilgi kütüphanede doğrulanmış sayıldı.");
+        return 1;
+    }
+    for (int i = 0; red[i]; i++) if (um_esit(d, red[i])) {
+        ogren_reddet();
+        um_kopya(yanit, n, "Silindi: bu bilgiyi kütüphaneden çıkardım.");
+        return 1;
+    }
+    return 0;
 }
 
 void ogren_getirici_ata(ogren_getirici_t f) { g_getir = f; g_ag_var = -1; }
@@ -638,6 +704,7 @@ int ogren_arastir(const char *kategori, const char *konu) {
         kisalt(baslik, 60);
         kisalt(kaynak, 90);
         const char *dil = ogren_dil_kestir(metin);
+        g_bekle_n = 0; g_bekle_say = 0; g_bekle_bilgi0 = bilgi_sayi();
         for (int i = 0; i < say; i++) {
             char parca[OG_PARCA_BOY + 8];
             uint32_t pn = uz[i] < OG_PARCA_BOY ? uz[i] : OG_PARCA_BOY;
@@ -661,7 +728,8 @@ int ogren_arastir(const char *kategori, const char *konu) {
             kok_yolu(yol, sizeof yol, alan, ad);
             if (up_yaz_yola(yol, dosya, um_uzun(dosya)) < 0)
                 gun_yaz("ÖĞREN: yazılamadı (yalnız bellekte): %s", yol);
-            else if (g_yazilan_n < OG_YAZILAN_MAX) {
+            else if (g_bekle_n < OG_BEKLE_MAX) um_kopya(g_bekle[g_bekle_n++], sizeof g_bekle[0], yol);
+            if (up_var_mi(yol) && g_yazilan_n < OG_YAZILAN_MAX) {
                 um_kopya(g_yazilan[g_yazilan_n].alan, sizeof g_yazilan[0].alan, alan);
                 um_kopya(g_yazilan[g_yazilan_n].h, sizeof g_yazilan[0].h, h);
                 g_yazilan[g_yazilan_n].no = (uint8_t)(i + 1);
@@ -669,6 +737,7 @@ int ogren_arastir(const char *kategori, const char *konu) {
             }
             if (bilgi_kayit_dil(alan, bas_ad, kaynak, KT_DIS, et, parca, dil, "") == UM_OLDU) eklenen++;
         }
+        g_bekle_say = eklenen; g_bekle_duyuru = (g_bekle_n > 0 && eklenen > 0) ? 1 : 0;
         gun_yaz("ÖĞREN: '%s' için %d parça öğrenildi (%s).", anahtar, eklenen, kaynak);
     } else {
         gun_yaz("ÖĞREN: '%s' için web'de anlamlı sonuç bulunamadı.", anahtar);

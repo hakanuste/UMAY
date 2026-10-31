@@ -80,6 +80,12 @@ uint32_t ogren_url_kodla(const char *s, char *cik, uint32_t n);
 const char *ogren_dil_kestir(const char *metin);
 #include "umay_bilgi.h"
 /* Sorunun anahtar sözcüklerinin yüzde kaçı metinde geçer (0..100). */
+/* ONAY: internetten öğrenilen son bilgi, kullanıcı "doğru, ekle" ya da "yanlış" diyene dek bekler. */
+int  ogren_bekleyen_onay(void);                      /* bekleyen parça sayısı */
+int  ogren_duyuru(char *cik, uint32_t n);            /* 1 = bir kez söylenecek uyarı satırı yazıldı */
+int  ogren_onayla(void);                             /* doğrulanmış say */
+int  ogren_reddet(void);                             /* sil */
+int  ogren_onay_konus(const char *soz, char *yanit, uint32_t n);   /* sohbet: 1 = ele aldı */
 int  ogren_bilinmeyen(const char *soru);   /* soruda kütüphanede hiç geçmeyen özel sözcük var mı */
 int  ogren_kapsam(const char *soru, const char *metin);
 #endif

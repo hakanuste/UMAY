@@ -30,7 +30,7 @@ final class Okuyucu {
 
     static func ozunuAyir(_ metin: String) -> String {
         let satirlar = metin.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-        var ozu = satirlar.filter { !kunyeSatiri($0) }.joined(separator: " ")
+        var ozu = satirlar.filter { !kunyeSatiri($0) && !$0.hasPrefix("İnternetten bulundu") }.joined(separator: " ")
         // başında/sonunda tek tırnak çifti varsa okunmasın
         ozu = ozu.trimmingCharacters(in: CharacterSet(charactersIn: "\"“” "))
         return ozu.isEmpty ? metin : ozu

@@ -93,6 +93,7 @@ static void ileti_isle(const umay_ileti_t *i) {
     g_son_kaynak = i->kaynak;
     gui_satir_ekle("SEN", i->govde);
 
+    { char oy[200]; if (ogren_onay_konus(i->govde, oy, sizeof oy)) { yanit_yaz(oy); return; } }
     if (onay_buyrugu(i->govde)) return;
     { char ay[512]; if (anim_konus(i->govde, ay, sizeof ay)) { yanit_yaz(ay); return; } }
     if (sabah_sorusu(i->govde)) { static char b[7600]; sabah_bildirisi(b, sizeof b); yanit_yaz(b); return; }
@@ -316,6 +317,7 @@ void umay_tur(void) {
     sonuc_t sonuc[UMAY_ALP_MAX];
     int n = otag_dondur(&g_otag, sonuc, UMAY_ALP_MAX);
     for (int s = 0; s < n; s++) yanit_yaz(sonuc[s].oz);
+    { char du[200]; if (n > 0 && ogren_duyuru(du, sizeof du)) yanit_yaz(du); }
     if (n > 0 && otag_catisma_sayi(&g_otag) > 0) gui_durum("kaynak çatışması var");
     if (n > 0) gui_durum(otag_mesgul(&g_otag) ? "otağ çalışıyor" : "hazır");
 

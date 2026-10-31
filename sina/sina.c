@@ -1659,6 +1659,9 @@ int main(void) {
         ogren_getirici_ata(og_sahte);
 
         dene("ogren acik (sahte getirici)", ogren_acik());
+        /* ONAY: öğrenilen bilgi "doğru, ekle" / "yanlış" bekler */
+        { char oy[200];
+          dene("bekleyen yokken 'doğru' sohbete düşer", ogren_onay_konus("doğru", oy, sizeof oy) == 0); }
         /* soru kalıbı sözcükleri web aramasına girmez */
         ogren_getirici_ata(og_yakala);
         ogren_arastir("ortak", "daewoo musso hangi motoru kullanıyor");
@@ -1681,6 +1684,11 @@ int main(void) {
         int eklendi = ogren_gecis(5);
         dene("gecis parca ogrenir", eklendi >= 1);
         dene("bekleyen bosluk kapandi", ogren_bekleyen() == 0);
+        { char du[200], oy[200];
+          dene("öğrenilince duyuru yazılır (bir kez)", ogren_bekleyen_onay() > 0 && ogren_duyuru(du, sizeof du) == 1 &&
+                                                         um_icinde(du, "doğru, ekle") && ogren_duyuru(du, sizeof du) == 0);
+          dene("'doğru, ekle' bilgiyi onaylar", ogren_onay_konus("Doğru, ekle!", oy, sizeof oy) == 1 &&
+                                                  um_icinde(oy, "Eklendi") && ogren_bekleyen_onay() == 0); }
         int bn = bilgi_baglam_bul("zeolit nedir", bg, 2);
         dene("ogrenilen bilgi dayanak olur", bn >= 1 && um_icinde(bg[0].alinti, "mineral"));
         dene("kaynak turu DIS (dogrulanmamis)", bn >= 1 && bg[0].kaynak_tur == KT_DIS ? 1 :
