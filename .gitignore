@@ -30,3 +30,7 @@ ses/ornek/
 
 # kişisel (varlık listesi, gizli sözcükler, kişilik)
 kut/portfoy.txt
+
+# ses eğitim verisi (kişisel ses kaydı; açık depoya girmez)
+arac/ses_egit/veri/
+*.mp4
