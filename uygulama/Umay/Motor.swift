@@ -1,4 +1,6 @@
 import Foundation
+import AppKit
+import UserNotifications
 
 /// UMAY'ın C çekirdeğini saran sınıf. Çekirdek tek iplikli olduğundan bütün çağrılar tek sıradan geçer.
 final class UmayMotor: ObservableObject {
@@ -106,6 +108,37 @@ final class UmayMotor: ObservableObject {
                 self.modelDosyasi = model
                 self.durum = kod == 0 ? "" : "UMAY başlatılamadı."
                 self.gelenYokla()
+                if kod == 0 { self.animiBaslat() }
+            }
+        }
+    }
+
+    // MARK: anımsatıcı ve ilaç alarmı (çekirdek ANIM; kayıt yalnız bu aygıtta)
+
+    private var animZamanlayici: Timer?
+
+    /// 20 saniyede bir çekirdeğe "vakti gelen var mı" diye sorar; varsa sohbete yazar, bildirim gösterir, ses çalar.
+    func animiBaslat() {
+        guard animZamanlayici == nil else { return }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        animZamanlayici = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+            guard let self = self, self.basladi else { return }
+            self.sira.async {
+                var tampon = [CChar](repeating: 0, count: 2048)
+                let k = umay_gomulu_anim_yokla(&tampon, UInt32(tampon.count))
+                guard k > 0 else { return }
+                let satirlar = String(cString: tampon).split(separator: "\n").map(String.init)
+                DispatchQueue.main.async {
+                    for satir in satirlar {
+                        self.iletiler.append(Ileti(benMi: false, metin: satir))
+                        let icerik = UNMutableNotificationContent()
+                        icerik.title = "UMAY"
+                        icerik.body = satir
+                        icerik.sound = .default
+                        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: icerik, trigger: nil))
+                        NSSound(named: NSSound.Name("Glass"))?.play()
+                    }
+                }
             }
         }
     }

@@ -45,6 +45,11 @@ const char *umay_gomulu_motor(void);
  * Dönen: yazılan parça sayısı; rapor okunur özettir. Bloke eder: arka planda, sor ile ESZAMANLI değil. */
 int         umay_gomulu_kabul(char *rapor, uint32_t n);
 
+/* ANIMSATICI / ILAC ALARMI: uygulama ~20 sn'de bir cagirir, donen satirlari kendi bildirimiyle gosterir
+ * (satirlar '\n' ile ayrilir). Donen: vakti gelen satir sayisi; negatif = saat okunamiyor/hazir degil.
+ * Kayit yalniz cihazdaki <veri>/animsa.txt dosyasindadir. Onay ("icitim") sohbetten gelir: umay_gomulu_sor. */
+int         umay_gomulu_anim_yokla(char *cikti, uint32_t n);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

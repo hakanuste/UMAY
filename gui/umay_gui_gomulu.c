@@ -15,6 +15,7 @@
 #include "umay_us.h"
 #include "umay_kabul.h"
 #include "umay_ortak.h"
+#include "umay_anim.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -56,6 +57,7 @@ int umay_gomulu_baslat(const char *veri_dizini)
     if (g_hazir) return 0;
     if (veri_dizini && *veri_dizini) uh_ortam_ata("UMAY_KUT", veri_dizini);
     if (umay_kur() != 0) return -1;
+    ayar_yaz("anim_otomatik", "0");   /* uygulama kendi zamanlayıcısıyla umay_gomulu_anim_yokla çağırır */
     g_hazir = 1;
     return 0;
 }
@@ -117,4 +119,20 @@ int umay_gomulu_ogren(const char *konu)
     if (!g_hazir) return -1;
     if (konu && *konu) return ogren_arastir("ortak", konu);
     return ogren_gecis(5);
+}
+
+/* ---- anımsatıcı / ilaç alarmı ----
+ * Uygulama bunu ~20 saniyede bir çağırır; dönen her satırı kendi bildirim yoluyla gösterir
+ * (iOS UNUserNotification, Android NotificationManager, masaüstü bildirimi). Satırlar '\n' ile ayrılır.
+ * Dönen: vakti gelen satır sayısı (0 = yok), hata ise negatif. "İçtim" yanıtı sohbetten (umay_gomulu_sor) gelir. */
+int umay_gomulu_anim_yokla(char *cikti, uint32_t n)
+{
+    if (!g_hazir || !cikti || n == 0) return -1;
+    cikti[0] = 0;
+    int64_t simdi = anim_simdi();
+    if (simdi < 0) return -1;
+    static char satir[6][ANIM_SATIR];
+    int k = anim_yokla(simdi, satir, 6);
+    for (int i = 0; i < k; i++) { if (i) um_ekle(cikti, n, "\n"); um_ekle(cikti, n, satir[i]); }
+    return k;
 }

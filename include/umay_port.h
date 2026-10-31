@@ -14,6 +14,10 @@ typedef int32_t up_tut_t;
 #define UP_YAZ_TUTAMAK ((up_tut_t)0x7FFF0001)
 
 uint64_t up_ms(void);
+/* Yerel duvar saati: 1970-01-01 00:00'dan beri YEREL dakika. Saat okunamıyorsa -1 (ÖTÜKEN'de RTC yoksa). */
+int64_t  up_yerel_dakika(void);
+/* İşletim sisteminin kendi bildirimini gösterir (Linux notify-send, macOS osascript, Windows PowerShell). 0 = gösterildi. */
+int      up_bildir(const char *baslik, const char *metin);
 void     up_uyu(uint32_t ms);
 void     up_birak(void);
 void     up_gunluk(const char *satir);

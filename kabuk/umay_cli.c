@@ -16,6 +16,8 @@
 #include "umay.h"
 #include "umay_kabuk.h"
 #include "umay_str.h"
+#include "umay_anim.h"
+#include "umay_host.h"
 #include "umay_gui.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -37,6 +39,8 @@ static void kullanim(const char *ad)
     printf("  %s --arastir \"soru\" planlı, kaynaklı araştırma raporu\n", ad);
     printf("  %s --egit         bir eğitim turu (ölç, öğren, kapıdan geçir)\n", ad);
     printf("  %s --kabul         gelen/ içindeki belgeleri ajanlar inceleyip alanına koyar\n", ad);
+    printf("  %s --anim-bekle    anımsatıcı/ilaç alarmı bekçisi (arka planda bırakılır; bildirim gösterir)\n", ad);
+    printf("  %s --anim          anımsatıcıları listeler;  --anim-tamam: çalan ilacı \"içtim\" işaretler\n", ad);
     printf("  %s --5n1k          uzmanların 5N1K kapsam denetimi\n", ad);
     printf("  %s --karne        ajanların başarı karnesi\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
@@ -144,6 +148,28 @@ int main(int argc, char **argv)
             um_esit(argv[1], "--version") || um_esit(argv[1], "-V")) {
             printf("UMAY %s\n", UMAY_SURUM);
             return 0;
+        }
+        if (um_esit(argv[1], "--anim") || um_esit(argv[1], "--anim-tamam")) {
+            char l[2048];
+            if (um_esit(argv[1], "--anim-tamam")) { int k = anim_tamam(anim_simdi()); printf("%d ilaç işaretlendi.\n", k); return 0; }
+            anim_dizelge(l, sizeof l);
+            printf("Anımsatıcılar:\n%s", l);
+            return 0;
+        }
+        if (um_esit(argv[1], "--anim-bekle")) {
+            /* Model/kütüphane yüklemez: yalnız animsa.txt'yi izler. UMAY sohbeti açıkken İKİSİNİ BİRDEN
+             * çalıştırma (aynı bildirim iki kez çıkar); sohbet açık değilken bunu kullan. */
+            uh_konsol_hazirla();
+            printf("UMAY anımsatıcı bekçisi çalışıyor (kapatmak için Ctrl-C). Kayıt: sohbette \"yarın 15.00 diş randevusu anımsat\".\n");
+            fflush(stdout);
+            for (;;) {
+                int64_t simdi = anim_simdi();
+                if (simdi < 0) { fprintf(stderr, "UMAY: saat okunamadı.\n"); return 1; }
+                static char satir[6][ANIM_SATIR];
+                int k = anim_yokla(simdi, satir, 6);
+                for (int i = 0; i < k; i++) { printf("%s\n", satir[i]); fflush(stdout); up_bildir("UMAY", satir[i]); }
+                up_uyu(20000);
+            }
         }
         if (um_esit(argv[1], "--kabul")) {
             gui_sade_kip();

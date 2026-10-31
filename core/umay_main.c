@@ -19,6 +19,7 @@
 #include "umay_onay.h"
 #include "umay_gui.h"
 #include "umay_ses.h"
+#include "umay_anim.h"
 
 static otag_t        g_otag;
 static umay_kanal_t *g_kanal[4];
@@ -92,6 +93,7 @@ static void ileti_isle(const umay_ileti_t *i) {
     gui_satir_ekle("SEN", i->govde);
 
     if (onay_buyrugu(i->govde)) return;
+    { char ay[512]; if (anim_konus(i->govde, ay, sizeof ay)) { yanit_yaz(ay); return; } }
 
     coz_t c = ozan_coz(i->govde);
 
@@ -253,7 +255,23 @@ int umay_kur(void) {
     return UM_OLDU;
 }
 
+/* ANIM: vakti gelen anımsatıcıları 15 saniyede bir yoklar (konsol/ÖTÜKEN). Gömülü uygulamalar kendi
+ * zamanlayıcısıyla umay_gomulu_anim_yokla çağırır ve anim_otomatik=0 koyar. */
+static void anim_dongusu(void) {
+    static uint64_t son;
+    uint64_t ms = up_ms();
+    if (son && ms - son < 15000) return;
+    son = ms ? ms : 1;
+    if (ayar_sayi("anim_otomatik", 1) == 0) return;
+    int64_t simdi = anim_simdi();
+    if (simdi < 0) return;
+    static char satir[4][ANIM_SATIR];
+    int k = anim_yokla(simdi, satir, 4);
+    for (int i = 0; i < k; i++) { yanit_yaz(satir[i]); up_bildir("UMAY", satir[i]); }
+}
+
 void umay_tur(void) {
+    anim_dongusu();
     umay_ileti_t i;
     um_bellek_doldur(&i, 0, sizeof i);
 

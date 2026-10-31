@@ -14,6 +14,7 @@
 #include "umay_ulak.h"
 #include "umay_gizli.h"
 #include "umay_zaman.h"
+#include "umay_anim.h"
 #include "../us/us1.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -76,6 +77,8 @@ static char *kaynak_oku(const char *yol)
     return t;
 }
 
+static int64_t g_an_simdi;
+static int64_t an_saat(void) { return g_an_simdi; }
 static void dene(const char *ad, int kosul) {
     if (kosul) { g_gecti++; printf("  [GECTI] %s\n", ad); }
     else       { g_kaldi++; printf("  [KALDI] %s\n", ad); }
@@ -2116,6 +2119,80 @@ int main(void) {
         dene("saat 10.15 (nokta)", zaman_ayikla("yarın 10.15 toplantı", &z) == 1 && z.saat == 10 && z.dakika == 15);
         dene("zaman yoksa 0", zaman_ayikla("Yer altı kileri nasıl yapılır", &z) == 0 && z.var == 0);
         dene("öbür gün: ofset 2", zaman_ayikla("öbür gün hortum al", &z) == 1 && z.gun_ofset == 2);
+    }
+
+
+    /* --- 64. ANIM: anımsatıcı ve ilaç alarmı --- */
+    {
+        printf("\n[64] anımsatıcı / ilaç alarmı\n");
+        char yol[320], y[600];
+        uh_gecici("umay-anim-sina.txt", yol, sizeof yol);
+        up_sil(yol);
+        anim_yol_ata(yol);
+        anim_saat_ata(an_saat);
+        anim_sifirla_bellek();
+        g_an_simdi = anim_dakika(2026, 10, 31, 18, 41);
+        dene("takvim: 31 Ekim 2026 cumartesi (6)", anim_haftagunu(g_an_simdi) == 6);
+        { int yy, mm, dd, ss, nn; anim_ayir(anim_dakika(2027, 3, 1, 7, 5), &yy, &mm, &dd, &ss, &nn);
+          dene("takvim: gidiş-dönüş 2027-03-01 07:05", yy == 2027 && mm == 3 && dd == 1 && ss == 7 && nn == 5); }
+
+        dene("sıradan soru anımsatıcı sayılmaz", anim_konus("Zeytin budaması nasıl yapılır", y, sizeof y) == 0);
+        dene("öneri: sorar, yazmaz", anim_konus("Yarın saat 15:00 diş randevusu anımsat", y, sizeof y) == 1
+             && um_icinde(y, "Kaydedeyim mi") && um_icinde(y, "diş randevusu") && um_icinde(y, "1 Kasım Pazar 15.00") && anim_say() == 0);
+        dene("evet: kaydeder", anim_konus("evet", y, sizeof y) == 1 && anim_say() == 1);
+        anim_sifirla_bellek();
+        dene("kütükten geri okunur", anim_say() == 1);
+
+        char sat[6][ANIM_SATIR];
+        g_an_simdi = anim_dakika(2026, 11, 1, 14, 59);
+        dene("vakitten önce susar", anim_yokla(g_an_simdi, sat, 6) == 0);
+        g_an_simdi = anim_dakika(2026, 11, 1, 15, 0);
+        dene("vaktinde bildirir", anim_yokla(g_an_simdi, sat, 6) == 1 && um_icinde(sat[0], "Anımsatma: diş randevusu"));
+        dene("tek seferlik: sonra silinir", anim_say() == 0 && anim_yokla(g_an_simdi, sat, 6) == 0);
+
+        g_an_simdi = anim_dakika(2026, 10, 31, 18, 41);
+        dene("geçmiş saat reddedilir", anim_konus("bugün saat 10:00 toplantı anımsat", y, sizeof y) == 1 && um_icinde(y, "geçmiş") && anim_say() == 0);
+        dene("hayır: kurmaz", anim_konus("cuma 09:00 hortum anımsat", y, sizeof y) == 1 && anim_konus("hayır", y, sizeof y) == 1 && anim_say() == 0);
+        dene("saat yoksa 9.00 ve belirtir", anim_konus("pazartesi Kadosan'a gitmeyi hatırlat", y, sizeof y) == 1
+             && um_icinde(y, "9.00") && um_icinde(y, "Kadosan") && um_icinde(y, "2 Kasım Pazartesi"));
+        anim_konus("hayır", y, sizeof y);
+
+        /* ilaç */
+        dene("ilaç önerisi: iki saat", anim_konus("ilaç ekle tansiyon hapı her gün 08:00 ve 20:00", y, sizeof y) == 1
+             && um_icinde(y, "8.00") && um_icinde(y, "20.00") && um_icinde(y, "tansiyon hapı") && um_icinde(y, "içtim"));
+        dene("ilaç evet: iki kayıt", anim_konus("evet", y, sizeof y) == 1 && anim_say() == 2);
+        g_an_simdi = anim_dakika(2026, 10, 31, 20, 0);
+        dene("ilaç vaktinde çalar", anim_yokla(g_an_simdi, sat, 6) == 1 && um_icinde(sat[0], "İlaç vakti: tansiyon hapı"));
+        g_an_simdi += 3;
+        dene("5 dakikadan önce yinelemez", anim_yokla(g_an_simdi, sat, 6) == 0);
+        g_an_simdi += 2;
+        dene("5. dakikada yineler", anim_yokla(g_an_simdi, sat, 6) == 1 && um_icinde(sat[0], "2. çağrı"));
+        dene("içtim: işaretler", anim_konus("İçtim", y, sizeof y) == 1 && um_icinde(y, "işaretledim"));
+        g_an_simdi += 5;
+        dene("içtimden sonra susar", anim_yokla(g_an_simdi, sat, 6) == 0);
+        g_an_simdi = anim_dakika(2026, 11, 1, 8, 0);
+        dene("ertesi sabah dozu çalar", anim_yokla(g_an_simdi, sat, 6) == 1);
+        dene("içtim yazılmazsa ertele çalışır", anim_konus("10 dakika ertele", y, sizeof y) == 1);
+        g_an_simdi += 9;
+        dene("ertelenen susar", anim_yokla(g_an_simdi, sat, 6) == 0);
+        g_an_simdi += 1;
+        dene("ertelenen vaktinde çalar", anim_yokla(g_an_simdi, sat, 6) == 1);
+        /* hiç içilmezse: en çok 12 çağrı sonra bırakır */
+        int son_vazgec = 0;
+        for (int i = 0; i < 20; i++) { g_an_simdi += 5; int k = anim_yokla(g_an_simdi, sat, 6); if (k && um_icinde(sat[0], "alınmadı sayıldı")) son_vazgec = 1; }
+        dene("çağrı sınırı: sonunda bırakır", son_vazgec == 1);
+        g_an_simdi = anim_dakika(2026, 11, 2, 8, 0);
+        dene("ertesi gün sabah yine çalar", anim_yokla(g_an_simdi, sat, 6) >= 1);
+        dene("çalan yokken içtim boşa gider", (anim_tamam(g_an_simdi), anim_konus("içtim", y, sizeof y)) == 1);
+
+        /* dizelge + silme */
+        dene("dizelge görünür", anim_konus("anımsatıcılarım", y, sizeof y) == 1 && um_icinde(y, "tansiyon hapı") && um_icinde(y, "her gün"));
+        dene("sil: numarayla", anim_konus("anımsatıcı sil 1", y, sizeof y) == 1 && um_icinde(y, "sildim") && anim_say() == 1);
+        dene("bilinmeyen numara", anim_konus("anımsatıcı sil 99", y, sizeof y) == 1 && um_icinde(y, "bulamadım"));
+        anim_saat_ata(0);
+        anim_yol_ata(0);
+        up_sil(yol);
+        anim_sifirla_bellek();
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */

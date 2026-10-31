@@ -46,6 +46,74 @@ uint64_t up_ms(void) {
     if (!g_bas) g_bas = ms;
     return ms - g_bas;
 }
+int64_t up_yerel_dakika(void) {
+    time_t t = time(0);
+    struct tm *l = localtime(&t);
+    if (!l) return -1;
+    int y = l->tm_year + 1900, m = l->tm_mon + 1, d = l->tm_mday;
+    y -= m <= 2;
+    int64_t era = (y >= 0 ? y : y - 399) / 400;
+    int64_t yoe = y - era * 400;
+    int64_t doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    int64_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    int64_t gun = era * 146097 + doe - 719468;
+    return gun * 1440 + l->tm_hour * 60 + l->tm_min;
+}
+
+/* Bildirim metnini kabuğa güvenle verilecek biçime indirir: yalnız harf/rakam/boşluk/temel noktalama.
+ * Windows'ta Türkçe harfler ASCII'ye indirilir (cmd kod sayfası bozmasın). */
+static void bildir_temizle(const char *s, char *c, uint32_t n) {
+    uint32_t o = 0;
+    for (; *s && o + 2 < n; s++) {
+        unsigned char b = (unsigned char)*s;
+        if (b >= 0x80) {
+#ifdef _WIN32
+            if ((b == 0xC3 || b == 0xC4 || b == 0xC5) && s[1]) {
+                unsigned char k = (unsigned char)s[1]; s++;
+                char r = ' ';
+                if (b == 0xC3) r = (k == 0xA7 || k == 0x87) ? 'c' : (k == 0xB6 || k == 0x96) ? 'o' : (k == 0xBC || k == 0x9C) ? 'u' : ' ';
+                else if (b == 0xC4) r = (k == 0x9F || k == 0x9E) ? 'g' : (k == 0xB1 || k == 0xB0) ? 'i' : ' ';
+                else r = (k == 0x9F || k == 0x9E) ? 's' : ' ';
+                c[o++] = r;
+            } else c[o++] = ' ';
+#else
+            c[o++] = (char)b;     /* UTF-8 bayt dizisi aynen geçer */
+#endif
+            continue;
+        }
+        int ok = (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == ' ' ||
+                 b == '.' || b == ',' || b == ':' || b == '!' || b == '?' || b == '-' || b == '(' || b == ')' || b == '/';
+        c[o++] = ok ? (char)b : ' ';
+    }
+    c[o] = 0;
+}
+
+int up_bildir(const char *baslik, const char *metin) {
+    char b[96], m[400], komut[1400];
+    bildir_temizle(baslik ? baslik : "UMAY", b, sizeof b);
+    bildir_temizle(metin ? metin : "", m, sizeof m);
+#ifdef _WIN32
+    char ps[1000];
+    snprintf(ps, sizeof ps,
+        "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;"
+        "$n=New-Object System.Windows.Forms.NotifyIcon;$n.Icon=[System.Drawing.SystemIcons]::Information;$n.Visible=$true;"
+        "$n.ShowBalloonTip(15000,'%s','%s',[System.Windows.Forms.ToolTipIcon]::Info);Start-Sleep 16;$n.Dispose()", b, m);
+    snprintf(komut, sizeof komut, "start /B powershell -NoProfile -WindowStyle Hidden -Command \"%s\" %s", ps, uh_sessiz());
+#elif defined(__APPLE__)
+    char js[600], tj[640];
+    snprintf(js, sizeof js, "display notification \"%s\" with title \"%s\" sound name \"Glass\"", m, b);
+    uh_tirnak(js, tj, sizeof tj);
+    snprintf(komut, sizeof komut, "osascript -e %s %s", tj, uh_sessiz());
+#else
+    char yol[320];
+    if (!uh_yol_ara("notify-send", yol, sizeof yol)) { fprintf(stderr, "\a[%s] %s\n", b, m); return -1; }
+    char tb[130], tm[460];
+    uh_tirnak(b, tb, sizeof tb); uh_tirnak(m, tm, sizeof tm);
+    snprintf(komut, sizeof komut, "notify-send -u critical -a UMAY %s %s %s", tb, tm, uh_sessiz());
+#endif
+    return uh_komut(komut) == 0 ? 0 : -1;
+}
+
 void up_uyu(uint32_t ms)
 {
 #ifdef _WIN32
