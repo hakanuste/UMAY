@@ -61,8 +61,14 @@ final class UmayMotor: ObservableObject {
     // MARK: başlatma
 
     /// "İnternetten kendiliğinden öğren" ayarını ortama yazar (çekirdek her çağrıda okur).
+    private static var varsayilanKayitli = false
     static func agAyariniUygula() {
-        UserDefaults.standard.register(defaults: ["umay.ogren": true])   // varsayılan: kayıt yoksa internetten ara
+        // register(defaults:) bir bildirim yollar; bu işlev o bildirimi dinleyen gözlemciden de çağrıldığı için
+        // her seferinde yeniden kaydetmek sonsuz özyinelemeye (yığın taşması) yol açıyordu. Yalnız bir kez kaydet.
+        if !varsayilanKayitli {
+            varsayilanKayitli = true
+            UserDefaults.standard.register(defaults: ["umay.ogren": true])   // varsayılan: kayıt yoksa internetten ara
+        }
         if UserDefaults.standard.bool(forKey: "umay.ogren") { unsetenv("UMAY_OGREN") }
         else { setenv("UMAY_OGREN", "0", 1) }
     }
