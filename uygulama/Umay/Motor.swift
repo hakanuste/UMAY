@@ -52,6 +52,7 @@ final class UmayMotor: ObservableObject {
 
     /// "İnternetten kendiliğinden öğren" ayarını ortama yazar (çekirdek her çağrıda okur).
     static func agAyariniUygula() {
+        UserDefaults.standard.register(defaults: ["umay.ogren": true])   // varsayılan: kayıt yoksa internetten ara
         if UserDefaults.standard.bool(forKey: "umay.ogren") { unsetenv("UMAY_OGREN") }
         else { setenv("UMAY_OGREN", "0", 1) }
     }

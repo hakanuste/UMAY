@@ -114,6 +114,12 @@ static void atla(const char *ad, const char *neden) {
 static int g_og_cagri;
 static int g_og_ag_yok;
 static const char *g_og_enjekte;
+static char g_og_son_url[512];
+static int64_t og_yakala(const char *url, char *cik, uint32_t n) {
+    um_kopya(g_og_son_url, sizeof g_og_son_url, url);
+    if (n) cik[0] = 0;
+    return -1;
+}
 static int64_t og_sahte(const char *url, char *cik, uint32_t n) {
     g_og_cagri++;
     if (g_og_ag_yok) return -1;
@@ -1637,6 +1643,12 @@ int main(void) {
         ogren_getirici_ata(og_sahte);
 
         dene("ogren acik (sahte getirici)", ogren_acik());
+        /* soru kalıbı sözcükleri web aramasına girmez */
+        ogren_getirici_ata(og_yakala);
+        ogren_arastir("ortak", "daewoo musso hangi motoru kullanıyor");
+        dene("aramada 'hangi' ve 'kullan' yok", um_icinde(g_og_son_url, "hangi") == 0 && um_icinde(g_og_son_url, "kullan") == 0);
+        dene("aramada marka ve model var", um_icinde(g_og_son_url, "daewoo") != 0 && um_icinde(g_og_son_url, "musso") != 0);
+        ogren_getirici_ata(og_sahte);
         dene("bos konu reddedilir", ogren_arastir("yer-su", "") == UM_YANLIS);
         dene("bosluk ilk kez kaydedilir", ogren_bosluk_kaydet("yer-su", "zeolit nedir") == UM_OLDU);
         dene("ayni bosluk ikinci kez eklenmez", ogren_bosluk_kaydet("yer-su", "zeolit nedir") == UM_YOK);

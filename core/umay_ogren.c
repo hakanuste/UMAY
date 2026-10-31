@@ -94,13 +94,24 @@ int ogren_komut_sozcugu(const char *k) {
     return 0;
 }
 
+/* Soru kalıbı sözcükleri aramaya GİRMEZ ("daewoo musso hangi motoru kullanıyor" -> "daewoo musso motoru").
+ * Vikipedi tüm sözcükleri birden arar; "hangi", "kullanıyor" gibi kalıplar sonucu boş bırakırdı.
+ * Yalnız web araması için; kütüphane dizinindeki durak listesine (umay_bilgi.c) dokunmaz. */
+static int soru_kalibi(const char *k) {
+    static const char *KOK[] = { "hangi", "kullan", "nasıl", "nasil", "nerede", "neden", "niye", "niçin",
+                                 "kaç", "kim", "olan", "olur", "midir", "mıdır", "mudur", "müdür",
+                                 "acaba", "lütfen", "söyler", "bilir", 0 };
+    for (int i = 0; KOK[i]; i++) if (um_bas_mi(k, KOK[i])) return 1;
+    return 0;
+}
+
 /* soruyu anahtar sözcüklere indirger: "gunes paneli verimi" */
 static int anahtar_kur(const char *soru, char *cik, uint32_t n) {
     char ham[OG_ANAHTAR_MAX + 4][24];
     cik[0] = 0;
     int h = soru ? bilgi_kelime_ayikla(soru, ham, OG_ANAHTAR_MAX + 4) : 0, k = 0;
     for (int i = 0; i < h && k < OG_ANAHTAR_MAX; i++) {
-        if (ogren_komut_sozcugu(ham[i])) continue;
+        if (ogren_komut_sozcugu(ham[i]) || soru_kalibi(ham[i])) continue;
         if (k) um_ekle(cik, n, " ");
         um_ekle(cik, n, ham[i]);
         k++;
