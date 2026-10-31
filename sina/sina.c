@@ -726,7 +726,7 @@ int main(void) {
 
     printf("\n25) US — kaynaksız soru\n");
     g_cagri = 0;
-    us_motor_tak(&g_sahte);
+    us_motor_tak(us_stub_motor());          /* model yok: susma korunur */
     us_derle_t db;
     um_bellek_doldur(&db, 0, sizeof db);
     db.kisilik = ozan_kimlik();
@@ -739,6 +739,17 @@ int main(void) {
     dene("güven yok", cb.guven == GUVEN_YOK);
     dene("uydurmadığını söylüyor", um_icinde(cb.metin, "yeterli dayanak yok") != 0);
     dene("motor HİÇ çağrılmadı", g_cagri == 0);
+    {   char yz_[1024]; us_cikti_yaz(&cb, yz_, sizeof yz_);
+        dene("susma yanıtında 'Güven: yok' yazılmaz", um_icinde(yz_, "Güven:") == 0); }
+    /* gerçek model varsa: kayıt yokluğu susmak için neden değil, doğrudan yanıt gelir */
+    g_cagri = 0;
+    us_motor_tak(&g_sahte);
+    us_cikti_t cgb;
+    us_cevap_uret(&db, &cgb);
+    {   char yg_[1024]; us_cikti_yaz(&cgb, yg_, sizeof yg_);
+        dene("model varken doğrudan yanıtlar (motor çağrıldı)", g_cagri == 1 && cgb.genel_bilgi == 1);
+        dene("'yeterli dayanak yok' demez", um_icinde(yg_, "yeterli dayanak yok") == 0);
+        dene("'Güven:' satırı yazmaz", um_icinde(yg_, "Güven:") == 0); }
 
     printf("\n26) US — BENGİ bağlamı\n");
     bengi_kur("/tmp/umay_bengi_sina4.txt");
@@ -754,10 +765,10 @@ int main(void) {
     dg.niyet = NIYET_SORU;
     dg.bengi_baglam = bgb;
     dg.uzman_ad = "BİLGE"; dg.uzman_is = "bilgi";
-    us_cikti_t cg;
-    us_cevap_uret(&dg, &cg);
-    dene("BENGİ bağlamı tek başına yeter", cg.dayanaksiz == 0 && g_cagri == 1);
-        dene("motora bağlam gitti", um_icinde(cg.metin, "bağlam geldi") != 0);
+    us_cikti_t cdb;
+    us_cevap_uret(&dg, &cdb);
+    dene("BENGİ bağlamı tek başına yeter", cdb.dayanaksiz == 0 && g_cagri == 1);
+        dene("motora bağlam gitti", um_icinde(cdb.metin, "bağlam geldi") != 0);
     dene("doğrulanmış KARAR bağlamda", um_icinde(bgb, "Betonarme") != 0);
     dene("doğrulanmamış SONUC bağlamda değil", um_icinde(bgb, "dogrulanmamis") == 0);
 

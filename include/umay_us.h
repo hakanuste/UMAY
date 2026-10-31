@@ -89,6 +89,7 @@ typedef struct {
     us_guven_t   guven;
     us_nereden_t nereden;
     int          dayanaksiz;
+    int          genel_bilgi;    /* kayıt yoktu; gerçek model genel bilgisiyle doğrudan yanıtladı */
     int          catisma;
     char         catisma_notu[448];
     us_dayanak_t dayanak[US_DAYANAK_MAX];

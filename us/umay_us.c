@@ -236,7 +236,15 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     int oncul_var = i->oncul_baglam && i->oncul_baglam[0];
     o->oncul_kullanildi = oncul_var ? 1 : 0;
 
-    if (i->baglam_sayi <= 0 && !bengi_var) {
+    /* Gerçek bir dil modeli varsa kayıt yokluğu susmak için neden değildir: model genel bilgisiyle
+     * DOĞRUDAN yanıtlar (kaynak göstermez, güven satırı yazmaz; yalnız tek kısa not düşer). Model yoksa
+     * (yedek motor) uydurmamak için eskisi gibi susar. */
+    int genel = 0;
+    if (i->baglam_sayi <= 0 && !bengi_var && !oncul_var) {
+        umay_us_t *gm = umay_us_al();
+        if (gm && gm->uret && gm != us_stub_motor()) genel = 1;
+    }
+    if (i->baglam_sayi <= 0 && !bengi_var && !genel) {
         o->dayanaksiz = 1;
         o->guven = GUVEN_YOK;
         if (oncul_var)
@@ -256,6 +264,13 @@ int us_cevap_uret(const us_derle_t *i, us_cikti_t *o) {
     if (bengi_var) {
         um_ekle(baglam_metni, sizeof baglam_metni, i->bengi_baglam);
         um_ekle(baglam_metni, sizeof baglam_metni, "\n");
+    }
+    if (genel) {
+        o->genel_bilgi = 1;
+        o->guven = GUVEN_ZAYIF;
+        um_ekle(baglam_metni, sizeof baglam_metni,
+                "[Kütüphanede kayıt yok. Soruyu genel bilginle kısa ve DOĞRUDAN yanıtla; \"kayıt yok\" "
+                "ya da \"güven\" diye söz etme. Gerçekten bilmiyorsan yalnız \"bunu bilmiyorum\" de.]\n");
     }
     for (int b = 0; b < i->baglam_sayi; b++) {
         um_ekle(baglam_metni, sizeof baglam_metni, i->baglam[b].alinti);
@@ -386,6 +401,11 @@ uint32_t us_cikti_yaz(const us_cikti_t *o, char *c, uint32_t n) {
         um_ekle(c, n, s);
     }
 
+    if (o->genel_bilgi) {
+        um_ekle(c, n, "(Kütüphanemde kayıt yok; genel bilgiyle yanıtladım.)\n");
+        return um_uzun(c);
+    }
+    if (o->dayanaksiz && o->dayanak_sayi == 0) return um_uzun(c);   /* susma yanıtında "Güven: yok" yazılmaz */
     char g[96];
     um_bicim(g, sizeof g, "Güven: %s\n", us_guven_adi(o->guven));
     um_ekle(c, n, g);
