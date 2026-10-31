@@ -5,7 +5,7 @@
   uygulama/Umay/Umay.icns         macOS Dock/Finder simgesi (PNG parçalı .icns)
   uygulama/Umay/umay-amblem.png   uygulama içinde gösterilen amblem (512 px, saydam)
   uygulama/Umay/simge-1024.png    iOS/Android uygulama simgesi kaynağı
-Amblem sahibinin kendi özgün çizimidir; yalnız kırpılır, ölçeklenir ve koyu lacivert yuvarlak zemine oturtulur.
+Amblem sahibinin kendi özgün çizimidir; yalnız kırpılır, ölçeklenir ve turkuaz mavi yuvarlak zemine oturtulur.
 Kullanım: python3 arac/ikon_uret.py   (Pillow gerekir)"""
 import io, struct, os
 from PIL import Image, ImageDraw, ImageFilter
@@ -22,9 +22,9 @@ def simge(boy=1024):
     tuval = Image.new("RGBA", (boy, boy), (0, 0, 0, 0))
     g = int(boy * 824 / 1024)            # macOS şablonu: 824 px gövde, çevresi gölgeye boş
     x0 = (boy - g) // 2
-    # gövde: lacivert dikey geçiş
+    # gövde: turkuaz mavi dikey geçiş
     zemin = Image.new("RGBA", (g, g))
-    ust, alt = (22, 42, 94), (8, 16, 40)
+    ust, alt = (47, 196, 200), (6, 112, 138)      # turkuaz mavi (üstte açık, altta derin)
     px = zemin.load()
     for y in range(g):
         t = y / (g - 1)
