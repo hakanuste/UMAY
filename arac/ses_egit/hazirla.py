@@ -11,7 +11,19 @@ Gizlilik: ses kaydın KENDİ sesindir. Bu kütükleri açık depoya (GitHub) KOY
 Kullanım: pip install faster-whisper ; python3 hazirla.py Hakan_ses.mp4 veri"""
 import os, subprocess, sys, wave, re
 
+def cuda_kutuphanelerini_yukle():
+    """Colab'da CUDA 13 varsa ctranslate2'nin istediği libcublas.so.12 bulunamaz: pip'in nvidia-*-cu12
+    paketlerinden önceden yükleriz (pip install nvidia-cublas-cu12 nvidia-cudnn-cu12)."""
+    import ctypes, glob, site
+    kokler = site.getsitepackages() + [site.getusersitepackages()]
+    for ad in ("cublas/lib/libcublas.so.12", "cublas/lib/libcublasLt.so.12", "cudnn/lib/libcudnn.so.9"):
+        for k in kokler:
+            for yol in glob.glob(os.path.join(k, "nvidia", ad)):
+                try: ctypes.CDLL(yol, mode=ctypes.RTLD_GLOBAL)
+                except OSError: pass
+
 def main(girdi, cikti):
+    cuda_kutuphanelerini_yukle()
     os.makedirs(os.path.join(cikti, "wavs"), exist_ok=True)
     ham = os.path.join(cikti, "ham_22k.wav")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", girdi, "-vn", "-ac", "1", "-ar", "22050", ham], check=True)
