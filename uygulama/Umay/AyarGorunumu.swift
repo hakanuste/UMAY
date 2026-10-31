@@ -99,6 +99,11 @@ struct AyarGorunumu: View {
                 Toggle("Alarm ve anımsatmaları sesli oku (uyarı sesi + Dede Korkut)", isOn: $alarmSesli)
                 Toggle("Dede Korkut tınısı (deneysel: kalın, yavaş, yankılı)", isOn: $tinli)
                 Toggle("Kaynak ve güven satırlarını göster", isOn: $kunye)
+                #if os(macOS)
+                Text(Okuyucu.piperBul().map { "Ses: Piper — " + URL(fileURLWithPath: $0.1).lastPathComponent }
+                     ?? "Ses: macOS sistem sesi (Piper kurulu değil)")
+                    .font(.caption).foregroundColor(.secondary)
+                #endif
                 Toggle("Kayıt yoksa internetten ara ve öğren (yalnız soru anahtar sözcükleri çıkar)", isOn: $internettenOgren)
             }
             Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")

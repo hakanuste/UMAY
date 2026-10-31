@@ -53,7 +53,7 @@ final class UmayMotor: ObservableObject {
     static func sade(_ yanit: String) -> String {
         if UserDefaults.standard.bool(forKey: "umay.kunye") { return yanit }
         let satirlar = yanit.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        let kalan = satirlar.filter { !($0.hasPrefix("(Dayanağım") || $0.hasPrefix("Güven:") || ($0.hasSuffix("söyler:") && $0.contains("("))) }
+        let kalan = satirlar.filter { !Okuyucu.kunyeSatiri($0) }
         let metin = kalan.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         return metin.isEmpty ? yanit : metin
     }

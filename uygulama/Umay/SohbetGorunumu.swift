@@ -16,11 +16,24 @@ final class Okuyucu {
     private var calar: AVAudioPlayer?
     private var nesil = 0   // eski konuşmanın geç biten işini yok saymak için
 
+    /// Künye/üst bilgi satırı mı? ("X söyler:", "(Dayanağım…)", "Güven:", kaynak notları…) Hem ekranda hem okumada elenir.
+    static func kunyeSatiri(_ s0: String) -> Bool {
+        let s = s0.trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("(Dayanağım") || s.hasPrefix("Güven:") || s.hasPrefix("Dikkat:") || s.hasPrefix("[") { return true }
+        if s.hasSuffix("söyler:") { return true }
+        if s.hasPrefix("(") && s.hasSuffix(")") { return true }                     // "(Kütüphanemde kayıt yok…)" gibi notlar
+        for ön in ["Kendi alanımda kayıt", "Bu soru benim alanıma", "Katılan uzmanlar", "Otağın ortak güveni", "Uzmanlar arasında"] {
+            if s.hasPrefix(ön) { return true }
+        }
+        return false
+    }
+
     static func ozunuAyir(_ metin: String) -> String {
         let satirlar = metin.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-        let ozu = satirlar.filter { !($0.hasPrefix("(Dayanağım") || $0.hasPrefix("Güven:")
-                                      || $0.hasPrefix("Dikkat:") || $0.hasPrefix("[")) }
-        return ozu.joined(separator: " ")
+        var ozu = satirlar.filter { !kunyeSatiri($0) }.joined(separator: " ")
+        // başında/sonunda tek tırnak çifti varsa okunmasın
+        ozu = ozu.trimmingCharacters(in: CharacterSet(charactersIn: "\"“” "))
+        return ozu.isEmpty ? metin : ozu
     }
 
     private func soyleyici(_ metin: String) -> AVSpeechUtterance {
