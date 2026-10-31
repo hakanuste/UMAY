@@ -71,6 +71,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.kunye") private var kunye = false
     @AppStorage("umay.piperModel") private var piperModel = ""
     @AppStorage("umay.piperHiz") private var piperHiz = 0.0
+    @AppStorage("umay.piperGurultu") private var piperGurultu = 0.6
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -119,6 +120,8 @@ struct AyarGorunumu: View {
                         Button("Otomatik") { piperHiz = 0 }.font(.caption)
                     }
                     Slider(value: Binding(get: { gosterilen }, set: { piperHiz = $0 }), in: 1.0...2.0, step: 0.05)
+                    Text("Cızırtı payı: \(String(format: "%.2f", piperGurultu)) (düşük = daha temiz ama düz)").font(.caption)
+                    Slider(value: $piperGurultu, in: 0.1...0.9, step: 0.05)
                 }
                 Text(Okuyucu.piperBul().map { "Ses: Piper — " + URL(fileURLWithPath: $0.1).lastPathComponent }
                      ?? "Ses: macOS sistem sesi (Piper kurulu değil)")

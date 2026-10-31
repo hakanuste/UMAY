@@ -120,9 +120,13 @@ final class Okuyucu {
         // Konuşma hızı: Ayarlar'daki kaydırıcı (0 = otomatik). Kendi sesimiz hızlı konuştuğu için "hakan" modeli daha yavaş başlar.
         let ozel = UserDefaults.standard.double(forKey: "umay.piperHiz")
         let yavaslik = ozel > 0 ? ozel : (model.contains("hakan") ? 1.35 : 1.1)
-        let genis = ["--model", model, "--output_file", dosya.path, "--length_scale", String(format: "%.2f", yavaslik), "--noise_scale", "0.8", "--noise_w", "0.9"]
+        let ls = String(format: "%.2f", yavaslik)
+        let ns = String(format: "%.2f", UserDefaults.standard.object(forKey: "umay.piperGurultu") as? Double ?? 0.6)
+        // Piper sürümleri bayrak adlarında ayrışır: yenisi "--noise-w-scale", eskisi "--noise_w". Sırayla denenir.
+        let yeni = ["--model", model, "--output_file", dosya.path, "--length-scale", ls, "--noise-scale", ns, "--noise-w-scale", "0.7"]
+        let eski = ["--model", model, "--output_file", dosya.path, "--length_scale", ls, "--noise_scale", ns, "--noise_w", "0.7"]
         let yalin = ["--model", model, "--output_file", dosya.path]
-        for arg in [genis, yalin] {
+        for arg in [yeni, eski, yalin] {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: ikili)
             p.arguments = arg
