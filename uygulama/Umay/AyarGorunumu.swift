@@ -93,10 +93,12 @@ struct AyarGorunumu: View {
             }
             digerModeller
             if !indirici.hata.isEmpty { Text(indirici.hata).foregroundColor(.red).font(.caption) }
-            Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
-            Toggle("Alarm ve anımsatmaları sesli oku (uyarı sesi + Dede Korkut)", isOn: $alarmSesli)
-            Toggle("Dede Korkut tınısı (deneysel: kalın, yavaş, yankılı)", isOn: $tinli)
-            Toggle("İnternetten kendiliğinden öğren", isOn: $internettenOgren)
+            VStack(alignment: .leading, spacing: 14) {   // ViewBuilder 10 çocuk sınırı için ayrı küme
+                Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
+                Toggle("Alarm ve anımsatmaları sesli oku (uyarı sesi + Dede Korkut)", isOn: $alarmSesli)
+                Toggle("Dede Korkut tınısı (deneysel: kalın, yavaş, yankılı)", isOn: $tinli)
+                Toggle("İnternetten kendiliğinden öğren", isOn: $internettenOgren)
+            }
             Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")
                 .font(.caption).foregroundColor(.secondary)
             Spacer()
