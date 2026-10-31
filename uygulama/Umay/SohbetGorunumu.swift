@@ -2,37 +2,16 @@ import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
 
-/// Okuyucu: yanıtı sistemin Türkçe sesiyle okur (Piper gerekmez), sonra Dede Korkut tınısına çevirir:
-/// perde ~3,4 yarım ton aşağı, %15 yavaş, çello gibi sıcak orta bas, çok hafif yankı.
+/// Okuyucu: yanıtı sistemin Türkçe sesiyle okur (Piper gerekmez).
+/// "Dede Korkut tınısı" açıkken (yalnız macOS): konuşma `say` ile dosyaya yazılır, sonra BİZİM KENDİ kodumuzla
+/// işlenir (yeniden örnekleme: perde aşağı ve %17 yavaş; süzgeçler: çello gibi sıcak orta bas; çok hafif yankı)
+/// ve düz oynatıcıyla çalınır. Apple'ın ses birimleri (AVAudioUnit…) kullanılmaz: bu Mac'te onlar çöküyordu.
 /// Okunan: yanıtın özü. "(Dayanağım…)", "Güven:" gibi künye satırları okunmaz, yazıda kalır.
 final class Okuyucu {
     static let ortak = Okuyucu()
     private let ses = AVSpeechSynthesizer()
-    private lazy var motor = AVAudioEngine()
-    private lazy var oynatici = AVAudioPlayerNode()
-    private lazy var perde = AVAudioUnitTimePitch()
-    private lazy var esitleyici = AVAudioUnitEQ(numberOfBands: 4)
-    private lazy var yanki = AVAudioUnitReverb()
-    private var bagliBicim: AVAudioFormat?
-    private var konusuyor = false
-    private var nesil = 0   // eski konuşmanın geç gelen tamponlarını yok saymak için
-
-    private var hazir = false
-    /// Ses zinciri yalnız "Dede Korkut tınısı" açıkken ve ilk kullanımda kurulur (kapalıyken sese hiç dokunulmaz).
-    private func hazirla() {
-        if hazir { return }
-        hazir = true
-        perde.pitch = -343        // sent: yaklaşık -3,4 yarım ton
-        perde.rate = 0.85         // %15 yavaş
-        let b = esitleyici.bands
-        b[0].filterType = .highPass;  b[0].frequency = 70;   b[0].bypass = false
-        b[1].filterType = .parametric; b[1].frequency = 220;  b[1].bandwidth = 1.2; b[1].gain = 6; b[1].bypass = false
-        b[2].filterType = .parametric; b[2].frequency = 450;  b[2].bandwidth = 1.5; b[2].gain = 3; b[2].bypass = false
-        b[3].filterType = .highShelf;  b[3].frequency = 7000; b[3].gain = -4;       b[3].bypass = false
-        yanki.loadFactoryPreset(.smallRoom)
-        yanki.wetDryMix = 7       // çok az yankı
-        [oynatici, perde, esitleyici, yanki].forEach { motor.attach($0) }
-    }
+    private var calar: AVAudioPlayer?
+    private var nesil = 0   // eski konuşmanın geç biten işini yok saymak için
 
     static func ozunuAyir(_ metin: String) -> String {
         let satirlar = metin.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
@@ -53,55 +32,35 @@ final class Okuyucu {
         return s
     }
 
-    private func zincirKur(_ bicim: AVAudioFormat) {
-        if let b = bagliBicim, b == bicim { return }
-        if motor.isRunning { motor.stop() }
-        motor.disconnectNodeOutput(oynatici); motor.disconnectNodeOutput(perde)
-        motor.disconnectNodeOutput(esitleyici); motor.disconnectNodeOutput(yanki)
-        motor.connect(oynatici, to: perde, format: bicim)
-        motor.connect(perde, to: esitleyici, format: bicim)
-        motor.connect(esitleyici, to: yanki, format: bicim)
-        motor.connect(yanki, to: motor.mainMixerNode, format: bicim)
-        bagliBicim = bicim
-    }
+    private var konusuyor: Bool { ses.isSpeaking || (calar?.isPlaying ?? false) }
 
     private func sustur() {
         nesil += 1
         ses.stopSpeaking(at: .immediate)
-        if hazir { oynatici.stop() }
-        konusuyor = false
+        calar?.stop(); calar = nil
     }
 
-    private var efektBozuk = false   // zincir kurulamazsa düz sesle okunur; uygulama çökmez
-
-    /// macOS: konuşmayı `say` ile DOSYAYA üretir, dosyayı zincirden geçirip çalar.
-    /// (AVSpeechSynthesizer.write macOS 12'de CoreAudio'da çöküyordu; dosya yolu kararlı.)
     private func konus(_ metin: String) {
         sustur()
         let benim = nesil
         let soz = soyleyici(metin)
         #if os(macOS)
-        if efektBozuk || !UserDefaults.standard.bool(forKey: "umay.tinli") { ses.speak(soz); return }
-        hazirla()
+        if !UserDefaults.standard.bool(forKey: "umay.tinli") { ses.speak(soz); return }
         let sesAdi = soz.voice?.name ?? ""
-        let dosya = FileManager.default.temporaryDirectory.appendingPathComponent("umay-ses-\(benim).aiff")
+        let gecici = FileManager.default.temporaryDirectory
+        let ham = gecici.appendingPathComponent("umay-ham-\(benim).aiff")
+        let son = gecici.appendingPathComponent("umay-tin-\(benim).wav")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let ok = Okuyucu.sayUret(metin, ses: sesAdi, dosya: dosya)
+            let ok = Okuyucu.sayUret(metin, ses: sesAdi, dosya: ham) && Okuyucu.tinla(ham, son)
+            try? FileManager.default.removeItem(at: ham)
             DispatchQueue.main.async {
-                guard let self = self, self.nesil == benim else { try? FileManager.default.removeItem(at: dosya); return }
-                guard ok, let f = try? AVAudioFile(forReading: dosya) else {
-                    self.ses.speak(soz); try? FileManager.default.removeItem(at: dosya); return
+                guard let self = self, self.nesil == benim else { try? FileManager.default.removeItem(at: son); return }
+                if ok, let o = try? AVAudioPlayer(contentsOf: son) {
+                    self.calar = o
+                    o.prepareToPlay(); o.play()
+                } else {
+                    self.ses.speak(soz)   // olmazsa düz sesle oku, çökme
                 }
-                self.zincirKur(f.processingFormat)
-                if !self.motor.isRunning {
-                    do { try self.motor.start() }
-                    catch { self.efektBozuk = true; self.ses.speak(soz); return }
-                }
-                self.konusuyor = true
-                self.oynatici.scheduleFile(f, at: nil) {
-                    DispatchQueue.main.async { if self.nesil == benim { self.konusuyor = false }; try? FileManager.default.removeItem(at: dosya) }
-                }
-                self.oynatici.play()
             }
         }
         #else
@@ -126,6 +85,78 @@ final class Okuyucu {
         try? giris.fileHandleForWriting.close()
         p.waitUntilExit()
         return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dosya.path)
+    }
+
+    // ---- kendi ses işleme kodumuz (Apple ses birimleri yok) ----
+    private struct Suzgec {
+        var b0: Double, b1: Double, b2: Double, a1: Double, a2: Double
+        init(_ b0: Double, _ b1: Double, _ b2: Double, _ a0: Double, _ a1: Double, _ a2: Double) {
+            self.b0 = b0 / a0; self.b1 = b1 / a0; self.b2 = b2 / a0; self.a1 = a1 / a0; self.a2 = a2 / a0
+        }
+        static func ustGecir(_ f: Double, _ fs: Double, q: Double = 0.707) -> Suzgec {   // high-pass
+            let w = 2 * Double.pi * f / fs, c = cos(w), al = sin(w) / (2 * q)
+            return Suzgec((1 + c) / 2, -(1 + c), (1 + c) / 2, 1 + al, -2 * c, 1 - al)
+        }
+        static func tepe(_ f: Double, _ fs: Double, db: Double, q: Double) -> Suzgec {  // peaking
+            let w = 2 * Double.pi * f / fs, c = cos(w), al = sin(w) / (2 * q), A = pow(10, db / 40)
+            return Suzgec(1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A)
+        }
+        static func ustRaf(_ f: Double, _ fs: Double, db: Double) -> Suzgec {           // high-shelf
+            let w = 2 * Double.pi * f / fs, c = cos(w), A = pow(10, db / 40)
+            let al = sin(w) / 2 * 2.0.squareRoot(), be = 2 * A.squareRoot() * al
+            return Suzgec(A * ((A + 1) + (A - 1) * c + be), -2 * A * ((A - 1) + (A + 1) * c), A * ((A + 1) + (A - 1) * c - be),
+                          (A + 1) - (A - 1) * c + be, 2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - be)
+        }
+        func uygula(_ x: inout [Float]) {
+            var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0
+            for i in 0..<x.count {
+                let g = Double(x[i])
+                let y = b0 * g + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+                x2 = x1; x1 = g; y2 = y1; y1 = y
+                x[i] = Float(y)
+            }
+        }
+    }
+
+    /// Dede Korkut tınısı: yeniden örnekle (0,83: ~3 yarım ton aşağı, %17 yavaş), çello süzgeçleri, hafif yankı.
+    static func tinla(_ girdi: URL, _ cikti: URL) -> Bool {
+        guard let f = try? AVAudioFile(forReading: girdi), f.length > 0,
+              let tampon = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: AVAudioFrameCount(f.length)),
+              (try? f.read(into: tampon)) != nil, let kanal = tampon.floatChannelData else { return false }
+        let n = Int(tampon.frameLength)
+        let fs = f.processingFormat.sampleRate
+        let giris = Array(UnsafeBufferPointer(start: kanal[0], count: n))
+        // 1) yeniden örnekleme (doğrusal aradeğerleme)
+        let oran = 0.83
+        let m = Int(Double(n) / oran)
+        var x = [Float](repeating: 0, count: m)
+        for i in 0..<m {
+            let k = Double(i) * oran, j = Int(k), t = Float(k - Double(j))
+            let a = giris[min(j, n - 1)], b = giris[min(j + 1, n - 1)]
+            x[i] = a + (b - a) * t
+        }
+        // 2) çello gibi sıcak orta bas
+        Suzgec.ustGecir(70, fs).uygula(&x)
+        Suzgec.tepe(220, fs, db: 6, q: 1.2).uygula(&x)
+        Suzgec.tepe(450, fs, db: 3, q: 1.0).uygula(&x)
+        Suzgec.tepe(2800, fs, db: 3, q: 1.0).uygula(&x)
+        Suzgec.ustRaf(7000, fs, db: -4).uygula(&x)
+        // 3) çok hafif yankı (55 ms)
+        let gec = Int(0.055 * fs)
+        var y = x
+        if gec < m { for i in gec..<m { y[i] = 0.9 * x[i] + 0.07 * x[i - gec] } }
+        // 4) sesi doruğa göre ayarla
+        let doruk = y.map { abs($0) }.max() ?? 1
+        let kazanc: Float = doruk > 0 ? 0.85 / doruk : 1
+        for i in 0..<m { y[i] *= kazanc }
+        // 5) yaz
+        guard let bicim = AVAudioFormat(standardFormatWithSampleRate: fs, channels: 1),
+              let cikis = AVAudioPCMBuffer(pcmFormat: bicim, frameCapacity: AVAudioFrameCount(m)),
+              let hedef = cikis.floatChannelData else { return false }
+        for i in 0..<m { hedef[0][i] = y[i] }
+        cikis.frameLength = AVAudioFrameCount(m)
+        guard let dosya = try? AVAudioFile(forWriting: cikti, settings: bicim.settings) else { return false }
+        return (try? dosya.write(from: cikis)) != nil
     }
     #endif
 
