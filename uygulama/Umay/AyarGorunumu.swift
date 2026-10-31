@@ -72,6 +72,10 @@ struct AyarGorunumu: View {
     @AppStorage("umay.piperModel") private var piperModel = ""
     @AppStorage("umay.piperHiz") private var piperHiz = 0.0
     @AppStorage("umay.piperGurultu") private var piperGurultu = 0.6
+    @AppStorage("umay.bulutSes") private var bulutSes = false
+    @AppStorage("umay.bulutSesNo") private var bulutSesNo = ""
+    @State private var bulutAnahtar = ""
+    @State private var bulutKayitli = BulutSes.anahtar() != nil
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -122,6 +126,21 @@ struct AyarGorunumu: View {
                     Slider(value: Binding(get: { gosterilen }, set: { piperHiz = $0 }), in: 1.0...2.0, step: 0.05)
                     Text("Cızırtı payı: \(String(format: "%.2f", piperGurultu)) (düşük = daha temiz ama düz)").font(.caption)
                     Slider(value: $piperGurultu, in: 0.1...0.9, step: 0.05)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Bulut sesi (ElevenLabs, derin Türkçe erkek sesi)", isOn: $bulutSes)
+                    Text("Açıkken yalnızca okunacak yanıt metni ElevenLabs'e gider (kasa ve dosyalar asla). Ücretli bir hesap ve internet gerekir; olmazsa yerel ses konuşur.")
+                        .font(.caption2).foregroundColor(.secondary)
+                    if bulutSes {
+                        HStack {
+                            SecureField(bulutKayitli ? "Anahtar kayıtlı (değiştirmek için yenisini yaz)" : "ElevenLabs API anahtarı", text: $bulutAnahtar)
+                                .textFieldStyle(.roundedBorder)
+                            Button("Kaydet") {
+                                BulutSes.anahtarKaydet(bulutAnahtar); bulutAnahtar = ""; bulutKayitli = BulutSes.anahtar() != nil
+                            }.disabled(bulutAnahtar.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                        TextField("Ses numarası (boşsa: \(BulutSes.varsayilanSes))", text: $bulutSesNo).textFieldStyle(.roundedBorder)
+                    }
                 }
                 Text(Okuyucu.piperBul().map { "Ses: Piper — " + URL(fileURLWithPath: $0.1).lastPathComponent }
                      ?? "Ses: macOS sistem sesi (Piper kurulu değil)")

@@ -57,6 +57,30 @@ final class Okuyucu {
     }
 
     private func konus(_ metin: String) {
+        #if os(macOS)
+        // İsteğe bağlı bulut sesi (varsayılan kapalı). Olmazsa yerel sese dönülür.
+        if BulutSes.acik {
+            sustur()
+            let benim = nesil
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let dosya = BulutSes.uret(metin)
+                DispatchQueue.main.async {
+                    guard let self = self, self.nesil == benim else { return }
+                    if let d = dosya, let o = try? AVAudioPlayer(contentsOf: d) {
+                        self.calar = o
+                        o.prepareToPlay(); o.play()
+                    } else {
+                        self.konusYerel(metin)
+                    }
+                }
+            }
+            return
+        }
+        #endif
+        konusYerel(metin)
+    }
+
+    private func konusYerel(_ metin: String) {
         sustur()
         let benim = nesil
         let soz = soyleyici(metin)
