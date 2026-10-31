@@ -27,7 +27,7 @@ mkdir -p kov/motorlu
 OBJ=""
 for d in $KAYNAK; do
   o="kov/motorlu/$(echo "$d" | tr / _).o"
-  cc -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -DUMAY_SES_ACIK=1 -c "$d" -o "$o"
+  cc -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher -DUMAY_SES_ACIK=1 -c "$d" -o "$o"
   OBJ="$OBJ $o"
 done
 LIBS=$(find kov/motor -name '*.a' | sort | tr '\n' ' ')

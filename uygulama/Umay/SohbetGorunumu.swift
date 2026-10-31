@@ -184,6 +184,7 @@ struct SohbetGorunumu: View {
     @State private var girdi = ""
     @State private var ayarAcik = false
     @State private var belgelerAcik = false
+    @State private var kasaAcik = false
     @State private var belgeSec = false
     @State private var birakiyor = false
     @AppStorage("umay.belgeAlani") private var belgeAlani = "otomatik"
@@ -266,6 +267,7 @@ struct SohbetGorunumu: View {
         .onChange(of: evre) { yeni in if yeni == .active { motor.gelenYokla() } }
         .sheet(isPresented: $ayarAcik) { AyarGorunumu(motor: motor) }
         .sheet(isPresented: $belgelerAcik) { BelgeGorunumu(motor: motor) }
+        .sheet(isPresented: $kasaAcik) { KasaGorunumu() }
         .fileImporter(isPresented: $belgeSec,
                       allowedContentTypes: [.plainText, .pdf, UTType(filenameExtension: "md") ?? .plainText],
                       allowsMultipleSelection: true) { sonuc in
@@ -293,6 +295,8 @@ struct SohbetGorunumu: View {
                 .disabled(motor.iletiler.isEmpty)
             Button { motor.temizle() } label: { Image(systemName: "trash") }
                 .disabled(motor.iletiler.isEmpty || motor.mesgul)
+            Button { kasaAcik = true } label: { Image(systemName: "lock.shield") }
+                .help("Kasa: parolalar, sağlık ve arazi kütükleri (şifreli)")
             Button { belgelerAcik = true } label: { Image(systemName: "books.vertical") }
                 .help("Belgelerim: alanını değiştir ya da kaldır")
             Button { ayarAcik = true } label: { Image(systemName: "gearshape") }

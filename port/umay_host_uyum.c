@@ -410,3 +410,48 @@ void uh_tcp_kapat(intptr_t h)
     close((int)h);
 #endif
 }
+
+/* ===================================================================
+ * parola girişi (yankısız). Terminal varsa HER ZAMAN terminalden okunur (CONIN$ / /dev/tty): böylece
+ * girdi bir dosyadan/borudan yönlendirilmiş olsa bile (örn. `umay --kasa-not ad < not.txt`) parola
+ * o dosyadan okunmaz. Terminal yoksa stdin'e düşer.
+ * =================================================================== */
+#ifdef _WIN32
+int uh_parola_oku(const char *istek, char *cik, uint32_t n)
+{
+    if (!cik || n < 2) return -1;
+    FILE *f = fopen("CONIN$", "r");
+    int kendi = f != 0;
+    if (!f) f = stdin;
+    HANDLE g = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD kip = 0; int konsol = kendi && GetConsoleMode(g, &kip);
+    if (istek) { fputs(istek, stderr); fflush(stderr); }
+    if (konsol) SetConsoleMode(g, kip & ~(DWORD)ENABLE_ECHO_INPUT);
+    uint32_t o = 0; int c;
+    while ((c = fgetc(f)) != EOF && c != '\n') { if (c != '\r' && o + 1 < n) cik[o++] = (char)c; }
+    cik[o] = 0;
+    if (konsol) { SetConsoleMode(g, kip); fputs("\n", stderr); }
+    if (kendi) fclose(f);
+    return (o > 0 || c == '\n') ? 0 : -1;
+}
+#else
+#include <termios.h>
+int uh_parola_oku(const char *istek, char *cik, uint32_t n)
+{
+    if (!cik || n < 2) return -1;
+    FILE *f = fopen("/dev/tty", "r");
+    int kendi = f != 0;
+    if (!f) f = stdin;
+    int fd = fileno(f);
+    struct termios eski, yeni;
+    int tty = isatty(fd) && tcgetattr(fd, &eski) == 0;
+    if (istek) { fputs(istek, stderr); fflush(stderr); }
+    if (tty) { yeni = eski; yeni.c_lflag &= (tcflag_t)~ECHO; tcsetattr(fd, TCSAFLUSH, &yeni); }
+    uint32_t o = 0; int c;
+    while ((c = fgetc(f)) != EOF && c != '\n') { if (o + 1 < n) cik[o++] = (char)c; }
+    cik[o] = 0;
+    if (tty) { tcsetattr(fd, TCSAFLUSH, &eski); fputs("\n", stderr); }
+    if (kendi) fclose(f);
+    return (o > 0 || c == '\n') ? 0 : -1;
+}
+#endif

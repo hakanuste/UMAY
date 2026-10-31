@@ -17,6 +17,7 @@
 #include "umay_ortak.h"
 #include "umay_anim.h"
 #include "umay_sabah.h"
+#include "umay_kasa.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -144,3 +145,19 @@ int umay_gomulu_anim_yokla(char *cikti, uint32_t n)
     }
     return k;
 }
+
+/* ---- kasa: ince sarmalayicilar (cekirdek umay_kasa.c'dedir) ---- */
+int     umay_gomulu_kasa_var(void)                       { return g_hazir ? kasa_var_mi() : 0; }
+int     umay_gomulu_kasa_acik(void)                      { return g_hazir ? kasa_acik_mi() : 0; }
+int     umay_gomulu_kasa_kur(const char *p)              { return g_hazir ? kasa_kur(p) : -6; }
+int     umay_gomulu_kasa_ac(const char *p)               { return g_hazir ? kasa_ac(p) : -6; }
+void    umay_gomulu_kasa_kilitle(void)                   { kasa_kilitle(); }
+int     umay_gomulu_kasa_say(void)                       { return kasa_say(); }
+int     umay_gomulu_kasa_bilgi(int i, char *ad, uint32_t n, int *tur, uint32_t *boy) { return kasa_bilgi(i, ad, n, tur, boy); }
+int     umay_gomulu_kasa_yaz(const char *ad, int tur, const void *v, uint32_t n)      { return kasa_yaz(ad, tur, v, n); }
+int32_t umay_gomulu_kasa_boy(const char *ad)             { return kasa_boy(ad); }
+int32_t umay_gomulu_kasa_oku(const char *ad, void *c, uint32_t n) { return kasa_oku(ad, c, n); }
+int     umay_gomulu_kasa_sil(const char *ad)             { return kasa_sil(ad); }
+int     umay_gomulu_kasa_parola_degistir(const char *e, const char *y) { return kasa_parola_degistir(e, y); }
+int     umay_gomulu_kasa_anahtar(uint8_t c[32])          { return kasa_anahtari_ver(c); }
+int     umay_gomulu_kasa_ac_anahtarla(const uint8_t a[32]) { return kasa_ac_anahtarla(a); }

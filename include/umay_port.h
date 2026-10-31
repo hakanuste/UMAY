@@ -18,6 +18,10 @@ uint64_t up_ms(void);
 int64_t  up_yerel_dakika(void);
 /* İşletim sisteminin kendi bildirimini gösterir (Linux notify-send, macOS osascript, Windows PowerShell). 0 = gösterildi. */
 int      up_bildir(const char *baslik, const char *metin);
+/* İşletim sisteminin güvenli rastgele kaynağı (şifreleme için). 0 = doldurdu; -1 = kaynak yok. */
+int      up_rastgele(void *p, uint32_t n);
+/* Kütüğü yalnız sahibine açar (POSIX 0600; Windows'ta kullanıcı profili zaten kullanıcıya özel). Hata yoksa 0. */
+int      up_ozel_kutuk(const char *yol);
 void     up_uyu(uint32_t ms);
 void     up_birak(void);
 void     up_gunluk(const char *satir);

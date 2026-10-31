@@ -18,12 +18,12 @@ CC      ?= cc
 # kapisinda ortaya cikti. Ortuk bildirim C'de islevin int dondurdugunu
 # VARSAYAR — imlec donduren bir islevde bu sessiz bozulmadir.
 # Iki yapi ayni siddette olmali.
-CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude
+CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher
 LDFLAGS ?=
 
 KAYNAK = core/umay_str.c core/umay_ortak.c core/umay_bilgi.c \
          core/umay_ozan.c core/umay_bengi.c core/umay_onay.c \
-         core/umay_kanal.c core/umay_ogren.c core/umay_bekci.c core/umay_arastir.c core/umay_egit.c core/umay_kabul.c core/umay_pdf.c core/umay_ceviri.c core/umay_ozturk.c core/umay_ulak.c core/umay_gizli.c core/umay_zaman.c core/umay_anim.c core/umay_sabah.c core/umay_main.c \
+         core/umay_kanal.c core/umay_ogren.c core/umay_bekci.c core/umay_arastir.c core/umay_egit.c core/umay_kabul.c core/umay_pdf.c core/umay_ceviri.c core/umay_ozturk.c core/umay_ulak.c core/umay_gizli.c core/umay_zaman.c core/umay_anim.c core/umay_sabah.c core/umay_kasa.c third_party/monocypher/monocypher.c core/umay_main.c \
          alp/otag.c alp/alp_gozcu.c alp/alp_onarici.c alp/alp_bilge.c alp/alp_arastirmaci.c alp/alp_cevirmen.c \
          alp/alp_yazman.c alp/alp_uzman.c \
          us/us_stub.c us/umay_us.c us/umay_us_ipc.c us/umay_us_yerel.c \
@@ -137,7 +137,7 @@ OTUKEN_KAYNAK = $(filter-out port/umay_port_host.c port/umay_host_uyum.c ses/uma
 # yalniz derleme denetlenir. ÖTÜKEN'e dokunmadan kosulabilir.
 otuken-denetle:
 	@for d in $(OTUKEN_KAYNAK); do \
-	  $(CC) -std=c11 -Wall -Wextra -Iinclude -DUMAY_OTUKEN \
+	  $(CC) -std=c11 -Wall -Wextra -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
 	        -ffreestanding -fno-stack-protector -fsyntax-only $$d \
 	    || exit 1; \
 	done
@@ -163,7 +163,7 @@ otuken-bag:
 	@rm -rf kov/otn && mkdir -p kov/otn
 	@for d in $(OTUKEN_KAYNAK); do \
 	  o=kov/otn/`echo $$d | tr / _`.o; \
-	  $(CC) -std=c11 -Wall -Wextra -Werror -O1 -Iinclude -DUMAY_OTUKEN \
+	  $(CC) -std=c11 -Wall -Wextra -Werror -O1 -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
 	        -ffreestanding -fno-stack-protector -fno-pie -c $$d -o $$o \
 	    || exit 1; \
 	done
@@ -193,7 +193,7 @@ OT ?= ../ot
 otuken:
 	@test -d $(OT) || { echo "ÖTÜKEN agaci yok: OT=$(OT)"; exit 1; }
 	@mkdir -p kov
-	$(CC) -std=c11 -Wall -Wextra -O2 -Iinclude -DUMAY_OTUKEN \
+	$(CC) -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
 	      -ffreestanding -fno-stack-protector -fno-pie -mcmodel=large \
 	      -nostdlib -T umay.ld -o kov/umay.elf $(OTUKEN_KAYNAK)
 	@echo "kov/umay.elf hazir — ÖTÜKEN diskine UMAY.ELF olarak koyun."

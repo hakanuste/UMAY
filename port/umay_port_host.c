@@ -46,6 +46,30 @@ uint64_t up_ms(void) {
     if (!g_bas) g_bas = ms;
     return ms - g_bas;
 }
+int up_ozel_kutuk(const char *yol) {
+#ifdef _WIN32
+    (void)yol; return 0;
+#else
+    return chmod(yol, 0600);
+#endif
+}
+
+int up_rastgele(void *p, uint32_t n) {
+#ifdef _WIN32
+    typedef BOOLEAN (WINAPI *rtlgen_t)(PVOID, ULONG);
+    HMODULE m = LoadLibraryA("advapi32.dll");
+    rtlgen_t f = m ? (rtlgen_t)GetProcAddress(m, "SystemFunction036") : 0;
+    return (f && f(p, (ULONG)n)) ? 0 : -1;
+#else
+    int d = open("/dev/urandom", O_RDONLY);
+    if (d < 0) return -1;
+    uint32_t top = 0;
+    while (top < n) { ssize_t k = read(d, (char *)p + top, n - top); if (k <= 0) break; top += (uint32_t)k; }
+    close(d);
+    return top == n ? 0 : -1;
+#endif
+}
+
 int64_t up_yerel_dakika(void) {
     time_t t = time(0);
     struct tm *l = localtime(&t);

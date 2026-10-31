@@ -12,12 +12,14 @@
  *   umay "soru"         tek soru — yanıtlar ve çıkar (betikler için)
  * ===================================================================== */
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "umay.h"
 #include "umay_kabuk.h"
 #include "umay_str.h"
 #include "umay_anim.h"
 #include "umay_host.h"
+#include "umay_kasa.h"
 #include "umay_gui.h"
 #include "umay_port.h"
 #include "umay_ogren.h"
@@ -41,6 +43,7 @@ static void kullanim(const char *ad)
     printf("  %s --kabul         gelen/ içindeki belgeleri ajanlar inceleyip alanına koyar\n", ad);
     printf("  %s --anim-bekle    anımsatıcı/ilaç alarmı bekçisi (arka planda bırakılır; bildirim gösterir)\n", ad);
     printf("  %s --anim          anımsatıcıları listeler;  --anim-tamam: çalan ilacı \"içtim\" işaretler\n", ad);
+    printf("  %s --kasa-kur|--kasa-liste|--kasa-ekle AD DOSYA|--kasa-not AD|--kasa-oku AD|--kasa-cikar AD HEDEF|--kasa-sil AD|--kasa-parola  şifreli özel kasa\n", ad);
     printf("  %s --5n1k          uzmanların 5N1K kapsam denetimi\n", ad);
     printf("  %s --karne        ajanların başarı karnesi\n", ad);
     printf("  %s --surum        sürümü yazar\n", ad);
@@ -134,6 +137,93 @@ static int veri_uret(void) {
     return yazilan + olumsuz;
 }
 
+
+/* ---- KASA komutları: parola HER ZAMAN terminalden, yankısız; sohbetten asla ---- */
+static int kasa_hata(int r) {
+    switch (r) {
+    case -1: fprintf(stderr, "Kasa yok (önce --kasa-kur) ya da kayıt bulunamadı.\n"); break;
+    case -2: fprintf(stderr, "Parola yanlış ya da kasa kütüğü değiştirilmiş.\n"); break;
+    case -3: fprintf(stderr, "Bu aygıtta güvenli rastgele kaynağı yok; kasa kullanılamaz.\n"); break;
+    case -4: fprintf(stderr, "Bellek ya da yer yetmedi (kasa en çok 8 MiB tutar).\n"); break;
+    case -5: fprintf(stderr, "Parola çok kısa (en az %d karakter).\n", KASA_PAROLA_AZ); break;
+    default: fprintf(stderr, "Kasa işlemi olmadı (%d).\n", r);
+    }
+    return 1;
+}
+static int kasa_komut(int argc, char **argv)
+{
+    const char *k = argv[1];
+    char p[256];
+    if (um_esit(k, "--kasa-kur")) {
+        char q[256];
+        if (uh_parola_oku("Yeni kasa parolası (en az 10 karakter; unutursan içerik KURTARILAMAZ): ", p, sizeof p) != 0) return 1;
+        if (uh_parola_oku("Yinele: ", q, sizeof q) != 0 || !um_esit(p, q)) { fprintf(stderr, "Parolalar uyuşmuyor.\n"); return 1; }
+        int r = kasa_kur(p);
+        if (r) return kasa_hata(r);
+        printf("Kasa kuruldu. Yedek almayı unutma (kasa.bin ve kasa.yed).\n");
+        return 0;
+    }
+    if (uh_parola_oku("Kasa parolası: ", p, sizeof p) != 0) return 1;
+    if (um_esit(k, "--kasa-parola")) {
+        char y[256], y2[256];
+        if (uh_parola_oku("Yeni parola: ", y, sizeof y) != 0 || uh_parola_oku("Yinele: ", y2, sizeof y2) != 0 || !um_esit(y, y2)) { fprintf(stderr, "Parolalar uyuşmuyor.\n"); return 1; }
+        int r = kasa_parola_degistir(p, y);
+        if (r) return kasa_hata(r);
+        printf("Parola değişti.\n");
+        return 0;
+    }
+    int r = kasa_ac(p);
+    if (r) return kasa_hata(r);
+    if (um_esit(k, "--kasa-liste")) {
+        int n = kasa_say();
+        printf("Kasada %d kayıt:\n", n);
+        for (int i = 0; i < n; i++) {
+            char ad[KASA_AD_MAX + 1]; int tur = 0; uint32_t boy = 0;
+            if (kasa_bilgi(i, ad, sizeof ad, &tur, &boy) == 0) printf("  %s  (%s, %u bayt)\n", ad, tur == KASA_DOSYA ? "dosya" : "not", (unsigned)boy);
+        }
+    } else if ((um_esit(k, "--kasa-ekle") && argc >= 4) || (um_esit(k, "--kasa-not") && argc >= 3)) {
+        int dosya = um_esit(k, "--kasa-ekle");
+        FILE *f = dosya ? fopen(argv[3], "rb") : stdin;
+        if (!f) { fprintf(stderr, "Açılamadı: %s\n", argv[3]); return 1; }
+        size_t kap = 1 << 16, n = 0;
+        unsigned char *b = (unsigned char *)malloc(kap);
+        if (!b) return 1;
+        for (;;) {
+            if (n == kap) { kap *= 2; unsigned char *y = (unsigned char *)realloc(b, kap); if (!y) { free(b); return 1; } b = y; }
+            size_t k2 = fread(b + n, 1, kap - n, f);
+            if (k2 == 0) break;
+            n += k2;
+            if (n > KASA_AZAMI) break;
+        }
+        if (dosya) fclose(f);
+        r = kasa_yaz(argv[2], dosya ? KASA_DOSYA : KASA_METIN, b, (uint32_t)n);
+        free(b);
+        if (r) return kasa_hata(r);
+        printf("'%s' kasaya eklendi (%u bayt, şifreli).\n", argv[2], (unsigned)n);
+    } else if ((um_esit(k, "--kasa-oku") && argc >= 3) || (um_esit(k, "--kasa-cikar") && argc >= 4)) {
+        int32_t boy = kasa_boy(argv[2]);
+        if (boy < 0) return kasa_hata(boy);
+        unsigned char *b = (unsigned char *)malloc((size_t)boy + 1);
+        if (!b) return 1;
+        int32_t g = kasa_oku(argv[2], b, (uint32_t)boy);
+        if (g < 0) { free(b); return kasa_hata(g); }
+        if (um_esit(k, "--kasa-oku")) { fwrite(b, 1, (size_t)g, stdout); fputc('\n', stdout); }
+        else {
+            FILE *o = fopen(argv[3], "wb");
+            if (!o) { fprintf(stderr, "Yazılamadı: %s\n", argv[3]); free(b); return 1; }
+            fwrite(b, 1, (size_t)g, o); fclose(o);
+            printf("'%s' düz hâliyle %s dosyasına çıkarıldı. Işin bitince o dosyayı sil.\n", argv[2], argv[3]);
+        }
+        free(b);
+    } else if (um_esit(k, "--kasa-sil") && argc >= 3) {
+        r = kasa_sil(argv[2]);
+        if (r) return kasa_hata(r);
+        printf("'%s' silindi.\n", argv[2]);
+    } else { fprintf(stderr, "Eksik argüman. Bkz. --yardim\n"); return 2; }
+    kasa_kilitle();
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *ad = (argc > 0 && argv[0]) ? argv[0] : "umay";
@@ -149,6 +239,7 @@ int main(int argc, char **argv)
             printf("UMAY %s\n", UMAY_SURUM);
             return 0;
         }
+        if (um_bas_mi(argv[1], "--kasa-")) return kasa_komut(argc, argv);
         if (um_esit(argv[1], "--anim") || um_esit(argv[1], "--anim-tamam")) {
             char l[2048];
             if (um_esit(argv[1], "--anim-tamam")) { int k = anim_tamam(anim_simdi()); printf("%d ilaç işaretlendi.\n", k); return 0; }

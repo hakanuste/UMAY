@@ -34,6 +34,9 @@ void  uh_stdin_hazirla(void);                          /* bloklamayan okuma */
 /* 1 = bir bayt okundu, 0 = su an veri yok, -1 = girdi bitti/hata */
 int   uh_stdin_oku(char *c);
 
+/* Parolayı yankısız okur (terminalden; boru/dosya girdisinde de çalışır). 0 = okundu. */
+int   uh_parola_oku(const char *istek, char *cik, uint32_t n);
+
 /* --- TCP (ollama) --- */
 intptr_t uh_tcp_baglan(const char *ipv4, int kapi);    /* <0 = hata */
 int64_t  uh_tcp_yaz(intptr_t h, const void *v, uint64_t n);

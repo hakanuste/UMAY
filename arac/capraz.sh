@@ -21,7 +21,7 @@ SURUM=$(sed -n 's/^#define UMAY_SURUM *"\(.*\)"/\1/p' include/umay.h)
 KAYNAK=$(make -s liste-kaynak)
 SINA=$(make -s liste-sina)
 GOMULU=$(make -s liste-gomulu)
-CFLAGS="-std=c11 -Wall -Wextra -Werror -Iinclude"
+CFLAGS="-std=c11 -Wall -Wextra -Werror -Iinclude -Ithird_party/monocypher"
 
 # CMakeLists.txt ile Makefile ayni kaynak listesini tasimali (kayma = sessiz kusur).
 if [ "$(make -s liste-gomulu | tr ' ' '\n' | sort)" != \

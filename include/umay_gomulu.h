@@ -50,6 +50,25 @@ int         umay_gomulu_kabul(char *rapor, uint32_t n);
  * Kayit yalniz cihazdaki <veri>/animsa.txt dosyasindadir. Onay ("icitim") sohbetten gelir: umay_gomulu_sor. */
 int         umay_gomulu_anim_yokla(char *cikti, uint32_t n);
 
+/* ---- KASA (sifreli ozel kutukler; bkz. umay_kasa.h) ----
+ * Ana parola SOHBETTEN GECMEZ: uygulama ayri bir gizli giris alani gostermeli. Donus kodlari umay_kasa.h'deki gibi.
+ * umay_gomulu_baslat'tan SONRA cagrilir (kasa.bin yolu veri dizinindedir). */
+int         umay_gomulu_kasa_var(void);
+int         umay_gomulu_kasa_acik(void);
+int         umay_gomulu_kasa_kur(const char *parola);
+int         umay_gomulu_kasa_ac(const char *parola);
+void        umay_gomulu_kasa_kilitle(void);
+int         umay_gomulu_kasa_say(void);
+int         umay_gomulu_kasa_bilgi(int i, char *ad, uint32_t n, int *tur, uint32_t *boy);
+int         umay_gomulu_kasa_yaz(const char *ad, int tur, const void *veri, uint32_t n);
+int32_t     umay_gomulu_kasa_boy(const char *ad);
+int32_t     umay_gomulu_kasa_oku(const char *ad, void *cik, uint32_t n);
+int         umay_gomulu_kasa_sil(const char *ad);
+int         umay_gomulu_kasa_parola_degistir(const char *eski, const char *yeni);
+/* Biyometrik kisayol: anahtari uygulama isletim sisteminin biyometrik korumali deposuna koyar. */
+int         umay_gomulu_kasa_anahtar(uint8_t cik[32]);
+int         umay_gomulu_kasa_ac_anahtarla(const uint8_t anahtar[32]);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

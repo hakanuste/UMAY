@@ -321,6 +321,8 @@ const char *up_kut_kok(void) { return "/"; }
  * ağ yok diye bildirilir, ÖĞREN modülü sessizce UM_YOK döner. */
 int up_sil(const char *yol) { (void)yol; return -1; }
 int64_t up_yerel_dakika(void) { return -1; }   /* RTC okuması henüz bağlı değil: ANIM kendini kapatır */
+int up_ozel_kutuk(const char *yol) { (void)yol; return 0; }
+int up_rastgele(void *p, uint32_t n) { (void)p; (void)n; return -1; }   /* güvenli rastgele kaynağı yok: KASA burada kapalı */
 int up_bildir(const char *baslik, const char *metin) { (void)baslik; (void)metin; return -1; }
 int up_ag_var_mi(void) { return 0; }
 int64_t up_ag_getir(const char *url, char *cik, uint32_t n, uint32_t sn)

@@ -16,6 +16,7 @@
 #include "umay_zaman.h"
 #include "umay_anim.h"
 #include "umay_sabah.h"
+#include "umay_kasa.h"
 #include "umay_ceviri.h"
 #include "../us/us1.h"
 #include "umay_port.h"
@@ -79,6 +80,7 @@ static char *kaynak_oku(const char *yol)
     return t;
 }
 
+static int bayt_esit(const void *a, const void *b, uint64_t n) { const unsigned char *x = a, *y = b; for (uint64_t i = 0; i < n; i++) if (x[i] != y[i]) return 0; return 1; }
 static int64_t g_an_simdi;
 static int64_t an_saat(void) { return g_an_simdi; }
 static void dene(const char *ad, int kosul) {
@@ -2301,6 +2303,104 @@ int main(void) {
         anim_saat_ata(0); anim_yol_ata(0);
         up_sil(yol); up_sil(pyol);
         anim_sifirla_bellek();
+    }
+
+    /* --- 66. KASA: şifreli özel kasa --- */
+    {
+        printf("\n[66] kasa (şifreli)\n");
+        char yol[320], yed[330];
+        uh_gecici("umay-kasa-sina.bin", yol, sizeof yol);
+        um_bicim(yed, sizeof yed, "%s.yed", yol);
+        up_sil(yol); up_sil(yed);
+        kasa_yol_ata(yol);
+        kasa_parametre_ata(256, 1);                 /* sınama için hızlı Argon2; üretimde 64 MiB × 3 */
+        kasa_kilit_suresi_ata(300000);
+
+        dene("kasa yokken var_mi 0, ac -1", kasa_var_mi() == 0 && kasa_ac("herhangi-bir-parola") == -1);
+        dene("kısa parola reddedilir", kasa_kur("kisa") == -5 && kasa_var_mi() == 0);
+        dene("kur: açık ve boş", kasa_kur("Eski-Zeytinlik-1509") == 0 && kasa_acik_mi() == 1 && kasa_say() == 0 && kasa_var_mi() == 1);
+        dene("ikinci kur reddedilir (üstüne yazmaz)", kasa_kur("baska-parola-12345") == -1);
+
+        const char *gizli_not = "TAPU-GIZLI-ISARET parsel 1509 ada 12";
+        static unsigned char buyuk[120000], geri[120000];
+        for (unsigned i = 0; i < sizeof buyuk; i++) buyuk[i] = (unsigned char)((i * 2654435761u) >> 13);
+        dene("not yazılır", kasa_yaz("arazi-notu", KASA_METIN, gizli_not, um_uzun(gizli_not)) == 0);
+        dene("dosya yazılır (120 KB ikili)", kasa_yaz("tapu.pdf", KASA_DOSYA, buyuk, sizeof buyuk) == 0 && kasa_say() == 2);
+        dene("geri okunur: not", kasa_boy("arazi-notu") == (int)um_uzun(gizli_not));
+        { char o[128]; int k = kasa_oku("arazi-notu", o, sizeof o); o[k > 0 ? k : 0] = 0; dene("geri okunur: not içeriği", k > 0 && um_esit(o, gizli_not)); }
+        dene("geri okunur: dosya birebir", kasa_oku("tapu.pdf", geri, sizeof geri) == (int)sizeof buyuk && bayt_esit(geri, buyuk, sizeof buyuk));
+        dene("küçük tampon -4", kasa_oku("tapu.pdf", geri, 10) == -4);
+        dene("olmayan kayıt -1", kasa_oku("yok", geri, sizeof geri) == -1);
+
+        /* diskte düz metin YOK */
+        {
+            static unsigned char d[200000];
+            up_tut_t t = up_ac(yol, UP_OKU); int64_t k = t != UP_GECERSIZ ? up_oku(t, d, sizeof d) : -1; if (t != UP_GECERSIZ) up_kapat(t);
+            int var = 0;
+            for (int64_t i = 0; i + 10 <= k; i++) if (bayt_esit(d + i, "TAPU-GIZLI", 10)) var = 1;
+            dene("diskteki kütükte düz metin yok", k > 100000 && var == 0 && bayt_esit(d, "UMAYKASA", 8));
+            dene("kütük sayfaya yuvarlı (boyut gizlenir)", ((k - 77) % 4096) == 0);
+        }
+
+        kasa_kilitle();
+        dene("kilitli: okuma ve yazma -6", kasa_acik_mi() == 0 && kasa_say() == -6 && kasa_oku("arazi-notu", geri, sizeof geri) == -6 && kasa_yaz("x", KASA_METIN, "a", 1) == -6);
+        dene("yanlış parola -2", kasa_ac("Eski-Zeytinlik-1510") == -2 && kasa_acik_mi() == 0);
+        dene("doğru parola açar, veri sağlam", kasa_ac("Eski-Zeytinlik-1509") == 0 && kasa_say() == 2
+             && kasa_oku("tapu.pdf", geri, sizeof geri) == (int)sizeof buyuk && bayt_esit(geri, buyuk, sizeof buyuk));
+
+        /* üstüne yazma ve silme */
+        dene("aynı ad üstüne yazar (sayı artmaz)", kasa_yaz("arazi-notu", KASA_METIN, "yeni", 4) == 0 && kasa_say() == 2 && kasa_boy("arazi-notu") == 4);
+        dene("sil", kasa_sil("arazi-notu") == 0 && kasa_say() == 1 && kasa_sil("arazi-notu") == -1);
+        { char ad[80]; int tur = -1; uint32_t boy = 0;
+          dene("bilgi: ad, tür, boy", kasa_bilgi(0, ad, sizeof ad, &tur, &boy) == 0 && um_esit(ad, "tapu.pdf") && tur == KASA_DOSYA && boy == sizeof buyuk); }
+
+        /* kurcalama: şifreli gövdeden bir bayt */
+        {
+            static unsigned char d[200000];
+            up_tut_t t = up_ac(yol, UP_OKU); int64_t k = t != UP_GECERSIZ ? up_oku(t, d, sizeof d) : -1; if (t != UP_GECERSIZ) up_kapat(t);
+            kasa_kilitle();
+            unsigned char eski = d[5000]; d[5000] ^= 1;
+            up_yaz_yola(yol, d, (uint64_t)k);
+            dene("gövdede 1 bit oynama: açılmaz (-2)", kasa_ac("Eski-Zeytinlik-1509") == -2);
+            d[5000] = eski; d[10] ^= 1;                                  /* başlıktaki parametre */
+            up_yaz_yola(yol, d, (uint64_t)k);
+            dene("başlıkta oynama: açılmaz (-2)", kasa_ac("Eski-Zeytinlik-1509") == -2);
+            d[10] ^= 1;
+            up_yaz_yola(yol, d, (uint64_t)k);
+            dene("geri düzelince yine açılır", kasa_ac("Eski-Zeytinlik-1509") == 0);
+            dene("yedek kütük oluşmuş", up_boy(yed) > 0);
+        }
+
+        /* parola değiştirme */
+        dene("kısa yeni parola reddedilir", kasa_parola_degistir("Eski-Zeytinlik-1509", "kisa") == -5);
+        dene("yanlış eski parola ile değişmez", kasa_parola_degistir("yanlis-parola-xyz", "Yeni-Parola-2026") == -2);
+        dene("parola değişir", kasa_parola_degistir("Eski-Zeytinlik-1509", "Yeni-Parola-2026") == 0);
+        kasa_kilitle();
+        dene("eski parola artık açmaz", kasa_ac("Eski-Zeytinlik-1509") == -2);
+        dene("yeni parola açar, veri duruyor", kasa_ac("Yeni-Parola-2026") == 0 && kasa_say() == 1);
+
+        /* biyometrik kısayol kancası: OS deposundan dönen anahtar parolasız açar */
+        {
+            uint8_t k1[32];
+            dene("anahtar yalnız açıkken alınır", kasa_anahtari_ver(k1) == 0);
+            kasa_kilitle();
+            uint8_t cop[32]; for (int i = 0; i < 32; i++) cop[i] = (uint8_t)i;
+            uint8_t yok[32]; um_bellek_kopya(yok, k1, 32);
+            dene("kilitliyken anahtar verilmez", kasa_anahtari_ver(yok) == -6);
+            dene("yanlış anahtar açmaz", kasa_ac_anahtarla(cop) == -2 && kasa_acik_mi() == 0);
+            dene("doğru anahtar açar (biyometri sonrası)", kasa_ac_anahtarla(k1) == 0 && kasa_say() == 1);
+        }
+
+        /* otomatik kilit */
+        kasa_kilit_suresi_ata(20);
+        up_uyu(60);
+        dene("boşta süresi dolunca kilitlenir", kasa_acik_mi() == 0 && kasa_say() == -6);
+        kasa_kilit_suresi_ata(300000);
+
+        kasa_kilitle();
+        kasa_yol_ata(0);
+        kasa_parametre_ata(65536, 3);
+        up_sil(yol); up_sil(yed);
     }
 
     /* Atlananlar AYRI sayilir: gecti sayisina karismaz, gizlenmez. */
