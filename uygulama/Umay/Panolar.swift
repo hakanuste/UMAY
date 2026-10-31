@@ -87,7 +87,8 @@ struct KenarSeridi: View {
 /// Ajan → amblem dosyası (paketteki PNG adı).
 enum AjanResmi {
     static let alan: [String: String] = [
-        "bilge": "dede-korkut-amblem", "kabul": "amblem-kervan",
+        "bilge": "dede-korkut-amblem", "kabul": "amblem-kervan", "arastirmaci": "amblem-ulak", "cevirmen": "amblem-tulpar",
+        "gozcu": "amblem-timur", "onarici": "amblem-ergenekon", "yazman": "amblem-bitig",
         "yazit": "amblem-bitig", "yer-su": "amblem-ergenekon", "balbal": "amblem-orkun", "kun": "amblem-ulgen",
         "demir": "amblem-ulak", "tulga": "amblem-tulpar", "otaci": "amblem-asena", "yargu": "amblem-tore",
         "akca": "amblem-kut", "alpagu": "amblem-timur", "kopuz": "dede-korkut-yuz", "oyun": "umay-amblem",
@@ -121,6 +122,11 @@ struct AjanlarGorunumu: View {
                 VStack(alignment: .leading, spacing: 8) {
                     cekirdek("bilge", "BİLGE", "Bilgi bulma ve öğüt. Kütüphanede kayıt yoksa internetten arar; sen \"doğru, ekle\" dersen kaydeder.")
                     cekirdek("kabul", "KABUL", "Eklenen belgeyi inceler, alanını bulur ve kütüphaneye yerleştirir.")
+                    cekirdek("arastirmaci", "ARAŞTIRMACI", "Planlı araştırma: soruyu açılara böler, kaynaklı rapor yazar. Rapordaki her cümle bir kaynaktan aynen alınır.")
+                    cekirdek("cevirmen", "ÇEVİRMEN", "Dil çevirisi. Yöntemini söyler, makine çevirisini \"doğrulanmamış\" diye işaretler.")
+                    cekirdek("gozcu", "GÖZCÜ", "Dizge yoklaması: süreçleri, kütüphaneyi ve ayarları denetler. Yalnız okur, değiştirmez.")
+                    cekirdek("onarici", "ONARICI", "Aksaklığı bulup onarım önerir. Yıkıcı her işi sana sorar.")
+                    cekirdek("yazman", "YAZMAN", "Dosya işleri ve kalıcı belleğe yazım. Yazma izni ister.")
                     Divider()
                     ForEach(SohbetGorunumu.belgeAlanlari.filter { $0.0 != "otomatik" }, id: \.0) { a in uzman(a) }
                 }
