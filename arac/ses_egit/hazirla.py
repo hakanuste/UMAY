@@ -19,7 +19,14 @@ def main(girdi, cikti):
     from faster_whisper import WhisperModel
     model = WhisperModel("large-v3", device="cuda", compute_type="float16") if os.environ.get("GPU", "1") == "1" \
         else WhisperModel("small", device="cpu", compute_type="int8")
-    parcalar, _ = model.transcribe(ham, language="tr", vad_filter=True, beam_size=5, condition_on_previous_text=False)
+    # PyAV sürüm çakışmasından kaçınmak için sesi kendimiz çözüp (16 kHz, float32) diziyi veririz.
+    k16 = os.path.join(cikti, "ham_16k.wav")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", ham, "-ac", "1", "-ar", "16000", k16], check=True)
+    import numpy as np
+    with wave.open(k16, "rb") as w16:
+        dizi = np.frombuffer(w16.readframes(w16.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
+    os.remove(k16)
+    parcalar, _ = model.transcribe(dizi, language="tr", vad_filter=True, beam_size=5, condition_on_previous_text=False)
 
     with wave.open(ham, "rb") as w:
         fs, n = w.getframerate(), w.getnframes()
