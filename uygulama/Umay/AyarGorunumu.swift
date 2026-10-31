@@ -68,6 +68,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.sesli") private var seslidenYanitla = true
     @AppStorage("umay.alarmSesli") private var alarmSesli = true
     @AppStorage("umay.tinli") private var tinli = false
+    @AppStorage("umay.kunye") private var kunye = false
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -97,6 +98,7 @@ struct AyarGorunumu: View {
                 Toggle("Yanıtları sesli de oku", isOn: $seslidenYanitla)
                 Toggle("Alarm ve anımsatmaları sesli oku (uyarı sesi + Dede Korkut)", isOn: $alarmSesli)
                 Toggle("Dede Korkut tınısı (deneysel: kalın, yavaş, yankılı)", isOn: $tinli)
+                Toggle("Kaynak ve güven satırlarını göster", isOn: $kunye)
                 Toggle("Kayıt yoksa internetten ara ve öğren (yalnız soru anahtar sözcükleri çıkar)", isOn: $internettenOgren)
             }
             Text("Ses ve internet ayarları hemen işler. Model değişikliği uygulama yeniden açılınca işler. İlk model indirilirken uygulamayı açık tutun.")

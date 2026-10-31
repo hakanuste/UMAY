@@ -48,6 +48,16 @@ final class UmayMotor: ObservableObject {
 
     func temizle() { iletiler = [] }
 
+    /// Yanıtın künye satırlarını ("X söyler:", "(Dayanağım…)", "Güven:") gizler; yalnız cevap kalır.
+    /// Ayarlar'da "Kaynak ve güven satırlarını göster" açıksa olduğu gibi bırakır. Yanıtın ham hâli çekirdekte durur.
+    static func sade(_ yanit: String) -> String {
+        if UserDefaults.standard.bool(forKey: "umay.kunye") { return yanit }
+        let satirlar = yanit.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let kalan = satirlar.filter { !($0.hasPrefix("(Dayanağım") || $0.hasPrefix("Güven:") || ($0.hasSuffix("söyler:") && $0.contains("("))) }
+        let metin = kalan.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return metin.isEmpty ? yanit : metin
+    }
+
     // MARK: başlatma
 
     /// "İnternetten kendiliğinden öğren" ayarını ortama yazar (çekirdek her çağrıda okur).
@@ -164,7 +174,7 @@ final class UmayMotor: ObservableObject {
             let ad = String(cString: umay_gomulu_motor())
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.iletiler.append(Ileti(benMi: false, metin: yanit))
+                self.iletiler.append(Ileti(benMi: false, metin: UmayMotor.sade(yanit)))
                 self.motorAdi = ad
                 self.mesgul = false
                 // Hem yazılı hem sesli: ayar kapatılmadıkça yanıt okunur.
