@@ -14,7 +14,7 @@ for f in kut/*; do
   cp -R "$f" "$APP/Contents/Resources/kut/"
 done
 # simge ve amblem (arac/ikon_uret.py üretir; depoda hazır tutulur)
-cp uygulama/Umay/Umay.icns uygulama/Umay/umay-amblem.png "$APP/Contents/Resources/"
+cp uygulama/Umay/Umay.icns uygulama/Umay/umay-amblem.png uygulama/Umay/dede-korkut-amblem.png uygulama/Umay/dede-korkut-simge.png "$APP/Contents/Resources/"
 # kaynak belgeleri (docs/kaynak): ilk açılışta gelen/ klasörüne bırakılıp kendiliğinden içeri alınır
 mkdir -p "$APP/Contents/Resources/kaynak"
 cp docs/kaynak/*.txt "$APP/Contents/Resources/kaynak/" 2>/dev/null || true

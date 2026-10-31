@@ -69,4 +69,24 @@ for tur, boy in parcalar:
     veri += tur.encode() + struct.pack(">I", len(d) + 8) + d
 with open(os.path.join(CIKTI, "Umay.icns"), "wb") as f:
     f.write(b"icns" + struct.pack(">I", len(veri) + 8) + veri)
+
+# ---- DEDE KORKUT: siyah zemini kaldır (köşelerden taşkın doldurma), saydam amblem + turkuaz yuvarlak simge ----
+dk = Image.open(os.path.join(KOK, "docs/gorsel/dede-korkut-bilgelik-amblem.png")).convert("RGB")
+esik = Image.new("L", dk.size, 255)
+gri = dk.convert("L")
+yarim = gri.point(lambda v: 255 if v <= 14 else 0)          # neredeyse siyah
+zem = yarim.copy()
+for k in ((0, 0), (dk.width - 1, 0), (0, dk.height - 1), (dk.width - 1, dk.height - 1)):
+    ImageDraw.floodfill(zem, k, 128)
+dis = zem.point(lambda v: 255 if v == 128 else 0)           # yalnız dıştan bağlı siyah
+alfa = dis.point(lambda v: 0 if v else 255).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
+dkr = dk.convert("RGBA"); dkr.putalpha(alfa)
+dkr = dkr.crop(dkr.getchannel("A").point(lambda v: 255 if v > 24 else 0).getbbox())
+kare2 = max(dkr.size)
+t2 = Image.new("RGBA", (kare2, kare2), (0, 0, 0, 0))
+t2.alpha_composite(dkr, ((kare2 - dkr.width) // 2, (kare2 - dkr.height) // 2))
+t2.resize((768, 768), Image.LANCZOS).save(os.path.join(CIKTI, "dede-korkut-amblem.png"), optimize=True)
+am = dkr
+dksimge = simge(512)
+dksimge.save(os.path.join(CIKTI, "dede-korkut-simge.png"), optimize=True)
 print("tamam:", ", ".join(sorted(os.listdir(CIKTI))))

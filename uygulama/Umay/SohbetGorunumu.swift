@@ -214,7 +214,14 @@ struct SohbetGorunumu: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         if motor.iletiler.isEmpty { karsilama }
-                        ForEach(motor.iletiler) { i in ileti(i).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                        ForEach(motor.iletiler) { i in
+                            HStack(alignment: .top, spacing: 10) {
+                                if !i.benMi && !i.sistemMi, let d = Self.resim("dede-korkut-simge") {
+                                    d.resizable().scaledToFit().frame(width: 34, height: 34)
+                                }
+                                ileti(i).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
                         if motor.mesgul { ProgressView("Düşünüyor…") }
                         Color.clear.frame(height: 1).id("son")
                     }
@@ -222,6 +229,13 @@ struct SohbetGorunumu: View {
                 }
                 .onChange(of: motor.iletiler.count) { _ in
                     withAnimation { vekil.scrollTo("son", anchor: .bottom) }
+                }
+                // Arka plan: saydam Dede Korkut damgası (yazıyı bozmaz, tıklamayı engellemez)
+                .background(alignment: .center) {
+                    if let d = Self.resim("dede-korkut-amblem") {
+                        d.resizable().scaledToFit().frame(maxWidth: 420, maxHeight: 420)
+                            .opacity(0.10).allowsHitTesting(false)
+                    }
                 }
             }
             Divider()
@@ -303,6 +317,14 @@ struct SohbetGorunumu: View {
             Button { ayarAcik = true } label: { Image(systemName: "gearshape") }
         }
         .padding(.horizontal).padding(.vertical, 8)
+    }
+
+    /// Paketteki bir PNG'yi yükler (yoksa nil).
+    static func resim(_ ad: String) -> Image? {
+        #if os(macOS)
+        if let u = Bundle.main.url(forResource: ad, withExtension: "png"), let g = NSImage(contentsOf: u) { return Image(nsImage: g) }
+        #endif
+        return nil
     }
 
     /// UMAY amblemi (pakette umay-amblem.png). Yoksa gösterilmez.
