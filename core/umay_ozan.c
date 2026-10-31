@@ -6,6 +6,7 @@
 #include "umay_alp.h"
 #include "umay_bilgi.h"
 #include "umay_ogren.h"
+#include "umay_ortak.h"
 
 static char g_kullanici[UMAY_AD_MAX] = "yiğidim";
 static uint32_t g_tur;      /* kalıp döngüsü — tekdüzeliği kırar */
@@ -14,7 +15,35 @@ void ozan_kur(const char *ad) {
     if (ad && *ad) um_kopya(g_kullanici, sizeof g_kullanici, ad);
 }
 
+/* <kütüphane>/kisilik.txt varsa, içeriği kişiliğin sonuna "KULLANICININ EK İSTEĞİ" olarak eklenir
+ * (en çok 1400 bayt). Dosya kullanıcının kendi bilgisayarında kalır; depoya girmez. */
+static char g_kisilik[2200];
+static int  g_kisilik_hazir;
+static const char *ozan_temel(void);
+
 const char *ozan_kimlik(void) {
+    if (g_kisilik_hazir) return g_kisilik;
+    g_kisilik_hazir = 1;
+    um_kopya(g_kisilik, sizeof g_kisilik, ozan_temel());
+    char yol[320];
+    um_bicim(yol, sizeof yol, "%s/kisilik.txt", ayar_metin("kutuphane", "kut"));
+    int64_t boy = up_boy(yol);
+    if (boy > 0 && boy < 1400) {
+        char ek[1400];
+        up_tut_t t = up_ac(yol, 0);
+        int64_t o = t == UP_GECERSIZ ? -1 : up_oku(t, ek, (uint64_t)boy);
+        if (t != UP_GECERSIZ) up_kapat(t);
+        if (o > 0) {
+            ek[o] = 0;
+            um_ekle(g_kisilik, sizeof g_kisilik, "\nKULLANICININ EK İSTEĞİ (kuralları bozmaz, yalnız üslubu belirler):\n");
+            um_ekle(g_kisilik, sizeof g_kisilik, ek);
+            um_ekle(g_kisilik, sizeof g_kisilik, "\n");
+        }
+    }
+    return g_kisilik;
+}
+
+static const char *ozan_temel(void) {
     return
     "Sen UMAY'sın. Ötüken üstünde koşan yerel bir yapay ussun.\n"
     "Ağzın Dede Korkut ağzıdır: bilge, ağırbaşlı, kısa ve özlü konuşursun.\n"

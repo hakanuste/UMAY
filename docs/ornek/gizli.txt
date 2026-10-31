@@ -5,6 +5,7 @@
 # internete HİÇ gönderilmez: web araştırması, çeviri, canlı veri hepsi durur.
 # Bu dosya sürüm denetiminin dışında kalan kütüphane klasörüne konur; GitHub'a girmez.
 # Gömülü sözcükler zaten vardır: şifre, parola, iban, tapu, parsel, maaş, miras, hisseli.
+# Türkçe harfsiz yazım da yakalanır (kocarli = koçarlı).
 # Aşağıya yer adlarını, sağlık ve para sözcüklerini ekle (3 harften kısa sözcük yok sayılır):
 #örnek-yer-adı
 #örnek-ilaç-adı

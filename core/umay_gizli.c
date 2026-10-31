@@ -4,6 +4,38 @@
 #include "umay_port.h"
 #include "umay_ortak.h"
 
+/* Harfleri ASCII'ye katlar ve küçültür: ç->c ğ->g ı/İ->i ö->o ş->s ü->u, A-Z -> a-z.
+ * Böylece "Koçarlı", "KOCARLI" ve "kocarli" aynı sayılır (Türkçe klavyesiz yazılanlar da yakalanır). */
+static uint32_t katla(char *hedef, uint32_t n, const char *kaynak) {
+    uint32_t o = 0;
+    const unsigned char *p = (const unsigned char *)kaynak;
+    while (*p && o + 1 < n) {
+        unsigned char c = *p;
+        if (c == 0xC3 && p[1]) {
+            unsigned char d = p[1]; char r = 0;
+            if (d == 0xA7 || d == 0x87) r = 'c';
+            else if (d == 0xB6 || d == 0x96) r = 'o';
+            else if (d == 0xBC || d == 0x9C) r = 'u';
+            else if (d == 0xA2 || d == 0x82) r = 'a';
+            else if (d == 0xAE || d == 0x8E) r = 'i';
+            else if (d == 0xBB || d == 0x9B) r = 'u';
+            if (r) { hedef[o++] = r; p += 2; continue; }
+        } else if (c == 0xC4 && p[1]) {
+            unsigned char d = p[1]; char r = 0;
+            if (d == 0x9F || d == 0x9E) r = 'g';
+            else if (d == 0xB1 || d == 0xB0) r = 'i';
+            if (r) { hedef[o++] = r; p += 2; continue; }
+        } else if (c == 0xC5 && p[1]) {
+            unsigned char d = p[1];
+            if (d == 0x9F || d == 0x9E) { hedef[o++] = 's'; p += 2; continue; }
+        }
+        hedef[o++] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : (char)c;
+        p++;
+    }
+    hedef[o] = 0;
+    return o;
+}
+
 static const char *GOMULU[] = {
     "şifre", "parola", "iban", "tapu", "parsel", "maaş", "miras", "hisseli", 0
 };
@@ -39,7 +71,7 @@ int gizli_yukle(const char *kut) {
         uint32_t u = um_uzun(s);
         while (u && (s[u - 1] == ' ' || s[u - 1] == '\r' || s[u - 1] == '\t')) s[--u] = 0;
         if (!*s || *s == '#' || u < 3) continue;       /* 3 harften kısa sözcük çok yanlış eşleşir */
-        um_kucult(g_kul[g_kul_n], 48, s);
+        katla(g_kul[g_kul_n], 48, s);
         g_kul_n++;
     }
     up_biraktir(m);
@@ -54,9 +86,9 @@ static void liste_hazir(void) {
 int gizli_mi(const char *metin) {
     if (!metin || !*metin) return 0;
     liste_hazir();
-    static char k[2048];
-    um_kucult(k, sizeof k, metin);      /* İ->i, I->ı, Ş->ş ... boy değişse de doğru küçültür */
-    for (int i = 0; GOMULU[i]; i++) if (um_icinde(k, GOMULU[i])) return 1;
+    static char k[2048], g[48];
+    katla(k, sizeof k, metin);
+    for (int i = 0; GOMULU[i]; i++) { katla(g, sizeof g, GOMULU[i]); if (um_icinde(k, g)) return 1; }
     for (int i = 0; i < g_kul_n; i++) if (um_icinde(k, g_kul[i])) return 1;
     return 0;
 }

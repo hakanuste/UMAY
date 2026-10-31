@@ -2087,6 +2087,8 @@ int main(void) {
         dene("kullanıcı sözcüğü yakalanır (ek alır)", gizli_mi("koçarlıda zeytin") == 1);
         dene("kullanıcı sözcüğü: büyük harfli yazım", gizli_mi("Bostancı garajı") == 1);
         dene("liste dışı yer geçer", gizli_mi("Kars hava durumu") == 0);
+        dene("Türkçe harfsiz yazım da yakalanır: kocarli", gizli_mi("KOCARLI zeytinligi") == 1);
+        dene("Türkçe harfsiz: ilac/sifre (gömülü şifre)", gizli_mi("sifre unuttum") == 1);
         uh_ortam_ata("UMAY_OGREN", "1");
         ogren_getirici_ata(ul_sahte);
         uh_ortam_ata("UMAY_AG_TCMB", "http://sahte-tcmb/today.xml");
