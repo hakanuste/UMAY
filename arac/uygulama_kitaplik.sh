@@ -28,8 +28,19 @@ yap() {
   echo "  -> $dizin/libumay_tum.a ($(du -h "$dizin/libumay_tum.a" | cut -f1))"
 }
 
-mac()  { local m="$(uname -m)"; [ "${MAC_EVRENSEL:-0}" = 1 ] && m="arm64;x86_64"
-         yap macos "-DCMAKE_OSX_ARCHITECTURES=$m -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0"; }
+mac()  { local m="$(uname -m)" ek=""
+         [ "${MAC_EVRENSEL:-0}" = 1 ] && m="arm64;x86_64"
+         # HIZ: Intel Mac'te yerel komut kümeleri (AVX2/FMA/F16C) açılırsa jeton üretimi kat kat hızlanır.
+         # Yalnız bu bilgisayarın işlemcisi için derlenirken (evrensel/iOS değil) ve işlemci destekliyorsa.
+         if [ "$m" = x86_64 ]; then
+           local oz="$(sysctl -n machdep.cpu.features machdep.cpu.leaf7_features 2>/dev/null | tr '\n' ' ')"
+           case "$oz" in *AVX2*FMA*F16C*|*FMA*AVX2*F16C*|*F16C*AVX2*FMA*|*AVX2*F16C*FMA*|*FMA*F16C*AVX2*|*F16C*FMA*AVX2*)
+             ek="-DGGML_AVX=ON -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DGGML_BMI2=ON"
+             echo "  işlemci AVX2/FMA/F16C destekliyor: hızlı çekirdekler açıldı." ;;
+             *) echo "  işlemci AVX2/FMA/F16C vermiyor: genel çekirdekler." ;;
+           esac
+         fi
+         yap macos "-DCMAKE_OSX_ARCHITECTURES=$m -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 $ek"; }
 ios()  { yap ios "-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0"; }
 iosb() { yap ios-benzetim "-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64;x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0"; }
 
