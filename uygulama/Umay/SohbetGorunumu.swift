@@ -14,6 +14,13 @@ final class Okuyucu {
     static let ortak = Okuyucu()
     private let ses = AVSpeechSynthesizer()
     private var calar: AVAudioPlayer?
+    /// Gecikme ölçümü: yanıtın geldiği an ile sesin başladığı an arası (Motor doldurur).
+    var istekAni = Date()
+    var sesBasladi: ((Double, String) -> Void)?
+    private func baslamayiBildir(_ tur: String) {
+        let d = Date().timeIntervalSince(istekAni)
+        DispatchQueue.main.async { [weak self] in self?.sesBasladi?(d, tur) }
+    }
     private var nesil = 0   // eski konuşmanın geç biten işini yok saymak için
 
     /// Künye/üst bilgi satırı mı? ("X söyler:", "(Dayanağım…)", "Güven:", kaynak notları…) Hem ekranda hem okumada elenir.
@@ -76,6 +83,7 @@ final class Okuyucu {
                     guard let d = birinci, let o = try? AVAudioPlayer(contentsOf: d) else { self.konusYerel(metin); return }
                     self.calar = o
                     o.prepareToPlay(); o.play()
+                    self.baslamayiBildir("bulut")
                     if kalan.isEmpty { return }
                     let bitis = Date().addingTimeInterval(o.duration)
                     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -103,7 +111,7 @@ final class Okuyucu {
         #if os(macOS)
         let tinli = UserDefaults.standard.bool(forKey: "umay.tinli")
         let piper = Okuyucu.piperBul()      // varsa sinir agi sesi (macOS sesi değil)
-        if !tinli && piper == nil { ses.speak(soz); return }
+        if !tinli && piper == nil { ses.speak(soz); baslamayiBildir("sistem"); return }
         let sesAdi = soz.voice?.name ?? ""
         let gecici = FileManager.default.temporaryDirectory
         let ham = gecici.appendingPathComponent("umay-ham-\(benim).\(piper != nil ? "wav" : "aiff")")
@@ -122,8 +130,10 @@ final class Okuyucu {
                 if ok, let o = try? AVAudioPlayer(contentsOf: son) {
                     self.calar = o
                     o.prepareToPlay(); o.play()
+                    self.baslamayiBildir("yerel")
                 } else {
                     self.ses.speak(soz)   // olmazsa düz sesle oku, çökme
+                    self.baslamayiBildir("sistem")
                 }
             }
         }
@@ -412,6 +422,7 @@ struct SohbetGorunumu: View {
                 // Dürüst durum: yedek motor gerçek dil modeli DEĞİLDİR.
                 Text(motor.gercekModel ? "Dil modeli: \(motor.modelDosyasi)" : "Yedek motor — dil modeli yok (Ayarlar'dan indirin)")
                     .font(.caption).foregroundColor(motor.gercekModel ? .secondary : .orange)
+                if !motor.sonSure.isEmpty { Text(motor.sonSure).font(.caption2).foregroundColor(.secondary) }
             }
             Spacer()
             Button { if let y = motor.iletiler.last(where: { !$0.benMi && !$0.sistemMi }) { Okuyucu.ortak.oku(y.metin) } } label: { Image(systemName: "speaker.wave.2") }

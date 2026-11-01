@@ -13,6 +13,7 @@ final class UmayMotor: ObservableObject {
 
     @Published var iletiler: [Ileti] = [] { didSet { gecmisiYaz() } }
     @Published var mesgul = false
+    @Published var sonSure = ""
     @Published var durum = "Başlatılıyor…"
     @Published var motorAdi = "…"
     @Published var modelDosyasi = ""
@@ -178,6 +179,7 @@ final class UmayMotor: ObservableObject {
         guard !s.isEmpty, !mesgul, basladi else { return }
         iletiler.append(Ileti(benMi: true, metin: s))
         mesgul = true
+        let t0 = Date()
         sira.async { [weak self] in
             var tampon = [CChar](repeating: 0, count: 16384)
             let n = umay_gomulu_sor(s, &tampon, UInt32(tampon.count))
@@ -188,6 +190,11 @@ final class UmayMotor: ObservableObject {
                 self.iletiler.append(Ileti(benMi: false, metin: UmayMotor.sade(yanit)))
                 self.motorAdi = ad
                 self.mesgul = false
+                self.sonSure = String(format: "yanıt %.1f sn", Date().timeIntervalSince(t0))
+                Okuyucu.ortak.istekAni = Date()
+                Okuyucu.ortak.sesBasladi = { [weak self] d, tur in
+                    self?.sonSure += String(format: " · ses +%.1f sn (%@)", d, tur)
+                }
                 // Hem yazılı hem sesli: ayar kapatılmadıkça yanıt okunur.
                 if (UserDefaults.standard.object(forKey: "umay.sesli") as? Bool) ?? true, n > 0 {
                     Okuyucu.ortak.kendiliginden(yanit)
