@@ -65,7 +65,7 @@ enum BulutSes {
         istek.setValue("application/json", forHTTPHeaderField: "Content-Type")
         istek.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
         let govde: [String: Any] = ["text": metin, "model_id": "eleven_flash_v2_5", "language_code": "tr",
-                                     "voice_settings": ["speed": hiz, "stability": 0.45, "similarity_boost": 0.5]]
+                                     "voice_settings": ["speed": hiz, "stability": 0.66, "similarity_boost": 0.75]]
         istek.httpBody = try? JSONSerialization.data(withJSONObject: govde)
         var sonuc: URL? = nil
         let bekle = DispatchSemaphore(value: 0)
