@@ -76,7 +76,7 @@ struct AyarGorunumu: View {
     @AppStorage("umay.bulutSesNo") private var bulutSesNo = ""
     @AppStorage("umay.bulutHiz") private var bulutHiz = 1.0
     @State private var bulutAnahtar = ""
-    @State private var bulutKayitli = BulutSes.anahtar() != nil
+    @State private var bulutKayitli = BulutSes.anahtarVarMi()
     @Environment(\.presentationMode) private var kapat
 
     var body: some View {
@@ -137,7 +137,7 @@ struct AyarGorunumu: View {
                             SecureField(bulutKayitli ? "Anahtar kayıtlı (değiştirmek için yenisini yaz)" : "ElevenLabs API anahtarı", text: $bulutAnahtar)
                                 .textFieldStyle(.roundedBorder)
                             Button("Kaydet") {
-                                BulutSes.anahtarKaydet(bulutAnahtar); bulutAnahtar = ""; bulutKayitli = BulutSes.anahtar() != nil
+                                BulutSes.anahtarKaydet(bulutAnahtar); bulutAnahtar = ""; bulutKayitli = BulutSes.anahtarVarMi()
                             }.disabled(bulutAnahtar.trimmingCharacters(in: .whitespaces).isEmpty)
                         }
                         Text("Bulut ses hızı: \(String(format: "%.2f", bulutHiz))").font(.caption)

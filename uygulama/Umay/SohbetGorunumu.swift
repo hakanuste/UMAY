@@ -66,7 +66,7 @@ final class Okuyucu {
     private func konus(_ metin: String) {
         #if os(macOS)
         // İsteğe bağlı bulut sesi (varsayılan kapalı). Olmazsa yerel sese dönülür.
-        if BulutSes.acik {
+        if BulutSes.istekli {
             sustur()
             let benim = nesil
             let (ilk, kalan) = BulutSes.bol(metin)
@@ -77,6 +77,7 @@ final class Okuyucu {
                 DispatchQueue.global(qos: .userInitiated).async { ikinci.adres = BulutSes.uret(kalan); grup.leave() }
             }
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                _ = BulutSes.anahtar()   // parola istemi çıkarsa ana kuyruğu kilitlemesin
                 let birinci = BulutSes.uret(ilk)
                 DispatchQueue.main.async {
                     guard let self = self, self.nesil == benim else { return }
