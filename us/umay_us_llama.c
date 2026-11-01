@@ -159,7 +159,7 @@ static void ozturk_duzelt(const umay_motor_api_t *m, const char *sistem, char *c
     int adet = ozturk_tara(cikti, b, 8);
     if (adet == 0) return;
     /* HIZ: yeniden yazım ikinci bir üretim demektir; uzun yanıtta (yavaş makinede dakikalar) atlanır, yalnız kısa yanıt düzeltilir. */
-    if (um_uzun(cikti) > 380) { gun_yaz("US-LLAMA: öz Türkçe düzeltme atlandı (yanıt uzun, hız)."); return; }
+    if (um_uzun(cikti) > 200) { gun_yaz("US-LLAMA: öz Türkçe düzeltme atlandı (yanıt uzun, hız)."); return; }
     char liste[512];
     ozturk_liste(b, adet, liste, sizeof liste);
     uint32_t cu = um_uzun(cikti);
@@ -190,7 +190,7 @@ static int llama_uret(umay_us_t *u, const us_istem_t *i, char *cikti, uint32_t n
     if (!sistem || !kul) { if (sistem) up_biraktir(sistem); if (kul) up_biraktir(kul); return UM_YOK; }
     int sonuc = UM_YOK;
     uint32_t im = i->en_cok_im ? i->en_cok_im : 256;
-    if (im > 320) im = 320;
+    if (im > 200) im = 200;   /* HIZ: yavaş makinede her jeton saniyelerdir; kısa, doğrudan yanıt yeter */
     const char *baglam = i->baglam ? i->baglam : "(yok)";
     uint32_t bl = um_uzun(baglam);
     for (int deneme = 0; deneme < 2; deneme++) {
