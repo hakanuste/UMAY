@@ -119,7 +119,7 @@ static int llama_hazirla(umay_us_t *u, const char *model_yolu) {
 
 static const char *SISTEM_KURAL =
     "\n\nKURALLAR: Yalnız 'DAYANAK' bölümündeki bilgiye dayanarak yanıtla. Dayanakta olmayanı uydurma; "
-    "dayanak yetmiyorsa 'bunu dayanağımda bulamadım' de. Öz Türkçe, kısa ve açık yaz: Arapça ve Farsça kökenli sözcük kullanma, Türkçe karşılığını yaz (ör. tefekkür yerine düşünce). "
+    "dayanak yetmiyorsa 'bunu dayanağımda bulamadım' de. Öz Türkçe, kısa ve açık yaz, en çok üç cümleyle: Arapça ve Farsça kökenli sözcük kullanma, Türkçe karşılığını yaz (ör. tefekkür yerine düşünce). "
     "Dayanakta sayı ya da ölçü varsa aynen koru.";
 
 /* Terminalde ham görünen "**kalın**" işaretlerini kaldırır (metin değişmez, yalnız imler). */

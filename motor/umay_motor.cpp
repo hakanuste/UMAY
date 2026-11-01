@@ -83,6 +83,7 @@ int uret(const char *sistem, const char *kullanici, uint32_t en_cok_im, char *ci
     llama_sampler_chain_add(sm, llama_sampler_init_dist(1234));     // sabit tohum: aynı soru aynı yanıt
 
     std::string yanit;
+    int cumle = 0;
     int sonuc = 0;
     // istem n_batch'ten uzunsa parça parça işlenir (aksi halde llama.cpp iddia hatasıyla çöker)
     const int32_t nb = (int32_t)(g_baglam < 512 ? g_baglam : 512);
@@ -98,6 +99,15 @@ int uret(const char *sistem, const char *kullanici, uint32_t en_cok_im, char *ci
         int32_t pl = llama_token_to_piece(vocab, t, parca, sizeof parca, 0, false);
         if (pl < 0) { sonuc = -6; break; }
         yanit.append(parca, (size_t)pl);
+        // HIZ: üç cümle bitince dur (yavaş makinede her jeton saniyelerdir; sesli yardımcıda kısa yanıt yeter).
+        // Ondalık sayıdaki noktayı (3.2) cümle sonu sayma.
+        {
+            size_t y = yanit.size();
+            char son = y ? yanit[y - 1] : 0;
+            bool bitis = (son == '.' || son == '!' || son == '?') &&
+                         !(son == '.' && y >= 2 && yanit[y - 2] >= '0' && yanit[y - 2] <= '9');
+            if (bitis && y > 40 && ++cumle >= 3) break;
+        }
         llama_batch ob = llama_batch_get_one(&t, 1);
         if (llama_decode(g_ctx, ob) != 0) { sonuc = -5; break; }
     }
