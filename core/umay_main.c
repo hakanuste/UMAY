@@ -88,7 +88,10 @@ static int onay_buyrugu(const char *soz) {
     return 1;
 }
 
+static uint64_t g_son_etkin_ms;   /* kullanıcının son iletisi: boşta işler bundan sonra bir süre susar */
+
 static void ileti_isle(const umay_ileti_t *i) {
+    g_son_etkin_ms = up_ms();
     g_son_kanal  = i->tur;
     g_son_kaynak = i->kaynak;
     gui_satir_ekle("SEN", i->govde);
@@ -335,7 +338,8 @@ void umay_tur(void) {
     gui_ciz(&g_otag);
     onay_temizle();
     /* Boştayken eksik kalan bir konuyu seyrek aralıkla web'den kapat. */
-    if (n == 0 && !otag_mesgul(&g_otag)) { egit_bosta(); kabul_bosta(); ceviri_bosta(); }
+    /* HIZ: kullanıcı konuşurken (son iletiden sonra 3 dakika) arka plan işi çalışmaz; tek iş parçacığında soruyu geciktirirdi. */
+    if (n == 0 && !otag_mesgul(&g_otag) && (g_son_etkin_ms == 0 || up_ms() - g_son_etkin_ms > 180000u)) { egit_bosta(); kabul_bosta(); ceviri_bosta(); }
 }
 
 int umay_kosuyor(void) { return g_kosuyor; }
