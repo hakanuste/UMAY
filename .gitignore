@@ -34,3 +34,8 @@ kut/portfoy.txt
 # ses eğitim verisi (kişisel ses kaydı; açık depoya girmez)
 arac/ses_egit/veri/
 *.mp4
+# yerel eğitim verisi (kişisel olabilir; asla depoya girmez)
+**/egitim/onayli.jsonl
+**/egitim/egitim.jsonl
+egitim.jsonl
+onayli.jsonl

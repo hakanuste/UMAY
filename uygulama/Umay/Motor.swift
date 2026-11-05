@@ -14,6 +14,8 @@ final class UmayMotor: ObservableObject {
     @Published var iletiler: [Ileti] = [] { didSet { gecmisiYaz() } }
     @Published var mesgul = false
     @Published var sonSure = ""
+    /// Son "doğrulanmadı" notlu yanıtın çifti; kullanıcı "doğru, ekle" deyip "Eklendi" gelirse eğitim dosyasına yazılır.
+    private var bekleyenCift: (soru: String, yanit: String)?
     @Published var durum = "Başlatılıyor…"
     @Published var motorAdi = "…"
     @Published var modelDosyasi = ""
@@ -187,6 +189,7 @@ final class UmayMotor: ObservableObject {
             let ad = String(cString: umay_gomulu_motor())
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                self.onayliCiftiIzle(soru: s, yanit: yanit)
                 self.iletiler.append(Ileti(benMi: false, metin: UmayMotor.sade(yanit)))
                 self.motorAdi = ad
                 self.mesgul = false
@@ -202,6 +205,38 @@ final class UmayMotor: ObservableObject {
             }
         }
     }
+
+    // MARK: onaylı soru–yanıt çiftleri (yerel eğitim verisi)
+
+    private static var onayliDosyasi: URL {
+        kutDizini.deletingLastPathComponent().appendingPathComponent("egitim/onayli.jsonl")
+    }
+
+    /// Yalnız kullanıcının AÇIKÇA onayladığı çiftler: önce "(doğrulanmadı)" notlu bir yanıt gelir, kullanıcı "doğru…" der,
+    /// çekirdek "Eklendi" diye yanıtlarsa o çift yerel dosyaya eklenir. Dosya makineden çıkmaz; dışa aktarma ayrı ve elle yapılır.
+    private func onayliCiftiIzle(soru: String, yanit: String) {
+        let kucuk = soru.lowercased()
+        let onay = kucuk.hasPrefix("doğru") || kucuk.hasPrefix("dogru")
+        let ret = kucuk.hasPrefix("yanlış") || kucuk.hasPrefix("yanlis")
+        if !onay && !ret { lastSoru = soru }      // önce güncelle: bu yanıt bu soruya aittir
+        if yanit.contains("doğrulanmadı") {
+            bekleyenCift = (soru: lastSoru ?? "", yanit: yanit)
+        } else if let c = bekleyenCift, !c.soru.isEmpty, onay, yanit.contains("Eklendi") {
+            let satir: [String: String] = ["soru": c.soru, "yanit": UmayMotor.sade(c.yanit)]
+            if let d = try? JSONSerialization.data(withJSONObject: satir, options: [.withoutEscapingSlashes]),
+               var metin = String(data: d, encoding: .utf8) {
+                metin += "\n"
+                let yol = UmayMotor.onayliDosyasi
+                try? FileManager.default.createDirectory(at: yol.deletingLastPathComponent(), withIntermediateDirectories: true)
+                if let h = try? FileHandle(forWritingTo: yol) { h.seekToEndOfFile(); h.write(Data(metin.utf8)); try? h.close() }
+                else { try? metin.write(to: yol, atomically: true, encoding: .utf8) }
+            }
+            bekleyenCift = nil
+        } else if ret {
+            bekleyenCift = nil
+        }
+    }
+    private var lastSoru: String?
 
     // MARK: belge ekleme (KABUL)
 
