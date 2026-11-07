@@ -16,6 +16,13 @@ jobs:
       - run: make sina
       - run: make gomulu-sina
       - run: make otuken-denetle
+      # GIZLILIK DUVARI, KOSUT CAGRI ALTINDA. sina tek is parcali ve
+      # ÖTÜKEN kipinde de derlendigi icin pthread oraya girmez; yarisma
+      # ancak gercek kosut cagri ile gorunur. Olculdu: duraagan
+      # arabellekli eski kodda 8 is parcasiyla 33943 kez gizli metin
+      # KACIYORDU (acik tarafa dusme). Bu kapi onun geri gelmesini
+      # engeller.
+      - run: make duvar-kosut
 
   mac:
     runs-on: macos-latest
