@@ -1,6 +1,7 @@
 # UMAY'ı ÖTÜKEN'e bağlamak
 
-UMAY tek başına çalışan bir Linux programıdır, ama ÖTÜKEN'e bağlanmak
+UMAY tek başına çalışan bir programdır — Linux'a değil, **POSIX'e**
+dayanır (Linux, macOS, *BSD, MSYS2/Cygwin) ve ÖTÜKEN'e bağlanmak
 üzere bırakıldı. Bağlanma noktası **tek bir katman**dır: `port/`.
 
 ## Değişen tek şey

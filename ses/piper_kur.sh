@@ -19,9 +19,14 @@ echo "UMAY — Piper kurulumu"
 echo
 
 case "$(uname -s)" in
-  Darwin) OS=macos ;;
-  Linux)  OS=linux ;;
-  *)      OS=bilinmeyen ;;
+  Darwin)        OS=macos ;;
+  Linux)         OS=linux ;;
+  FreeBSD)       OS=freebsd ;;
+  OpenBSD)       OS=openbsd ;;
+  NetBSD)        OS=netbsd ;;
+  MSYS*|MINGW*)  OS=windows-msys ;;
+  CYGWIN*)       OS=windows-cygwin ;;
+  *)             OS=bilinmeyen ;;
 esac
 yaz "isletim sistemi: $OS"
 
