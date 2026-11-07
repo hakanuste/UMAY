@@ -2230,6 +2230,37 @@ int main(void) {
         dene("Türkçe harfsiz yazım da yakalanır: kocarli", gizli_mi("KOCARLI zeytinligi") == 1);
         dene("Türkçe harfsiz: ilac/sifre (gömülü şifre)", gizli_mi("sifre unuttum") == 1);
 
+        /* POWERSHELL TEK TIRNAK KAÇIRMASI.
+         * Windows'ta bildirim ve sesli okuma komutları metni, çift
+         * tırnak içindeki -Command'in İÇİNDEKİ tek tırnaklı PowerShell
+         * dizesine koyuyor. Metin bir süre ÇIPLAK %s ile konuyordu;
+         * güvenliği bildir_temizle'nin beyaz listesine bağlıydı, yani
+         * BAŞKA bir işlevde duruyordu. Kaçırma artık yerinde.
+         * Bu denetim her platformda koşar: Windows'a özgü kod,
+         * sınanmamış kod olmak zorunda değil. */
+        {
+            char q[64];
+            uh_ps_tirnak("merhaba", q, sizeof q);
+            dene("ps tırnak: sade metin değişmez", um_esit(q, "merhaba"));
+            uh_ps_tirnak("a'b", q, sizeof q);
+            dene("ps tırnak: tek tırnak ikilenir", um_esit(q, "a''b"));
+            uh_ps_tirnak("'; calc; '", q, sizeof q);
+            dene("ps tırnak: enjeksiyon denemesi kaçırılır", um_esit(q, "''; calc; ''"));
+            char k[6];
+            um_bellek_doldur(k, 0xAA, sizeof k);   /* çöple doldur: sonlanmayı gör */
+            uh_ps_tirnak("aaaaaaaaaa", k, sizeof k);
+            /* NOT: ilk yazdığım denetim YANLIŞTI — k[sizeof k - 1] == 0
+             * bekliyordum. İşlev çıktıyı k[o]'da sonlandırır, arabelleğin
+             * TAMAMINI sıfırlamaz; sıfırlaması da gerekmez. Yanlış olan
+             * kod değil, benim iddiamdı. Doğru denetim: sınır içinde
+             * sonlanıyor ve içerik bozulmamış. */
+            int tamam = (um_uzun(k) < sizeof k);
+            for (uint32_t z = 0; z < um_uzun(k); z++) if (k[z] != 'a') tamam = 0;
+            dene("ps tırnak: arabellek taşmaz, sınır içinde sonlanır", tamam);
+            uh_ps_tirnak("", q, sizeof q);
+            dene("ps tırnak: boş metin boş kalır", q[0] == 0);
+        }
+
         /* UZUN METİN — ÖLÇÜLMÜŞ AÇIK, KAPATILDI.
          * Tarama metni `static char k[2048]`e katlıyordu; gerisi
          * kesiliyor ve hiç bakılmıyordu. Ölçüldü:

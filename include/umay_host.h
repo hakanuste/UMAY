@@ -19,6 +19,10 @@ int   uh_yol_ara(const char *ad, char *cik, uint32_t n);/* PATH'te calistirilabi
 
 /* --- dis komutlar --- */
 void  uh_tirnak(const char *s, char *cik, uint32_t n); /* kabuk icin tirnakla */
+/* PowerShell TEK TIRNAKLI dize icin kacirma (' -> ''). Windows'ta
+ * bildirim ve sesli okuma komutlari kullanir; her platformda derlenir
+ * ki sinanabilsin. Ayrinti: port/umay_host_uyum.c */
+void  uh_ps_tirnak(const char *s, char *cik, uint32_t n);
 const char *uh_sessiz(void);                           /* ">/dev/null 2>&1" ya da ">NUL 2>&1" */
 FILE *uh_boru_ac(const char *komut);                   /* stdin'ine yazilan alt surec */
 int   uh_boru_kapat(FILE *f);                          /* 0 = basarili */

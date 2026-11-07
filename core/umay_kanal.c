@@ -63,8 +63,13 @@ static int ipc_ac(umay_kanal_t *k) {
     ipc_ic_t *ic = (ipc_ic_t*)k->ic;
     ic->t = up_kapi_ac(ic->ad);
     k->acik = (ic->t >= 0);
-    if (!k->acik) gun_yaz("IPC kapısı açılamadı: %s", ic->ad);
-    else gun_yaz("IPC kapısı açık: %s", ic->ad);
+    /* Kapi yoksa bu bir ARIZA DEGILDIR: ana bilgisayarda gercek bir
+     * IPC servisi yoktur, UMAY orada klavye/gomulu kanalla calisir.
+     * "açılamadı" demek kullaniciya olmayan bir sorun gosteriyordu;
+     * "açık" demek ise daha kotusuydu — hicbir kapi yokken aciktir
+     * diyordu (konak portu kosulsuz gecerli tutamac donduruyordu). */
+    if (k->acik) gun_yaz("IPC kapısı açık: %s", ic->ad);
+    else         gun_yaz("IPC kapısı yok: %s — bu ortamda IPC kullanılmıyor", ic->ad);
     return k->acik ? UM_OLDU : UM_YANLIS;
 }
 
