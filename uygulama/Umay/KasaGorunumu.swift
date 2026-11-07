@@ -15,6 +15,8 @@ final class KasaDurumu: ObservableObject {
     @Published var mesgul = false
     @Published var gorunenAd = ""
     @Published var gorunenMetin = ""
+    /// Biyometrik açma kurulu mu (yalnız öznitelik sorgusu: istem çıkmaz).
+    @Published var biyoKayitli = false
 
     private let kuyruk = DispatchQueue(label: "umay.kasa")
     private var zamanlayici: Timer?
@@ -42,6 +44,7 @@ final class KasaDurumu: ObservableObject {
         kuyruk.async { [weak self] in
             let k = umay_gomulu_kasa_var() != 0
             let a = umay_gomulu_kasa_acik() != 0
+            let b = KasaBiyometri.kayitli
             var liste: [Kayit] = []
             if a {
                 let n = umay_gomulu_kasa_say()
@@ -60,6 +63,7 @@ final class KasaDurumu: ObservableObject {
                 guard let self = self else { return }
                 self.kuruldu = k
                 self.acik = a
+                self.biyoKayitli = b
                 self.kayitlar = liste
                 if !a { self.gorunenAd = ""; self.gorunenMetin = "" }
             }
@@ -82,6 +86,73 @@ final class KasaDurumu: ObservableObject {
     func kur(_ parola: String) { calistir({ umay_gomulu_kasa_kur(parola) }, tamam: "Kasa kuruldu. Yedek almayı unutma: kasa.bin ve kasa.yed.") }
     func ac(_ parola: String) { calistir({ umay_gomulu_kasa_ac(parola) }, tamam: "") }
     func kilitle() { kuyruk.async { umay_gomulu_kasa_kilitle() }; yenile() }
+
+    /* ---- BİYOMETRİK AÇMA ----
+     * Çekirdek tarafı (kasa_anahtari_ver / kasa_ac_anahtarla) ve köprü
+     * işlevleri yazılmış ve sınanmıştı, ama uygulama hiçbirini
+     * ÇAĞIRMIYORDU: yüz ile açma yalnız kâğıt üzerinde vardı.
+     * Ayrıntı ve güvenlik gerekçeleri: KasaBiyometri.swift. */
+
+    var biyoElverisli: Bool { KasaBiyometri.elverisli }
+    var biyoAdi: String { KasaBiyometri.ad }
+
+    /// Kasa AÇIKKEN: anahtarı biyometri korumalı depoya yaz.
+    func biyoKaydet() {
+        mesgul = true; ileti = ""
+        kuyruk.async { [weak self] in
+            let kod = KasaBiyometri.kaydet()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.mesgul = false
+                self.ileti = kod == 0
+                    ? "\(KasaBiyometri.ad) ile açma kuruldu. Ana parola yine geçerli."
+                    : KasaBiyometri.hataMetni(kod)
+                self.yenile()
+            }
+        }
+    }
+
+    /// Biyometri ile aç. İstem ana kuyruğu kilitlemesin: arka kuyrukta.
+    func biyoAc() {
+        mesgul = true; ileti = ""
+        kuyruk.async { [weak self] in
+            let kod = KasaBiyometri.ac()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.mesgul = false
+                self.ileti = kod == 0 ? "" : KasaBiyometri.hataMetni(kod)
+                self.yenile()
+            }
+        }
+    }
+
+    /// Kaydı kaldır: bundan sonra yalnız ana parolayla açılır.
+    func biyoSil() {
+        kuyruk.async { [weak self] in
+            KasaBiyometri.sil()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.ileti = "Biyometrik açma kaldırıldı."
+                self.yenile()
+            }
+        }
+    }
+
+    /// Ana parolayı değiştir. Çekirdek eski parolayı DOĞRULAR (-2 =
+    /// yanlış), yeni parola 10 karakterden kısaysa -5 döner.
+    ///
+    /// Biyometri kaydı varsa SİLİNİR: kasa anahtarı yeni parolayla
+    /// yeniden türetilir, depodaki eski anahtar artık açmaz. Kaydı
+    /// bırakmak, kullanıcıya "yüz ile aç" düğmesi gösterip her
+    /// seferinde başarısız olmak demekti.
+    func parolaDegistir(_ eski: String, _ yeni: String) {
+        let biyoVardi = biyoKayitli
+        calistir({ umay_gomulu_kasa_parola_degistir(eski, yeni) },
+                 tamam: biyoVardi
+                    ? "Parola değişti. Biyometrik açma kaldırıldı; istersen yeniden kur."
+                    : "Parola değişti.")
+        if biyoVardi { kuyruk.async { KasaBiyometri.sil() } }
+    }
 
     func ekle(ad: String, tur: Int32, veri: Data) {
         let temiz = String(ad.prefix(40))
@@ -132,6 +203,10 @@ struct KasaGorunumu: View {
     @State private var notAdi = ""
     @State private var notMetni = ""
     @State private var notAcik = false
+    @State private var guvenlikAcik = false
+    @State private var eskiParola = ""
+    @State private var yeniParola = ""
+    @State private var yeniParola2 = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -179,6 +254,13 @@ struct KasaGorunumu: View {
 
     private var kilit: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if d.biyoElverisli && d.biyoKayitli {
+                Button { d.biyoAc() } label: {
+                    Label("\(d.biyoAdi) ile aç", systemImage: "faceid")
+                }
+                .disabled(d.mesgul)
+                Text("ya da ana parolayla:").font(.caption).foregroundColor(.secondary)
+            }
             SecureField("Ana parola", text: $parola).textFieldStyle(.roundedBorder).onSubmit(ac)
             Button("Aç", action: ac).disabled(d.mesgul || parola.isEmpty)
             if d.mesgul { ProgressView("Açılıyor…") }
@@ -221,6 +303,59 @@ struct KasaGorunumu: View {
                         .frame(maxHeight: 160)
                 }
                 Button("Gizle") { d.gorunenAd = ""; d.gorunenMetin = "" }
+            }
+
+            Divider()
+            guvenlik
+        }
+    }
+
+    /// GÜVENLİK BÖLÜMÜ — kasa açıkken görünür.
+    ///
+    /// Buradaki iki iş de çekirdekte hazır ve sınanmıştı, ama uygulama
+    /// ikisini de ÇAĞIRMIYORDU: yüz ile açma ve parola değiştirme
+    /// yalnız kâğıt üzerinde vardı.
+    private var guvenlik: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            DisclosureGroup("Güvenlik", isExpanded: $guvenlikAcik) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if d.biyoElverisli {
+                        if d.biyoKayitli {
+                            HStack {
+                                Label("\(d.biyoAdi) ile açma kurulu", systemImage: "checkmark.shield")
+                                Spacer()
+                                Button("Kaldır") { d.biyoSil() }.disabled(d.mesgul)
+                            }
+                            Text("Anahtar yalnız bu aygıtta, biyometri korumalı depoda durur; iCloud'a eşitlenmez. Aygıta yeni bir yüz/parmak eklenirse kayıt kendiliğinden geçersiz olur. Aygıt parolasıyla atlanamaz.")
+                                .font(.caption).foregroundColor(.secondary)
+                        } else {
+                            Button { d.biyoKaydet() } label: {
+                                Label("\(d.biyoAdi) ile açmayı kur", systemImage: "faceid")
+                            }
+                            .disabled(d.mesgul)
+                            Text("Kasa anahtarı aygıtın biyometri korumalı deposuna yazılır. Ana parola yine geçerli kalır.")
+                                .font(.caption).foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("Bu aygıtta kullanılabilir biyometri yok; kasa yalnız ana parolayla açılır.")
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+
+                    Divider()
+                    Text("Ana parolayı değiştir").font(.callout.bold())
+                    SecureField("Şimdiki parola", text: $eskiParola).textFieldStyle(.roundedBorder)
+                    SecureField("Yeni parola (en az 10 karakter)", text: $yeniParola).textFieldStyle(.roundedBorder)
+                    SecureField("Yeniyi yinele", text: $yeniParola2).textFieldStyle(.roundedBorder)
+                    Button("Parolayı değiştir") {
+                        guard yeniParola == yeniParola2 else { d.ileti = "Yeni parolalar uyuşmuyor."; return }
+                        d.parolaDegistir(eskiParola, yeniParola)
+                        eskiParola = ""; yeniParola = ""; yeniParola2 = ""
+                    }
+                    .disabled(d.mesgul || eskiParola.isEmpty || yeniParola.count < 10)
+                    Text("Kasa yeni parolayla yeniden şifrelenir. Biyometri kaydı varsa kaldırılır: eski anahtar artık açmaz.")
+                        .font(.caption).foregroundColor(.secondary)
+                }
+                .padding(.top, 6)
             }
         }
     }

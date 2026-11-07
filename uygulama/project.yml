@@ -30,3 +30,11 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: UMAY
         MARKETING_VERSION: "0.1"
         PRODUCT_BUNDLE_IDENTIFIER: org.umay.uygulama
+        # Face ID gerekcesi ZORUNLU: olmadan biyometri cagrisinda
+        # uygulama coker (iOS kurali). Kasa anahtari biyometri
+        # korumali depoda durur; bkz. uygulama/Umay/KasaBiyometri.swift
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Kasayı yüzünle açmak için"
+
+        # Biyometri cercevesi. 'import LocalAuthentication' kendiliginden
+        # baglanir ama bagimliligi burada yazili tutmak, cerceve
+        # listesini okuyarak neyi kullandigimizi gormeyi saglar.
