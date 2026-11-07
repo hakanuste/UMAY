@@ -29,6 +29,9 @@ Telefon uygulamasına gömme için `include/umay_gomulu.h`.
 Hangi platformun neyle **kanıtlandığı** ve neyin yalnız derlendiği:
 [docs/PLATFORMLAR.md](docs/PLATFORMLAR.md).
 
+**macOS uygulaması (simgeli, Launchpad'de):** `./arac/mac_kur.sh --derle`
+(ayrıntı ve ses/hız ayarları: [uygulama/README.md](uygulama/README.md)).
+
 Kaldırmak:
 
     make kaldir
