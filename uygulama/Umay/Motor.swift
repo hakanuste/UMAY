@@ -1,5 +1,7 @@
 import Foundation
-import AppKit
+#if os(macOS)
+import AppKit        // YALNIZ macOS: iOS'ta AppKit YOKTUR.
+#endif
 import UserNotifications
 
 /// UMAY'ın C çekirdeğini saran sınıf. Çekirdek tek iplikli olduğundan bütün çağrılar tek sıradan geçer.
@@ -164,7 +166,12 @@ final class UmayMotor: ObservableObject {
                         icerik.sound = .default
                         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: icerik, trigger: nil))
                         // SESLİ: uyarı sesi, sonra Dede Korkut sesiyle okunur (Ayarlar'dan kapatılabilir).
+                        // NSSound AppKit'e özgüdür, iOS'ta yoktur. iOS'ta
+                        // bildirinin kendi sesi çalar (yukarıda
+                        // icerik.sound = .default), ek sese gerek kalmaz.
+                        #if os(macOS)
                         NSSound(named: NSSound.Name("Glass"))?.play()
+                        #endif
                         if (UserDefaults.standard.object(forKey: "umay.alarmSesli") as? Bool) ?? true {
                             Okuyucu.ortak.oku(bildiri ? "Sabah bildirisi hazır." : satir)
                         }
