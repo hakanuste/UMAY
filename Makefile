@@ -148,6 +148,21 @@ duvar-kosut:
 	   arac/duvar_kosut.c $(filter-out kabuk/umay_cli.c,$(KAYNAK)) $(LDFLAGS)
 	@./kov/duvar_kosut
 
+# PDF YAGMURU — guvenilmez girdiyle bellek guvenligi.
+# Ayristirici 1065 satir, 89 dongu ve GUVENILMEZ girdi okuyor; sina'da
+# PDF icin yalniz 6 denetim var. ASan + UBSan altinda bozulmus,
+# kesilmis ve asiri ic ice PDF'ler verilir.
+# Derinlik kaniti zorunlu: bastan reddedilen girdi yigini hicbir sey
+# kanitlamaz, bu yuzden arac donus dagilimini sayar ve derine
+# inmediyse 2 ile cikar.
+pdf-yagmur:
+	@mkdir -p kov
+	@$(CC) -std=c11 -g -O1 -fsanitize=address,undefined \
+	   -fno-omit-frame-pointer -Iinclude -o kov/pdf_yagmur \
+	   arac/pdf_yagmur.c arac/pdf_yagmur_ayirici.c \
+	   core/umay_pdf.c core/umay_str.c
+	@ASAN_OPTIONS=detect_leaks=0 ./kov/pdf_yagmur
+
 otuken-denetle:
 	@for d in $(OTUKEN_KAYNAK); do \
 	  $(CC) -std=c11 -Wall -Wextra -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
@@ -257,4 +272,4 @@ temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf \
 	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: duvar-kosut all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz
+.PHONY: pdf-yagmur duvar-kosut all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz

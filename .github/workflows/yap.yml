@@ -23,6 +23,12 @@ jobs:
       # KACIYORDU (acik tarafa dusme). Bu kapi onun geri gelmesini
       # engeller.
       - run: make duvar-kosut
+      # PDF AYRISTIRICI, GUVENILMEZ GIRDIYLE. 1065 satir, 89 dongu ve
+      # kullanicinin yukledigi/agdan inen belgeleri okuyor; sina'da
+      # yalniz 6 denetim var. ASan + UBSan altinda bozulmus, kesilmis
+      # ve asiri ic ice PDF'ler verilir. Arac derinlik kanitini da
+      # sayar: bastan reddedilen girdi yigini hicbir sey kanitlamaz.
+      - run: make pdf-yagmur
 
   mac:
     runs-on: macos-latest
