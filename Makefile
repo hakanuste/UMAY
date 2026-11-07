@@ -18,8 +18,34 @@ CC      ?= cc
 # kapisinda ortaya cikti. Ortuk bildirim C'de islevin int dondurdugunu
 # VARSAYAR — imlec donduren bir islevde bu sessiz bozulmadir.
 # Iki yapi ayni siddette olmali.
-CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher
-LDFLAGS ?=
+# OLU BOLUM AYIKLAMA — kullanilmayan islev ikiliye GIRMEZ.
+#
+# NEDEN: third_party/monocypher butun olarak derleniyor ve 46 crypto
+# islevi iceriyor; kasa bunlardan YALNIZ DORDUNU kullaniyor
+# (aead_lock, aead_unlock, argon2, wipe). X25519, EdDSA, Elligator,
+# Blake2b ve ChaCha20 cesitleri hic cagrilmadan ikiliye giriyordu.
+# Kitapligi butun tasimak olagandir — yanlis olan, kullanilmayanin
+# ikilide kalmasi.
+#
+# OLCULDU: -ffunction-sections -fdata-sections + olu bolum ayiklama
+#   418800 -> 376024 bayt (42776 bayt, %10 daha kucuk)
+#   ikilide kalan crypto_ islevi: 46 -> 13 (gercekten erisilenler)
+#   560 sinama yine geciyor.
+# Kaynaga, hele vendor kitapligina HIC dokunulmadi.
+#
+# Baglayici secenegi platforma gore: GNU ld ve lld --gc-sections,
+# Apple ld64 -dead_strip ister. uname ile secilir; capraz.sh zig
+# (lld) kullandigi icin oradaki hedefler de --gc-sections alir.
+ISLETIM := $(shell uname -s)
+ifeq ($(ISLETIM),Darwin)
+  AYIKLA := -Wl,-dead_strip
+else
+  AYIKLA := -Wl,--gc-sections
+endif
+
+CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher \
+           -ffunction-sections -fdata-sections
+LDFLAGS ?= $(AYIKLA)
 
 KAYNAK = core/umay_str.c core/umay_ortak.c core/umay_bilgi.c \
          core/umay_ozan.c core/umay_bengi.c core/umay_onay.c \
