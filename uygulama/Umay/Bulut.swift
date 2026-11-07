@@ -71,8 +71,28 @@ enum BulutSes {
         return (ilk.trimmingCharacters(in: .whitespacesAndNewlines), kalan)
     }
 
+    /// GİZLİLİK DUVARI — metin aygıttan çıkmadan önce.
+    ///
+    /// ÖLÇÜLDÜ: bu dosyada gizlilik denetimi HİÇ YOKTU. Her yanıt sesli
+    /// okunduğu için, bulut sesi açıkken HER YANITIN METNİ ElevenLabs'e
+    /// gidiyordu. C katmanındaki duvar bu yolu hiç göremiyordu, çünkü
+    /// burada C'ye uğranmıyor — duvarın varlık sebebini boşa çıkaran
+    /// bir açık.
+    ///
+    /// Duvar C'de durur (çekirdek/umay_gizli.c): gömülü sözcükler ve
+    /// kullanıcının kendi gizli.txt listesi. Köprü hazır değilse 1
+    /// döner, yani GÖNDERME — emin olunmayan durumda doğru taraf.
+    static func gizliMi(_ metin: String) -> Bool {
+        return metin.withCString { umay_gomulu_gizli_mi($0) != 0 }
+    }
+
     /// Metni mp3'e çevirir (ağ çağrısı: arka kuyrukta çağır). Başarılıysa dosya adresini döner.
     static func uret(_ metin: String) -> URL? {
+        // DUVAR, ÇIKIŞ NOKTASINDA: çağıran ne olursa olsun kişisel
+        // sözcük geçen metin buluta gitmez. Çağıran taraf da ayrıca
+        // yokluyor (bkz. SohbetGorunumu.konus); buradaki denetim
+        // ileride eklenecek her yeni çağıranı da kapsar.
+        if gizliMi(metin) { return nil }
         guard let anahtar = anahtar() else { return nil }
         let ses = (UserDefaults.standard.string(forKey: "umay.bulutSesNo") ?? "").trimmingCharacters(in: .whitespaces)
         let sesNo = ses.isEmpty ? varsayilanSes : ses

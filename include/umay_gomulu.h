@@ -69,6 +69,16 @@ int         umay_gomulu_kasa_parola_degistir(const char *eski, const char *yeni)
 int         umay_gomulu_kasa_anahtar(uint8_t cik[32]);
 int         umay_gomulu_kasa_ac_anahtarla(const uint8_t anahtar[32]);
 
+/* GIZLILIK DUVARI — uygulama, aygit disina metin gonderecegi her yerde
+ * (bulut sesi, bulut cevirisi, her turlu API) BUNU once cagirmali.
+ * 1 = kisisel sozcuk var, GONDERME. Duvar hazir degilse 1 doner:
+ * emin olunmayan durumda gondermemek dogru taraftir.
+ *
+ * Olculdu: bulut sesi yolu (uygulama/Umay/Bulut.swift) C'ye hic
+ * ugramadigi icin duvari gormuyordu ve her yanitin metni ElevenLabs'e
+ * gidiyordu. */
+int         umay_gomulu_gizli_mi(const char *metin);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

@@ -135,6 +135,19 @@ OTUKEN_KAYNAK = $(filter-out port/umay_port_host.c port/umay_host_uyum.c ses/uma
 # Dikisin SAGLAM oldugunu kanitlar: ÖTÜKEN portu ve cekirdek, ÖTÜKEN
 # kipinde derleniyor mu? Baglama yapilmaz (cekirdek ortami gerekir),
 # yalniz derleme denetlenir. ÖTÜKEN'e dokunmadan kosulabilir.
+# DUVAR KOSUT SINAMASI — gizlilik duvarinda yarisma var mi.
+# sina tek is parcali ve ÖTÜKEN kipinde de derlenir, pthread oraya
+# girmez; bu yuzden ayri hedef. Olculdu: eski kodda 8 is parcasiyla
+# 33943 kez gizli metin KACIYORDU (acik tarafa dusme).
+duvar-kosut:
+	@mkdir -p kov
+	@# main() iceren kabuk dosyasi disinda butun kaynaklar baglanir:
+	@# duvar, ayar katmanini ve port'u kullandigi icin parca parca
+	@# baglamak her yeni bagimlilikta kirilir.
+	@$(CC) $(CFLAGS) -DUMAY_SES_ACIK=1 -pthread -o kov/duvar_kosut \
+	   arac/duvar_kosut.c $(filter-out kabuk/umay_cli.c,$(KAYNAK)) $(LDFLAGS)
+	@./kov/duvar_kosut
+
 otuken-denetle:
 	@for d in $(OTUKEN_KAYNAK); do \
 	  $(CC) -std=c11 -Wall -Wextra -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
@@ -244,4 +257,4 @@ temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf \
 	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz
+.PHONY: duvar-kosut all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz

@@ -66,7 +66,14 @@ final class Okuyucu {
     private func konus(_ metin: String) {
         #if os(macOS)
         // İsteğe bağlı bulut sesi (varsayılan kapalı). Olmazsa yerel sese dönülür.
-        if BulutSes.istekli {
+        //
+        // DUVAR BURADA, BÜTÜN METNE: metin aşağıda ikiye bölünüp iki
+        // ayrı istekle gönderiliyor. Denetim yalnız çıkış noktasında
+        // olsaydı ve yalnız İKİNCİ parça engellenseydi, birinci parça
+        // buluttan çalınır, ikincisi sessizce düşerdi — yanıtın yarısı
+        // hiç okunmazdı. Bütün metne baştan bakılırsa ya tamamı buluta
+        // gider ya tamamı yerel sesle okunur.
+        if BulutSes.istekli && !BulutSes.gizliMi(metin) {
             sustur()
             let benim = nesil
             let (ilk, kalan) = BulutSes.bol(metin)

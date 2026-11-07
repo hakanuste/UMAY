@@ -18,6 +18,7 @@
 #include "umay_anim.h"
 #include "umay_sabah.h"
 #include "umay_kasa.h"
+#include "umay_gizli.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -144,6 +145,29 @@ int umay_gomulu_anim_yokla(char *cikti, uint32_t n)
         } else um_ekle(cikti, n, satir[i]);
     }
     return k;
+}
+
+/* ---- gizlilik duvari: uygulama katmani icin ----
+ *
+ * NEDEN KOPRU GEREKTI: duvar C'de, ag kapisinda duruyordu
+ * (ogren_ag_getir ve getir, ikisi de gizli_adres_mi'ye bakiyor).
+ * Ama uygulamanin BULUT SESI yolu C'ye HIC ugramiyor: Swift metni
+ * dogrudan ElevenLabs'e POST ediyordu. Her yanit sesli okundugu icin,
+ * bulut sesi acikken HER YANITIN METNI aygittan cikiyordu — duvarin
+ * varlik sebebini bosa cikaran bir acik.
+ *
+ * Ikinci ve daha genel yanlis: duvar yalniz ADRESE bakiyordu
+ * (gizli_adres_mi). C yolu yalniz GET oldugu icin orada tutarliydi,
+ * ama bir POST GOVDESI hic incelenmiyordu. Bu kopru metnin kendisini
+ * yoklar; gonderilecek govde ne olursa olsun once buradan gecer.
+ *
+ * Duvar listesi hazir degilse (g_hazir == 0) 1 DONER: emin olunmayan
+ * durumda disariya gondermemek dogru taraftir. */
+int     umay_gomulu_gizli_mi(const char *metin)
+{
+    if (!metin || !*metin) return 0;
+    if (!g_hazir) return 1;          /* emin degilsen GONDERME */
+    return gizli_mi(metin);
 }
 
 /* ---- kasa: ince sarmalayicilar (cekirdek umay_kasa.c'dedir) ---- */
