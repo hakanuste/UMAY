@@ -34,6 +34,16 @@ WINE=""
 for w in wine64 wine /usr/lib/wine/wine64; do command -v "$w" >/dev/null 2>&1 && { WINE="$w"; break; }; done
 QEMU_ARM=""
 for q in qemu-aarch64-static qemu-aarch64; do command -v "$q" >/dev/null 2>&1 && { QEMU_ARM="$q"; break; }; done
+# 32 BIT ARM VE RISC-V AYRI IKILILER ISTER.
+# "arm" etiketi aarch64'tur: 32 bit ARM'i ona vermek yanlisti ve CI'da
+# dogru sekilde "CALISMADI" dedi (ikili kosmadi, cunku qemu-aarch64 bir
+# armhf ikilisini kosturamaz). qemu-user-static paketi her ikisini de
+# getirir; yoksa hedef "calistirilamadi" yazar ve bu dogru olani
+# soylemektir — kosmadigi halde gectigini soylemek degil.
+QEMU_ARM32=""
+for q in qemu-arm-static qemu-arm; do command -v "$q" >/dev/null 2>&1 && { QEMU_ARM32="$q"; break; }; done
+QEMU_RV32=""
+for q in qemu-riscv32-static qemu-riscv32; do command -v "$q" >/dev/null 2>&1 && { QEMU_RV32="$q"; break; }; done
 
 # ad : zig-hedefi : uzanti : ek-baglama : calistirici
 # 32 BIT DE LISTEDE: UMAY'in 64 bite bagli OLMADIGINI her kosumda
@@ -46,8 +56,8 @@ HEDEFLER="
 linux-x64:x86_64-linux-musl:::native
 linux-x86:x86-linux-musl:::native
 linux-arm64:aarch64-linux-musl:::arm
-linux-arm32:arm-linux-musleabihf:::arm
-linux-riscv32:riscv32-linux-musl:::yok
+linux-arm32:arm-linux-musleabihf:::arm32
+linux-riscv32:riscv32-linux-musl:::rv32
 windows-x64:x86_64-windows-gnu:.exe:-lws2_32:wine
 windows-arm64:aarch64-windows-gnu:.exe:-lws2_32:yok
 macos-x64:x86_64-macos:::yok
@@ -63,10 +73,12 @@ kos() { # kos <calistirici> <komut...>
     native) "$@" ;;
     wine)   [ -n "$WINE" ] && timeout 600 $WINE "$@" ;;
     arm)    [ -n "$QEMU_ARM" ] && timeout 600 $QEMU_ARM "$@" ;;
+    arm32)  [ -n "$QEMU_ARM32" ] && timeout 600 $QEMU_ARM32 "$@" ;;
+    rv32)   [ -n "$QEMU_RV32" ] && timeout 600 $QEMU_RV32 "$@" ;;
     *) return 99 ;;
   esac
 }
-var_mi() { case "$1" in native) return 0;; wine) [ -n "$WINE" ];; arm) [ -n "$QEMU_ARM" ];; *) return 1;; esac; }
+var_mi() { case "$1" in native) return 0;; wine) [ -n "$WINE" ];; arm) [ -n "$QEMU_ARM" ];; arm32) [ -n "$QEMU_ARM32" ];; rv32) [ -n "$QEMU_RV32" ];; *) return 1;; esac; }
 
 echo "$HEDEFLER" | while IFS=: read -r ad hedef uz ek cal; do
   [ -z "$ad" ] && continue
