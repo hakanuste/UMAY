@@ -247,8 +247,22 @@ OT ?= ../ot
 otuken:
 	@test -d $(OT) || { echo "ÖTÜKEN agaci yok: OT=$(OT)"; exit 1; }
 	@mkdir -p kov
+	@# -no-pie BAGLAYICIYA DA VERILIR, yalniz -fno-pie yetmez.
+	@# OLCULDU: yalniz -fno-pie varken gcc baglamada kendiliginden -pie
+	@# uyguluyordu ve ELF soyle cikiyordu:
+	@#   ld: warning: relocation in read-only section `.rodata'
+	@#   ld: warning: creating DT_TEXTREL in a PIE
+	@#   .rela.dyn icinde 5845 adet R_X86_64_RELATIVE kaydi
+	@# ama DINAMIK BOLUM YOK ve ÖTÜKEN'in src/elf.c'sinde yer
+	@# degistirme isleyen hic kod yok. Yuvalardaki degerler zaten
+	@# dogruydu (dort ornek dogrulandi) cunku cekirdek tam baglama
+	@# adresine yukluyor, yani bias sifir — bugun calisirdi. Ama bu
+	@# kirilgan: baska bir adrese yuklenirse 5845 adres SESSIZCE
+	@# yanlis olur ve kimse duzeltmez.
+	@# -no-pie ile: uyari yok, yer degistirme kaydi 5845 -> 0,
+	@# dosya 504280 -> 364256 bayt (%28 kucuk), giris yine _start.
 	$(CC) -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
-	      -ffreestanding -fno-stack-protector -fno-pie -mcmodel=large \
+	      -ffreestanding -fno-stack-protector -fno-pie -no-pie -mcmodel=large \
 	      -nostdlib -T umay.ld -o kov/umay.elf $(OTUKEN_KAYNAK)
 	@echo "kov/umay.elf hazir — ÖTÜKEN diskine UMAY.ELF olarak koyun."
 

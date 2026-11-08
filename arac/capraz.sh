@@ -36,9 +36,18 @@ QEMU_ARM=""
 for q in qemu-aarch64-static qemu-aarch64; do command -v "$q" >/dev/null 2>&1 && { QEMU_ARM="$q"; break; }; done
 
 # ad : zig-hedefi : uzanti : ek-baglama : calistirici
+# 32 BIT DE LISTEDE: UMAY'in 64 bite bagli OLMADIGINI her kosumda
+# kanitlar. Olculdu: 32 bit i386 ikilisi x86-64 ana bilgisayarda
+# DOGRUDAN kosar, bu yuzden sinama takimi da orada gercekten kosuyor
+# (560 gecti, 0 kaldi — 64 bitle birebir ayni). ARM32 ve RISC-V32
+# derlenir; kosturmak icin qemu gerekir, yoksa "calistirilamadi"
+# yazar ve bu dogru olani soylemektir.
 HEDEFLER="
 linux-x64:x86_64-linux-musl:::native
+linux-x86:x86-linux-musl:::native
 linux-arm64:aarch64-linux-musl:::arm
+linux-arm32:arm-linux-musleabihf:::arm
+linux-riscv32:riscv32-linux-musl:::yok
 windows-x64:x86_64-windows-gnu:.exe:-lws2_32:wine
 windows-arm64:aarch64-windows-gnu:.exe:-lws2_32:yok
 macos-x64:x86_64-macos:::yok
