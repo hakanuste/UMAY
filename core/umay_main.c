@@ -23,6 +23,12 @@
 #include "umay_sabah.h"
 
 static otag_t        g_otag;
+
+/* Canli OTAG durumunu dis dunyaya SALT OKUNUR verir.
+ * Uygulamanin "Ajanlar" panosu hangi ajanin kostugunu buradan ogrenir;
+ * daha once bu bilgi hic disariya cikmiyordu. Imlec const: pano
+ * gosterir, degistirmez. */
+const otag_t *umay_otag(void) { return &g_otag; }
 static umay_kanal_t *g_kanal[4];
 static int           g_kanal_sayi;
 static int           g_kosuyor = 1;
