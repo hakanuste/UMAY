@@ -69,6 +69,43 @@ int         umay_gomulu_kasa_parola_degistir(const char *eski, const char *yeni)
 int         umay_gomulu_kasa_anahtar(uint8_t cik[32]);
 int         umay_gomulu_kasa_ac_anahtarla(const uint8_t anahtar[32]);
 
+/* GIZLILIK DUVARI — uygulama, aygit disina metin gonderecegi her yerde
+ * (bulut sesi, bulut cevirisi, her turlu API) BUNU once cagirmali.
+ * 1 = kisisel sozcuk var, GONDERME. Duvar hazir degilse 1 doner:
+ * emin olunmayan durumda gondermemek dogru taraftir.
+ *
+ * Olculdu: bulut sesi yolu (uygulama/Umay/Bulut.swift) C'ye hic
+ * ugramadigi icin duvari gormuyordu ve her yanitin metni ElevenLabs'e
+ * gidiyordu. */
+int         umay_gomulu_gizli_mi(const char *metin);
+
+/* ---- AJANLAR: CANLI DURUM ----
+ * umay_gomulu_ajan_say : kayitli ajan sayisi (hazir degilse 0)
+ * umay_gomulu_ajan_bilgi: i. ajanin bilgisi. 0 = oldu, -1 = yok/hazir degil.
+ *   ad      : ajanin adi ("BILGE", "TULGA", ...)
+ *   is      : isi ("otomotiv ve arac muhendisligi")
+ *   alan    : uzmanlik alani; GENEL gorevlide BOS kalir, boylece
+ *             uygulama genel/uzman ayrimini kendisi yapabilir
+ *   turler  : alabildigi gorev turleri, virgulle ("SORU,ARASTIR")
+ *   gorev   : SU ANKI gorevin metni; yalniz kosuyor/bekliyor durumunda
+ *             doldurulur. Bitmis bir ajanin eski gorevini gostermek,
+ *             calistigini sanmaya yol acar.
+ *   durum   : 0 bos, 1 kosuyor, 2 bekliyor, 3 bitti, 4 yanlis
+ *   ilerleme: 0..100, yalniz canli gorevde
+ *   gecen_ms: gorev baslayali gecen sure, yalniz canli gorevde
+ *
+ * NEDEN VAR: uygulamadaki "Ajanlar" panosu bir TANITIM LISTESIYDI.
+ * Canli durum C'de vardi ama kopruden gecmiyordu, yani Swift hangi
+ * ajanin calistigini ogrenemiyordu bile. */
+int         umay_gomulu_ajan_say(void);
+int         umay_gomulu_ajan_bilgi(int i,
+                                   char *ad, uint32_t ad_n,
+                                   char *is, uint32_t is_n,
+                                   char *alan, uint32_t alan_n,
+                                   char *turler, uint32_t turler_n,
+                                   char *gorev, uint32_t gorev_n,
+                                   int *durum, int *ilerleme, uint32_t *gecen_ms);
+
 void        umay_gomulu_kapat(void);
 const char *umay_gomulu_surum(void);
 

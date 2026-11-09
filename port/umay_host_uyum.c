@@ -138,6 +138,38 @@ int uh_yol_ara(const char *ad, char *cik, uint32_t n)
 /* ===================================================================
  * dis komutlar
  * =================================================================== */
+/* PowerShell TEK TIRNAKLI dize icin kacirma: ' karakteri '' olur.
+ *
+ * NEDEN uh_tirnak YETMEZ: uh_tirnak Windows'ta CIFT tirnak sarar ve "
+ * karakterini kacirir. Metin ise zaten cift tirnak icinde olan
+ * -Command bagimsiz degiskeninin ICINDEKI tek tirnakli PowerShell
+ * dizesine giriyor; oraya cift tirnak eklemek komutu bozar.
+ *
+ * NEDEN GEREKLI: metin daha once CIPLAK %s ile konuyordu. Bugun
+ * guvenliydi, cunku bildir_temizle bir BEYAZ LISTE uygular ve tek
+ * tirnagi bosluga cevirir (14 kotu niyetli girdiyle sinandi, hicbiri
+ * tehlikeli karakter geciremedi). Ama guvenlik BASKA bir islevde
+ * duruyordu: o listeye bir gun tek tirnak eklenirse ya da baska bir
+ * cagiran temizlemeden gecerse, kacirma olmadigi icin PowerShell
+ * dizesi kapanir ve komut enjeksiyonu olur. Kacirma yerinde olmali;
+ * beyaz liste de kalsin, iki kat koruma.
+ *
+ * NEDEN BURADA, PORT ICINDE DEGIL: port icinde "#ifdef _WIN32" altinda
+ * static duruyordu, yani yalniz Windows'ta derleniyor ve HIC
+ * SINANAMIYORDU. Burada her platformda derlenir ve sina her kosuda
+ * davranisini yoklar — Windows'a ozgu kod, Windows'a ozgu sinanmamis
+ * kod olmak zorunda degil. */
+void uh_ps_tirnak(const char *s, char *cik, uint32_t n)
+{
+    uint32_t o = 0;
+    if (!n) return;
+    for (; s && *s && o + 2 < n; s++) {
+        if (*s == '\'') { cik[o++] = '\''; if (o + 1 < n) cik[o++] = '\''; }
+        else cik[o++] = *s;
+    }
+    cik[o] = 0;
+}
+
 void uh_tirnak(const char *s, char *cik, uint32_t n)
 {
     uint32_t o = 0;

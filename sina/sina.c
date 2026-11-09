@@ -2229,6 +2229,96 @@ int main(void) {
         dene("liste dışı yer geçer", gizli_mi("Kars hava durumu") == 0);
         dene("Türkçe harfsiz yazım da yakalanır: kocarli", gizli_mi("KOCARLI zeytinligi") == 1);
         dene("Türkçe harfsiz: ilac/sifre (gömülü şifre)", gizli_mi("sifre unuttum") == 1);
+
+        /* POWERSHELL TEK TIRNAK KAÇIRMASI.
+         * Windows'ta bildirim ve sesli okuma komutları metni, çift
+         * tırnak içindeki -Command'in İÇİNDEKİ tek tırnaklı PowerShell
+         * dizesine koyuyor. Metin bir süre ÇIPLAK %s ile konuyordu;
+         * güvenliği bildir_temizle'nin beyaz listesine bağlıydı, yani
+         * BAŞKA bir işlevde duruyordu. Kaçırma artık yerinde.
+         * Bu denetim her platformda koşar: Windows'a özgü kod,
+         * sınanmamış kod olmak zorunda değil. */
+        {
+            char q[64];
+            uh_ps_tirnak("merhaba", q, sizeof q);
+            dene("ps tırnak: sade metin değişmez", um_esit(q, "merhaba"));
+            uh_ps_tirnak("a'b", q, sizeof q);
+            dene("ps tırnak: tek tırnak ikilenir", um_esit(q, "a''b"));
+            uh_ps_tirnak("'; calc; '", q, sizeof q);
+            dene("ps tırnak: enjeksiyon denemesi kaçırılır", um_esit(q, "''; calc; ''"));
+            char k[6];
+            um_bellek_doldur(k, 0xAA, sizeof k);   /* çöple doldur: sonlanmayı gör */
+            uh_ps_tirnak("aaaaaaaaaa", k, sizeof k);
+            /* NOT: ilk yazdığım denetim YANLIŞTI — k[sizeof k - 1] == 0
+             * bekliyordum. İşlev çıktıyı k[o]'da sonlandırır, arabelleğin
+             * TAMAMINI sıfırlamaz; sıfırlaması da gerekmez. Yanlış olan
+             * kod değil, benim iddiamdı. Doğru denetim: sınır içinde
+             * sonlanıyor ve içerik bozulmamış. */
+            int tamam = (um_uzun(k) < sizeof k);
+            for (uint32_t z = 0; z < um_uzun(k); z++) if (k[z] != 'a') tamam = 0;
+            dene("ps tırnak: arabellek taşmaz, sınır içinde sonlanır", tamam);
+            uh_ps_tirnak("", q, sizeof q);
+            dene("ps tırnak: boş metin boş kalır", q[0] == 0);
+        }
+
+        /* UZUN METİN — ÖLÇÜLMÜŞ AÇIK, KAPATILDI.
+         * Tarama metni `static char k[2048]`e katlıyordu; gerisi
+         * kesiliyor ve hiç bakılmıyordu. Ölçüldü:
+         *     1900 bayt + "tapu" -> 1 (yakalanır)
+         *     2300 bayt + "tapu" -> 0 (KAÇAR)
+         * Yanıtlar ve notlar bu sınırı kolayca geçer, yani duvar tam
+         * da korunması gereken yerde açılıyordu. Artık pencere pencere
+         * taranıyor ve uzunluk sınırı yok.
+         *
+         * Sınır sözcüğü bölmesin: her pencereden sonra son 47 bayt
+         * (en uzun sözcük kadar) başa taşınır. Aşağıda sözcük tam
+         * sınıra denk getirilip taranıyor — bindirme eksik olsa bu
+         * döngü kalır. */
+        {
+            const uint32_t boylar[] = { 1900u, 2300u, 5000u, 100000u };
+            for (unsigned bi = 0; bi < sizeof boylar / sizeof boylar[0]; bi++) {
+                uint32_t b = boylar[bi];
+                char *u = (char *)malloc(b + 32);
+                if (!u) continue;
+                um_bellek_doldur(u, 'a', b);
+                for (uint32_t i = 60; i < b; i += 60) u[i] = ' ';
+                um_kopya(u + b, 32, " tapu kaydi");
+                char ad[80];
+                snprintf(ad, sizeof ad, "%u bayt metnin sonundaki sözcük yakalanır", b);
+                dene(ad, gizli_mi(u) == 1);
+                um_bellek_doldur(u + b, 'b', 11); u[b + 11] = 0;
+                snprintf(ad, sizeof ad, "%u bayt temiz metin yanlış eşleşmez", b);
+                dene(ad, gizli_mi(u) == 0);
+                free(u);
+            }
+            int sinir_tamam = 1;
+            for (uint32_t of = 1000; of <= 1060; of++) {
+                char *u = (char *)malloc(of + 40);
+                if (!u) continue;
+                um_bellek_doldur(u, 'a', of);
+                um_kopya(u + of, 40, "tapu");
+                um_bellek_doldur(u + of + 4, 'b', 20); u[of + 24] = 0;
+                if (gizli_mi(u) != 1) sinir_tamam = 0;
+                free(u);
+            }
+            dene("pencere sınırının her yerinde yakalanır (ofset 1000-1060)", sinir_tamam);
+
+            /* ADRES de aynı yoldan geçer: eskiden ayrı bir duraağan
+             * arabellekte çözülüp gizli_mi'ye veriliyordu, yani adres
+             * de 2048 baytta kesiliyordu. */
+            char *ad2 = (char *)malloc(70000);
+            if (ad2) {
+                um_kopya(ad2, 70000, "http://x/?q=");
+                um_bellek_doldur(ad2 + 12, 'x', 60000);
+                um_kopya(ad2 + 60012, 40, "&r=tapu");
+                dene("60 KB adresin sonundaki sözcük yakalanır", gizli_adres_mi(ad2) == 1);
+                um_kopya(ad2 + 60012, 40, "&r=%74apu");
+                dene("60 KB adreste yüzde kodlu sözcük yakalanır", gizli_adres_mi(ad2) == 1);
+                um_kopya(ad2 + 60012, 40, "&r=hava");
+                dene("60 KB temiz adres geçer", gizli_adres_mi(ad2) == 0);
+                free(ad2);
+            }
+        }
         uh_ortam_ata("UMAY_OGREN", "1");
         ogren_getirici_ata(ul_sahte);
         uh_ortam_ata("UMAY_AG_TCMB", "http://sahte-tcmb/today.xml");

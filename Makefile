@@ -18,8 +18,34 @@ CC      ?= cc
 # kapisinda ortaya cikti. Ortuk bildirim C'de islevin int dondurdugunu
 # VARSAYAR — imlec donduren bir islevde bu sessiz bozulmadir.
 # Iki yapi ayni siddette olmali.
-CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher
-LDFLAGS ?=
+# OLU BOLUM AYIKLAMA — kullanilmayan islev ikiliye GIRMEZ.
+#
+# NEDEN: third_party/monocypher butun olarak derleniyor ve 46 crypto
+# islevi iceriyor; kasa bunlardan YALNIZ DORDUNU kullaniyor
+# (aead_lock, aead_unlock, argon2, wipe). X25519, EdDSA, Elligator,
+# Blake2b ve ChaCha20 cesitleri hic cagrilmadan ikiliye giriyordu.
+# Kitapligi butun tasimak olagandir — yanlis olan, kullanilmayanin
+# ikilide kalmasi.
+#
+# OLCULDU: -ffunction-sections -fdata-sections + olu bolum ayiklama
+#   418800 -> 376024 bayt (42776 bayt, %10 daha kucuk)
+#   ikilide kalan crypto_ islevi: 46 -> 13 (gercekten erisilenler)
+#   560 sinama yine geciyor.
+# Kaynaga, hele vendor kitapligina HIC dokunulmadi.
+#
+# Baglayici secenegi platforma gore: GNU ld ve lld --gc-sections,
+# Apple ld64 -dead_strip ister. uname ile secilir; capraz.sh zig
+# (lld) kullandigi icin oradaki hedefler de --gc-sections alir.
+ISLETIM := $(shell uname -s)
+ifeq ($(ISLETIM),Darwin)
+  AYIKLA := -Wl,-dead_strip
+else
+  AYIKLA := -Wl,--gc-sections
+endif
+
+CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O2 -Iinclude -Ithird_party/monocypher \
+           -ffunction-sections -fdata-sections
+LDFLAGS ?= $(AYIKLA)
 
 KAYNAK = core/umay_str.c core/umay_ortak.c core/umay_bilgi.c \
          core/umay_ozan.c core/umay_bengi.c core/umay_onay.c \
@@ -135,6 +161,34 @@ OTUKEN_KAYNAK = $(filter-out port/umay_port_host.c port/umay_host_uyum.c ses/uma
 # Dikisin SAGLAM oldugunu kanitlar: ÖTÜKEN portu ve cekirdek, ÖTÜKEN
 # kipinde derleniyor mu? Baglama yapilmaz (cekirdek ortami gerekir),
 # yalniz derleme denetlenir. ÖTÜKEN'e dokunmadan kosulabilir.
+# DUVAR KOSUT SINAMASI — gizlilik duvarinda yarisma var mi.
+# sina tek is parcali ve ÖTÜKEN kipinde de derlenir, pthread oraya
+# girmez; bu yuzden ayri hedef. Olculdu: eski kodda 8 is parcasiyla
+# 33943 kez gizli metin KACIYORDU (acik tarafa dusme).
+duvar-kosut:
+	@mkdir -p kov
+	@# main() iceren kabuk dosyasi disinda butun kaynaklar baglanir:
+	@# duvar, ayar katmanini ve port'u kullandigi icin parca parca
+	@# baglamak her yeni bagimlilikta kirilir.
+	@$(CC) $(CFLAGS) -DUMAY_SES_ACIK=1 -pthread -o kov/duvar_kosut \
+	   arac/duvar_kosut.c $(filter-out kabuk/umay_cli.c,$(KAYNAK)) $(LDFLAGS)
+	@./kov/duvar_kosut
+
+# PDF YAGMURU — guvenilmez girdiyle bellek guvenligi.
+# Ayristirici 1065 satir, 89 dongu ve GUVENILMEZ girdi okuyor; sina'da
+# PDF icin yalniz 6 denetim var. ASan + UBSan altinda bozulmus,
+# kesilmis ve asiri ic ice PDF'ler verilir.
+# Derinlik kaniti zorunlu: bastan reddedilen girdi yigini hicbir sey
+# kanitlamaz, bu yuzden arac donus dagilimini sayar ve derine
+# inmediyse 2 ile cikar.
+pdf-yagmur:
+	@mkdir -p kov
+	@$(CC) -std=c11 -g -O1 -fsanitize=address,undefined \
+	   -fno-omit-frame-pointer -Iinclude -o kov/pdf_yagmur \
+	   arac/pdf_yagmur.c arac/pdf_yagmur_ayirici.c \
+	   core/umay_pdf.c core/umay_str.c
+	@ASAN_OPTIONS=detect_leaks=0 ./kov/pdf_yagmur
+
 otuken-denetle:
 	@for d in $(OTUKEN_KAYNAK); do \
 	  $(CC) -std=c11 -Wall -Wextra -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
@@ -193,8 +247,22 @@ OT ?= ../ot
 otuken:
 	@test -d $(OT) || { echo "ÖTÜKEN agaci yok: OT=$(OT)"; exit 1; }
 	@mkdir -p kov
+	@# -no-pie BAGLAYICIYA DA VERILIR, yalniz -fno-pie yetmez.
+	@# OLCULDU: yalniz -fno-pie varken gcc baglamada kendiliginden -pie
+	@# uyguluyordu ve ELF soyle cikiyordu:
+	@#   ld: warning: relocation in read-only section `.rodata'
+	@#   ld: warning: creating DT_TEXTREL in a PIE
+	@#   .rela.dyn icinde 5845 adet R_X86_64_RELATIVE kaydi
+	@# ama DINAMIK BOLUM YOK ve ÖTÜKEN'in src/elf.c'sinde yer
+	@# degistirme isleyen hic kod yok. Yuvalardaki degerler zaten
+	@# dogruydu (dort ornek dogrulandi) cunku cekirdek tam baglama
+	@# adresine yukluyor, yani bias sifir — bugun calisirdi. Ama bu
+	@# kirilgan: baska bir adrese yuklenirse 5845 adres SESSIZCE
+	@# yanlis olur ve kimse duzeltmez.
+	@# -no-pie ile: uyari yok, yer degistirme kaydi 5845 -> 0,
+	@# dosya 504280 -> 364256 bayt (%28 kucuk), giris yine _start.
 	$(CC) -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party/monocypher -DUMAY_OTUKEN \
-	      -ffreestanding -fno-stack-protector -fno-pie -mcmodel=large \
+	      -ffreestanding -fno-stack-protector -fno-pie -no-pie -mcmodel=large \
 	      -nostdlib -T umay.ld -o kov/umay.elf $(OTUKEN_KAYNAK)
 	@echo "kov/umay.elf hazir — ÖTÜKEN diskine UMAY.ELF olarak koyun."
 
@@ -244,4 +312,4 @@ temiz:
 	rm -f kov/umay kov/umay_sina kov/umay.elf \
 	      kov/referans_imler.txt kov/referans_mantik.txt
 
-.PHONY: all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz
+.PHONY: pdf-yagmur duvar-kosut all sina kur kaldir ses otuken otuken-denetle otuken-bag kitaplik ceviri ceviri-say egit temiz

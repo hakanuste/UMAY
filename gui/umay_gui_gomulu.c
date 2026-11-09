@@ -18,6 +18,8 @@
 #include "umay_anim.h"
 #include "umay_sabah.h"
 #include "umay_kasa.h"
+#include "umay_gizli.h"
+#include "umay_alp.h"
 
 static int  g_acik;
 static int  g_topla;               /* yalniz sor() sirasinda 1 */
@@ -144,6 +146,112 @@ int umay_gomulu_anim_yokla(char *cikti, uint32_t n)
         } else um_ekle(cikti, n, satir[i]);
     }
     return k;
+}
+
+/* ---- ajanlar: canli durum ----
+ *
+ * NEDEN GEREKTI: uygulamadaki "Ajanlar" panosu bir TANITIM LISTESIYDI —
+ * 19 ajanin adi, isi ve kac belge okudugu yaziyordu, ama hangisinin
+ * kostugunu, hangi goreve baktigini, neye dayandigini hic
+ * gostermiyordu. Sebebi su: canli durum C'de VARDI (her alp_t'nin
+ * durum, tur_maskesi, gorev, basla_ms alanlari), ama kopruden
+ * gecmiyordu. Swift hangi ajanin calistigini ogrenemiyordu bile.
+ *
+ * Dis-parametre kalibi (metin arabellekleri + sayi imlecleri) depoda
+ * yerlesik olandir (bkz. umay_gomulu_kasa_bilgi) ve Swift'ten dogrudan
+ * "&ad" ile cagrilir. Metin AYRISTIRMASI yok: her alan kendi sinirli
+ * arabellegine yazilir, boylece bir alanin icindeki ayirici karakter
+ * sorun olmaz. */
+int umay_gomulu_ajan_say(void)
+{
+    if (!g_hazir) return 0;
+    const otag_t *o = umay_otag();
+    return o ? o->alp_sayisi : 0;
+}
+
+int umay_gomulu_ajan_bilgi(int i,
+                           char *ad, uint32_t ad_n,
+                           char *is, uint32_t is_n,
+                           char *alan, uint32_t alan_n,
+                           char *turler, uint32_t turler_n,
+                           char *gorev, uint32_t gorev_n,
+                           int *durum, int *ilerleme, uint32_t *gecen_ms)
+{
+    if (ad && ad_n) ad[0] = 0;
+    if (is && is_n) is[0] = 0;
+    if (alan && alan_n) alan[0] = 0;
+    if (turler && turler_n) turler[0] = 0;
+    if (gorev && gorev_n) gorev[0] = 0;
+    if (durum) *durum = 0;
+    if (ilerleme) *ilerleme = 0;
+    if (gecen_ms) *gecen_ms = 0;
+
+    if (!g_hazir) return -1;   /* koprunun yerlesik kalibi: hazir degilse -1 */
+    const otag_t *o = umay_otag();
+    if (!o || i < 0 || i >= o->alp_sayisi) return -1;
+    const alp_t *a = o->alplar[i];
+    if (!a) return -1;
+
+    if (ad) um_kopya(ad, ad_n, a->ad);
+    if (is) um_kopya(is, is_n, a->is);
+    /* ALAN: uygulamanin KULLANDIGI anahtar donuyor, gosterim adi degil.
+     * alan_adi() buyuk harfli gosterim adini verir ("TULGA") ve o,
+     * uzmanlarda 'ad' ile ayni seydir — yineleme olur. Uygulama ise
+     * kucuk harfli anahtara ihtiyac duyar: amblem eslemesi
+     * (AjanResmi.alan) ve kutuphane dizini (kut/tulga) onunla
+     * calisiyor. Bu yuzden ajanin kendi BILGI kategorisi veriliyor.
+     * ALAN_YOK = genel gorevli: bos kalir, boylece uygulama
+     * genel/uzman ayrimini kendisi yapar. */
+    if (alan && a->alan != ALAN_YOK)
+        um_kopya(alan, alan_n, a->kategori[0] ? a->kategori[0] : alan_adi(a->alan));
+
+    if (turler && turler_n) {
+        int ilk = 1;
+        uint32_t m = a->tur_maskesi ? a->tur_maskesi : GT_HEPSI;
+        for (int t = 0; t < GT_SAYI; t++) {
+            if (!(m & GT_BIT(t))) continue;
+            if (!ilk) um_ekle(turler, turler_n, ",");
+            um_ekle(turler, turler_n, gorev_tur_adi((gorev_tur_t)t));
+            ilk = 0;
+        }
+    }
+
+    if (durum) *durum = (int)a->durum;
+    /* Gorev metni ve ilerleme YALNIZ canli gorev varken anlamlidir;
+     * bitmis bir ajanin eski gorevini gostermek, calistigini sanmaya
+     * yol acar. */
+    if (a->gorev && (a->durum == ALP_KOSUYOR || a->durum == ALP_BEKLIYOR)) {
+        if (gorev) um_kopya(gorev, gorev_n, a->gorev->istem);
+        if (ilerleme) *ilerleme = a->gorev->ilerleme;
+        if (gecen_ms && a->basla_ms) {
+            uint64_t s = up_ms();
+            *gecen_ms = (uint32_t)(s > a->basla_ms ? s - a->basla_ms : 0);
+        }
+    }
+    return 0;
+}
+
+/* ---- gizlilik duvari: uygulama katmani icin ----
+ *
+ * NEDEN KOPRU GEREKTI: duvar C'de, ag kapisinda duruyordu
+ * (ogren_ag_getir ve getir, ikisi de gizli_adres_mi'ye bakiyor).
+ * Ama uygulamanin BULUT SESI yolu C'ye HIC ugramiyor: Swift metni
+ * dogrudan ElevenLabs'e POST ediyordu. Her yanit sesli okundugu icin,
+ * bulut sesi acikken HER YANITIN METNI aygittan cikiyordu — duvarin
+ * varlik sebebini bosa cikaran bir acik.
+ *
+ * Ikinci ve daha genel yanlis: duvar yalniz ADRESE bakiyordu
+ * (gizli_adres_mi). C yolu yalniz GET oldugu icin orada tutarliydi,
+ * ama bir POST GOVDESI hic incelenmiyordu. Bu kopru metnin kendisini
+ * yoklar; gonderilecek govde ne olursa olsun once buradan gecer.
+ *
+ * Duvar listesi hazir degilse (g_hazir == 0) 1 DONER: emin olunmayan
+ * durumda disariya gondermemek dogru taraftir. */
+int     umay_gomulu_gizli_mi(const char *metin)
+{
+    if (!metin || !*metin) return 0;
+    if (!g_hazir) return 1;          /* emin degilsen GONDERME */
+    return gizli_mi(metin);
 }
 
 /* ---- kasa: ince sarmalayicilar (cekirdek umay_kasa.c'dedir) ---- */

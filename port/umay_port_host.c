@@ -117,11 +117,13 @@ int up_bildir(const char *baslik, const char *metin) {
     bildir_temizle(baslik ? baslik : "UMAY", b, sizeof b);
     bildir_temizle(metin ? metin : "", m, sizeof m);
 #ifdef _WIN32
-    char ps[1000];
+    char ps[1000], pb[200], pm[820];
+    uh_ps_tirnak(b, pb, sizeof pb);        /* PowerShell tek tirnak kacirmasi */
+    uh_ps_tirnak(m, pm, sizeof pm);
     snprintf(ps, sizeof ps,
         "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;"
         "$n=New-Object System.Windows.Forms.NotifyIcon;$n.Icon=[System.Drawing.SystemIcons]::Information;$n.Visible=$true;"
-        "$n.ShowBalloonTip(15000,'%s','%s',[System.Windows.Forms.ToolTipIcon]::Info);Start-Sleep 16;$n.Dispose()", b, m);
+        "$n.ShowBalloonTip(15000,'%s','%s',[System.Windows.Forms.ToolTipIcon]::Info);Start-Sleep 16;$n.Dispose()", pb, pm);
     snprintf(komut, sizeof komut, "start /B powershell -NoProfile -WindowStyle Hidden -Command \"%s\" %s", ps, uh_sessiz());
 #elif defined(__APPLE__)
     char js[600], tj[640];
@@ -143,10 +145,12 @@ int up_bildir(const char *baslik, const char *metin) {
     if (!(ses && ses[0] == '0')) {
         char ses_komut[1300];
 #ifdef _WIN32
+        char pm2[820];
+        uh_ps_tirnak(m, pm2, sizeof pm2);
         snprintf(ses_komut, sizeof ses_komut,
             "start /B powershell -NoProfile -WindowStyle Hidden -Command \"Add-Type -AssemblyName System.Speech;"
             "[System.Media.SystemSounds]::Exclamation.Play();Start-Sleep -Milliseconds 700;"
-            "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;$s.Speak('%s')\" %s", m, uh_sessiz());
+            "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;$s.Speak('%s')\" %s", pm2, uh_sessiz());
         uh_komut(ses_komut);
 #elif defined(__APPLE__)
         char tm2[460];
@@ -247,14 +251,26 @@ int64_t up_boy(const char *yol) { struct stat s; return stat(yol, &s) == 0 ? (in
 /* IPC: sınamada bellek içi tek kuyruk */
 static char g_kuyruk[8][UMAY_ILETI_MAX];
 static int  g_bas_i, g_son_i, g_sayi_i;
-up_tut_t up_kapi_ac(const char *ad) { (void)ad; return 100; }
-/* Ana bilgisayarda gercek bir servis YOKTUR. Eskiden her ada 100
- * donuyordu; bu SAHTE BASARI idi ve IPC motoru baglandigini saniyordu.
- * Yalnizca testin actigi "yerel" kapi taninir, gerisi gecersizdir. */
-up_tut_t up_kapi_bagla(const char *ad) {
-    if (ad && ad[0] == 'y' && ad[1] == 'e' && ad[2] == 'r') return 100;
-    return UP_GECERSIZ;
+/* Ana bilgisayarda GERCEK bir IPC servisi YOKTUR. Yukaridaki kuyruk
+ * bir sinama ikizidir: surec icinde durur, baska bir surece ulasmaz.
+ *
+ * up_kapi_bagla bir kez duzeltilmisti (her ada 100 donuyordu; IPC
+ * motoru baglandigini saniyordu). AMA up_kapi_ac ayni SAHTE BASARI'yi
+ * surduruyordu: kosulsuz 100 donuyor, bu yuzden core/umay_main.c'nin
+ * kurdugu "umay" kanali hep acik sayiliyor ve kutuk
+ *     IPC kapısı açık: umay
+ * yaziyordu — hicbir kapi yokken. Ayni kutukte us_ipc_motor dogru
+ * davraniyordu ("'us' kapısı yok"), cunku o up_kapi_bagla kullaniyor.
+ * Iki islev ayni gercegi soylemek zorunda.
+ *
+ * Simdi ikisi de yalnizca sinamanin kullandigi "yer..." adini taniyor;
+ * gerisi UP_GECERSIZ. ÖTÜKEN tarafinda ikisi de gercek cagridir
+ * (SYS_IPC_ACS / SYS_IPC_BUL), orada bir sey degismez. */
+static up_tut_t kapi_sinama_mi(const char *ad) {
+    return (ad && ad[0] == 'y' && ad[1] == 'e' && ad[2] == 'r') ? 100 : UP_GECERSIZ;
 }
+up_tut_t up_kapi_ac(const char *ad)    { return kapi_sinama_mi(ad); }
+up_tut_t up_kapi_bagla(const char *ad) { return kapi_sinama_mi(ad); }
 int up_gonder(up_tut_t t, const void *v, uint32_t n) {
     (void)t;
     if (g_sayi_i >= 8) return UM_DOLU;

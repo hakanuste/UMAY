@@ -1,5 +1,7 @@
 import Foundation
-import AppKit
+#if os(macOS)
+import AppKit        // YALNIZ macOS: iOS'ta AppKit YOKTUR.
+#endif
 import UserNotifications
 
 /// UMAY'ın C çekirdeğini saran sınıf. Çekirdek tek iplikli olduğundan bütün çağrılar tek sıradan geçer.
@@ -19,6 +21,75 @@ final class UmayMotor: ObservableObject {
     @Published var durum = "Başlatılıyor…"
     @Published var motorAdi = "…"
     @Published var modelDosyasi = ""
+
+    // MARK: ajanların CANLI durumu
+    //
+    // Bu bilgi bir süre uygulamaya HİÇ GELMİYORDU: "Ajanlar" panosu bir
+    // tanıtım listesiydi — adlar, işler ve belge sayıları. Hangi ajanın
+    // koştuğu, hangi göreve baktığı görünmüyordu. Durum çekirdekte
+    // vardı ama köprüden geçmiyordu; artık geçiyor
+    // (umay_gomulu_ajan_say / umay_gomulu_ajan_bilgi).
+    struct Ajan: Identifiable, Equatable {
+        let sira: Int
+        let ad: String
+        let is_: String
+        /// Küçük harfli anahtar ("tulga"); GENEL görevlide boş.
+        let alan: String
+        /// Alabildiği görev türleri ("SORU,ARAŞTIR,…").
+        let turler: String
+        /// 0 boş, 1 koşuyor, 2 bekliyor, 3 bitti, 4 yanlış.
+        let durum: Int
+        /// Şu anki görevin metni; yalnız koşuyor/bekliyor durumunda dolu.
+        let gorev: String
+        let ilerleme: Int
+        let gecenMs: UInt32
+        var id: Int { sira }
+        var uzmanMi: Bool { !alan.isEmpty }
+        var calisiyorMu: Bool { durum == 1 || durum == 2 }
+        var durumAdi: String {
+            switch durum {
+            case 1: return "koşuyor"
+            case 2: return "bekliyor"
+            case 3: return "bitti"
+            case 4: return "yanlış"
+            default: return "boşta"
+            }
+        }
+    }
+    @Published var ajanlar: [Ajan] = []
+
+    /// Ajan listesini çekirdekten okur. Arka kuyrukta çağrılır.
+    func ajanlariYenile() {
+        sira.async { [weak self] in
+            let n = Int(umay_gomulu_ajan_say())
+            var l: [Ajan] = []
+            l.reserveCapacity(n)
+            for i in 0..<n {
+                var ad = [CChar](repeating: 0, count: 48)
+                var isim = [CChar](repeating: 0, count: 128)
+                var alan = [CChar](repeating: 0, count: 48)
+                var turler = [CChar](repeating: 0, count: 160)
+                var gorev = [CChar](repeating: 0, count: 256)
+                var durum: Int32 = 0, ilerleme: Int32 = 0
+                var gecen: UInt32 = 0
+                guard umay_gomulu_ajan_bilgi(Int32(i),
+                        &ad, UInt32(ad.count), &isim, UInt32(isim.count),
+                        &alan, UInt32(alan.count), &turler, UInt32(turler.count),
+                        &gorev, UInt32(gorev.count),
+                        &durum, &ilerleme, &gecen) == 0 else { continue }
+                l.append(Ajan(sira: i,
+                              ad: String(cString: ad),
+                              is_: String(cString: isim),
+                              alan: String(cString: alan),
+                              turler: String(cString: turler),
+                              durum: Int(durum),
+                              gorev: String(cString: gorev),
+                              ilerleme: Int(ilerleme),
+                              gecenMs: gecen))
+            }
+            DispatchQueue.main.async { self?.ajanlar = l }
+        }
+    }
 
     let sira = DispatchQueue(label: "umay.motor")
     private var basladi = false
@@ -164,7 +235,12 @@ final class UmayMotor: ObservableObject {
                         icerik.sound = .default
                         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: icerik, trigger: nil))
                         // SESLİ: uyarı sesi, sonra Dede Korkut sesiyle okunur (Ayarlar'dan kapatılabilir).
+                        // NSSound AppKit'e özgüdür, iOS'ta yoktur. iOS'ta
+                        // bildirinin kendi sesi çalar (yukarıda
+                        // icerik.sound = .default), ek sese gerek kalmaz.
+                        #if os(macOS)
                         NSSound(named: NSSound.Name("Glass"))?.play()
+                        #endif
                         if (UserDefaults.standard.object(forKey: "umay.alarmSesli") as? Bool) ?? true {
                             Okuyucu.ortak.oku(bildiri ? "Sabah bildirisi hazır." : satir)
                         }

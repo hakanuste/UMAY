@@ -146,6 +146,15 @@ typedef struct {
 } otag_t;
 
 void otag_kur(otag_t *o);
+/* Canli OTAG durumu, SALT OKUNUR. Uygulama katmani ajanlarin
+ * durumunu buradan okur (bkz. umay_gomulu_ajan_bilgi); daha once bu
+ * bilgi hic disariya cikmiyordu. Bildirim BURADA duruyor, kabuk
+ * basliginda degil: otag_t adsiz bir yapinin takma adidir, bu yuzden
+ * "struct otag" ileri bildirimi BASKA bir tur olur ve catisir
+ * (olculdu: conflicting types for 'umay_otag'). Tur neredeyse,
+ * erisimci de orada. */
+const otag_t *umay_otag(void);
+
 int  otag_alp_kat(otag_t *o, alp_t *a);
 int  otag_alan_var_mi(const otag_t *o, alan_t alan);
 void otag_yetenek_dok(const otag_t *o, char *c, uint32_t n);
